@@ -50,7 +50,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
 
   if (done) {
     return (
-      <Card tone="green" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center">
+      <Card tone="green" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center lg:mx-auto lg:max-w-xl lg:py-14">
         <span className="grid h-16 w-16 place-items-center rounded-full bg-green text-green-ink">
           <CheckIcon size={30} />
         </span>
@@ -74,7 +74,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
 
   if (count === 0) {
     return (
-      <Card shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-10 text-center">
+      <Card shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-10 text-center lg:mx-auto lg:max-w-xl lg:py-16">
         <span className="grid h-14 w-14 place-items-center rounded-full bg-surface-2 text-muted">
           <CartIcon size={24} />
         </span>
@@ -94,8 +94,8 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
   }
 
   return (
-    <>
-      <div className="flex flex-col gap-2.5">
+    <div className="grid gap-3.5 lg:grid-cols-3 lg:items-start lg:gap-8">
+      <div className="flex flex-col gap-2.5 lg:col-span-2 lg:gap-4">
         {lines.map(({ product, qty }) => (
           <div key={product.id} className="glass flex items-center gap-3 rounded-card p-3">
             <Link href={`/app/shop/${product.slug}`}>
@@ -104,7 +104,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
                 alt={product.name}
                 width={64}
                 height={64}
-                className="h-16 w-16 rounded-card object-cover"
+                className="h-16 w-16 rounded-card object-cover lg:h-20 lg:w-20"
               />
             </Link>
             <div className="flex min-w-0 grow flex-col gap-1">
@@ -133,6 +133,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
         ))}
       </div>
 
+      <div className="flex flex-col gap-3.5 lg:sticky lg:top-8 lg:gap-5">
       <div className="flex flex-col gap-2.5">
         <h2 className="text-base">Récupération</h2>
         <div className="glass flex gap-2.5 rounded-full p-1.5">
@@ -172,7 +173,8 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
         {pending ? "Paiement en cours…" : `Payer ${fcfa(total)}`}
         {pending ? null : <ArrowRightIcon size={18} />}
       </Button>
-    </>
+      </div>
+    </div>
   );
 }
 

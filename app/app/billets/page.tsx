@@ -18,7 +18,7 @@ export default async function BilletsPage() {
 
   return (
     <>
-      <ScreenHeader title="Mes billets" back="/app/events" />
+      <ScreenHeader title="Mes billets" subtitle="Ton pass est scanné à l\u2019entrée, comme un jeton." back="/app/events" />
 
       {tickets.length === 0 ? (
         <Card shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-10 text-center">
@@ -39,6 +39,7 @@ export default async function BilletsPage() {
         </Card>
       ) : null}
 
+      <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
       {tickets.map(({ ticket, event }) => (
         <Card key={ticket.id} shape="panel" className="overflow-hidden">
           <div className="relative h-32">
@@ -71,6 +72,7 @@ export default async function BilletsPage() {
           </div>
         </Card>
       ))}
+      </div>
     </>
   );
 }

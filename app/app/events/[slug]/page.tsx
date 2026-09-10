@@ -25,15 +25,15 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const avatars = ["/img/p-ariel.jpg", "/img/p-yannick.jpg", "/img/p-champion.jpg"];
 
   return (
-    <div className="-mx-5 -mt-4 pb-40">
-      <div className="relative h-80">
+    <div className="-mx-5 -mt-4 pb-40 lg:mx-0 lg:mt-0 lg:pb-0">
+      <div className="relative h-80 lg:h-100 lg:overflow-hidden lg:rounded-panel lg:border lg:border-line">
         <Image src={event.image} alt={event.title} fill sizes="430px" className="object-cover" priority />
-        <div className="absolute inset-0 bg-linear-to-b from-black/55 via-black/10 to-bg" />
-        <div className="absolute inset-x-5 top-4 flex items-center justify-between">
+        <div className="absolute inset-0 bg-linear-to-b from-black/55 via-black/10 to-bg lg:to-black/70" />
+        <div className="absolute inset-x-5 top-4 flex items-center justify-between lg:inset-x-6">
           <Link
             href="/app/events"
             aria-label="Retour"
-            className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur"
+            className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur lg:hidden"
           >
             <ChevronLeftIcon size={18} />
           </Link>
@@ -54,7 +54,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      <div className="relative -mt-24 flex flex-col gap-4 rounded-t-[30px] border-t border-line bg-bg/95 px-5 pt-6 backdrop-blur-xl">
+      <div className="grid lg:mt-6 lg:grid-cols-3 lg:items-start lg:gap-8">
+      <div className="relative -mt-24 flex flex-col gap-4 rounded-t-[30px] border-t border-line bg-bg/95 px-5 pt-6 backdrop-blur-xl lg:col-span-2 lg:mt-0 lg:gap-5 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:backdrop-blur-none">
         <div className="flex flex-col gap-2.5">
           <div className="flex gap-1.5">
             {event.tags.split(",").filter(Boolean).map((tag, i) => (
@@ -67,7 +68,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               </Chip>
             ))}
           </div>
-          <h1 className="text-[26px] leading-7">
+          <h1 className="text-[26px] leading-7 lg:text-[42px] lg:leading-11">
             {event.title}
             {event.subtitle ? (
               <>
@@ -129,7 +130,19 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </p>
       </div>
 
-      <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-full max-w-[430px] px-5">
+      <aside className="hidden lg:sticky lg:top-8 lg:flex lg:flex-col lg:gap-4 lg:rounded-panel lg:border lg:border-line lg:bg-surface lg:p-5">
+        <span className="label-caps">Réserver</span>
+        <p className="text-[13px] leading-5 text-dim">
+          Place gardée jusqu&apos;à l&apos;heure du check-in. Le pass QR arrive dans « Mes billets ».
+        </p>
+        <TicketButton eventId={event.id} price={event.price} owned={owned} />
+        <span className="text-[11px] text-muted">
+          {Math.max(0, event.capacity - event.attendees)} places restantes sur {event.capacity}
+        </span>
+      </aside>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-full max-w-[430px] px-5 lg:hidden">
         <div className="glass-strong rounded-full px-4 py-3">
           <TicketButton eventId={event.id} price={event.price} owned={owned} />
         </div>

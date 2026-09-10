@@ -15,7 +15,7 @@ export default async function SallesPage() {
 
   return (
     <>
-      <ScreenHeader title="Salles partenaires" />
+      <ScreenHeader title="Salles partenaires" subtitle="Tarif du jeton, tables libres et distance, mis à jour par les gérants." />
 
       <div className="flex gap-2">
         <Chip tone="solid">Douala</Chip>
@@ -23,6 +23,7 @@ export default async function SallesPage() {
         <Chip tone="neutral">Ouvertes</Chip>
       </div>
 
+      <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:gap-5">
       {venues.map((venue) => (
         <Link
           key={venue.id}
@@ -34,7 +35,7 @@ export default async function SallesPage() {
             alt={venue.name}
             width={92}
             height={92}
-            className="h-23 w-23 rounded-card object-cover"
+            className="h-23 w-23 rounded-card object-cover lg:h-28 lg:w-28"
           />
           <div className="flex grow flex-col justify-center gap-1.5">
             <span className="text-[15px] font-semibold">{venue.name}</span>
@@ -53,6 +54,7 @@ export default async function SallesPage() {
           </span>
         </Link>
       ))}
+      </div>
     </>
   );
 }

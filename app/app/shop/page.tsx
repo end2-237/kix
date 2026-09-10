@@ -25,9 +25,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <AppHeader user={user} unread={unread} />
+      <AppHeader user={user} unread={unread} title="KIX Shop" subtitle="Vapes, puffs et matériel de billard livrés à Douala ou retirés en salle." />
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 lg:hidden">
         <div className="flex flex-col gap-0.5">
           <h1 className="text-[22px]">KIX Shop</h1>
           <p className="text-xs text-muted">Vapes &amp; matériel de billard · Douala</p>
@@ -37,7 +37,8 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         </button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2 lg:justify-between">
+        <div className="flex gap-2">
         {tabs.map((tab) => (
           <Link key={tab.id} href={`/app/shop?cat=${tab.id}`}>
             <Chip tone={category === tab.id ? "solid" : "neutral"}>{tab.label}</Chip>
@@ -55,8 +56,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           Livraison · {f(DELIVERY_FEE)}
         </span>
       </div>
+      </div>
 
-      <div className={cn("grid gap-3", "grid-cols-2")}>
+      <div className={cn("grid gap-3", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5")}>
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

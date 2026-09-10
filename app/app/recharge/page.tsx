@@ -11,7 +11,7 @@ export default async function RechargePage() {
 
   return (
     <>
-      <ScreenHeader title="Recharger mes jetons" />
+      <ScreenHeader title="Recharger mes jetons" subtitle="Paiement Orange Money ou MTN MoMo, jetons crédités aussitôt." />
       <RechargeForm packs={packs} venues={venues} />
     </>
   );

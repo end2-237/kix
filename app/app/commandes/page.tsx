@@ -24,7 +24,7 @@ export default async function CommandesPage() {
 
   return (
     <>
-      <ScreenHeader title="Mes commandes" back="/app/shop" />
+      <ScreenHeader title="Mes commandes" subtitle="Suivi du paiement au retrait en salle." back="/app/shop" />
 
       {orders.length === 0 ? (
         <Card shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-10 text-center">
@@ -45,6 +45,7 @@ export default async function CommandesPage() {
         </Card>
       ) : null}
 
+      <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
       {orders.map((order) => {
         const status = statusLabels[order.status] ?? statusLabels.paid;
         return (
@@ -92,6 +93,7 @@ export default async function CommandesPage() {
           </Card>
         );
       })}
+      </div>
     </>
   );
 }

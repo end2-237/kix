@@ -10,7 +10,7 @@ export default async function PanierPage() {
   const [products, venues] = await Promise.all([getProducts(), getVenues()]);
   return (
     <>
-      <ScreenHeader title="Mon panier" back="/app/shop" />
+      <ScreenHeader title="Mon panier" subtitle="Retrait gratuit en salle ou livraison à Douala." back="/app/shop" />
       <CartClient products={products} venues={venues} />
     </>
   );

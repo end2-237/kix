@@ -34,6 +34,7 @@ export default async function NotificationsPage() {
     <>
       <ScreenHeader
         title="Notifications"
+        subtitle="Recharges, commandes, billets et récompenses."
         action={
           unread > 0 ? (
             <form action={markNotificationsRead}>
@@ -53,6 +54,7 @@ export default async function NotificationsPage() {
         </Card>
       ) : null}
 
+      <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
       {list.map((notification) => {
         const body = (
           <div className={cn("flex gap-3 rounded-card px-4 py-3.5", notification.read ? "glass" : "glass-green")}>
@@ -83,6 +85,7 @@ export default async function NotificationsPage() {
           <div key={notification.id}>{body}</div>
         );
       })}
+      </div>
     </>
   );
 }

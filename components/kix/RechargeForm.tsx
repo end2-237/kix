@@ -44,7 +44,7 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
 
   if (status === "done") {
     return (
-      <Card tone="green" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center">
+      <Card tone="green" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center lg:mx-auto lg:max-w-xl lg:py-14">
         <span className="grid h-16 w-16 place-items-center rounded-full bg-green text-green-ink">
           <CheckIcon size={30} />
         </span>
@@ -66,16 +66,17 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
   }
 
   return (
-    <>
+    <div className="grid gap-3.5 lg:grid-cols-2 lg:items-start lg:gap-8">
+      <div className="flex flex-col gap-3.5 lg:gap-6">
       <div className="flex flex-col gap-2.5">
         <h2 className="text-base">Où joues-tu ce soir ?</h2>
-        <div className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1">
+        <div className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:px-0">
           {venues.map((v) => (
             <button
               key={v.id}
               onClick={() => setVenue(v)}
               className={cn(
-                "flex w-52 shrink-0 items-center gap-2.5 rounded-card p-2.5 text-left transition",
+                "flex w-52 shrink-0 items-center gap-2.5 rounded-card p-2.5 text-left transition lg:w-full lg:shrink",
                 v.id === venue.id ? "glass-green border-[1.5px] border-green" : "glass hover:bg-surface-2",
               )}
             >
@@ -137,6 +138,9 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
         })}
       </div>
 
+      </div>
+
+      <div className="flex flex-col gap-3.5 lg:sticky lg:top-8 lg:gap-6">
       <div className="flex flex-col gap-2.5">
         <h2 className="text-base">Paiement Mobile Money</h2>
         <div className="flex gap-2.5">
@@ -177,7 +181,8 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
             : "Confirme la demande Mobile Money sur ton téléphone"}
         </p>
       </div>
-    </>
+      </div>
+    </div>
   );
 }
 

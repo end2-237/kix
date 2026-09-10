@@ -24,8 +24,10 @@ export default async function RewardsPage() {
 
   return (
     <>
-      <ScreenHeader title="KIX Rewards" />
+      <ScreenHeader title="KIX Rewards" subtitle="Chaque partie scannée compte des points, chaque tournoi te classe." />
 
+      <div className="grid gap-3.5 lg:grid-cols-2 lg:items-start lg:gap-8">
+      <div className="flex flex-col gap-3.5 lg:gap-5">
       <Card tone="violet" shape="panel" className="flex flex-col gap-3.5 p-5">
         <div className="flex items-center gap-3.5">
           <span className="grid h-13 w-13 place-items-center rounded-full border border-violet/45 bg-bg-2 text-violet-text">
@@ -64,6 +66,22 @@ export default async function RewardsPage() {
         <ConvertButton points={user.points} />
       </Card>
 
+      <div className="flex flex-wrap gap-2">
+        <Chip tone="neutral" className="text-[11px]">
+          <BoltIcon size={13} className="text-green-text" />
+          Série de 5 soirs
+        </Chip>
+        <Chip tone="neutral" className="text-[11px]">
+          <ClockIcon size={13} className="text-violet-text" />
+          Noctambule
+        </Chip>
+        <Chip tone="neutral" className="text-[11px]">
+          + 6 badges
+        </Chip>
+      </div>
+      </div>
+
+      <div className="flex flex-col gap-3.5 lg:gap-5">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base">Classement · Douala</h2>
@@ -141,7 +159,10 @@ export default async function RewardsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5">
+      </div>
+      </div>
+
+      <div className="flex flex-col gap-2.5 lg:hidden">
         <h2 className="text-base">Raccourcis</h2>
         <div className="grid grid-cols-2 gap-2.5">
           <Shortcut href="/app/commandes" icon={<CartIcon size={18} />} label="Mes commandes" />
@@ -151,22 +172,8 @@ export default async function RewardsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Chip tone="neutral" className="text-[11px]">
-          <BoltIcon size={13} className="text-green-text" />
-          Série de 5 soirs
-        </Chip>
-        <Chip tone="neutral" className="text-[11px]">
-          <ClockIcon size={13} className="text-violet-text" />
-          Noctambule
-        </Chip>
-        <Chip tone="neutral" className="text-[11px]">
-          + 6 badges
-        </Chip>
-      </div>
-
       <form action={signOut}>
-        <button className="w-full rounded-full border border-dashed border-line px-4 py-3 text-xs text-muted transition hover:text-dim">
+        <button className="w-full rounded-full border border-dashed border-line px-4 py-3 text-xs text-muted transition hover:text-dim lg:w-auto lg:px-6">
           Changer de compte · {user.name}
         </button>
       </form>

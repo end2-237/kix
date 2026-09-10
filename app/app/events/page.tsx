@@ -16,17 +16,19 @@ export default async function EventsPage() {
     <>
       <ScreenHeader
         title="Événements"
+        subtitle="Tournois et soirées des salles partenaires."
         action={
           <Link href="/app/billets" className="text-xs whitespace-nowrap text-green-text">
             Mes billets
           </Link>
         }
       />
+      <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:gap-5">
       {events.map((event) => (
         <Link
           key={event.slug}
           href={`/app/events/${event.slug}`}
-          className="relative block h-40 overflow-hidden rounded-panel border border-line"
+          className="relative block h-40 overflow-hidden rounded-panel border border-line lg:h-72"
         >
           <Image src={event.image} alt={event.title} fill sizes="430px" className="object-cover" />
           <div className="absolute inset-0 bg-linear-to-b from-black/10 via-black/45 to-black/95" />
@@ -45,6 +47,7 @@ export default async function EventsPage() {
           </div>
         </Link>
       ))}
+      </div>
     </>
   );
 }

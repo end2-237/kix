@@ -10,7 +10,7 @@ export function CartBar() {
   if (count === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-full max-w-[430px] px-5">
+    <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-full max-w-[430px] px-5 lg:inset-x-auto lg:right-10 lg:bottom-8 lg:mx-0 lg:w-80 lg:px-0">
       <Link
         href="/app/panier"
         className="glass-strong flex h-16 items-center gap-3 rounded-full border-green/35 px-5"
