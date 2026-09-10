@@ -1,0 +1,147 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Accueil",
+      "page": "page-1"
+    },
+    {
+      "file": "Recharge.dc.html",
+      "x": 480,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Recharge jetons",
+      "page": "page-1"
+    },
+    {
+      "file": "Pass.dc.html",
+      "x": 960,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "KIX Pass · QR",
+      "page": "page-1"
+    },
+    {
+      "file": "Scan.dc.html",
+      "x": 1440,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "KIX Scan · gérant",
+      "page": "page-1"
+    },
+    {
+      "file": "Shop.dc.html",
+      "x": 0,
+      "y": 1004,
+      "w": 390,
+      "h": 844,
+      "title": "KIX Shop",
+      "page": "page-1"
+    },
+    {
+      "file": "Event.dc.html",
+      "x": 480,
+      "y": 1004,
+      "w": 390,
+      "h": 844,
+      "title": "KIX Events",
+      "page": "page-1"
+    },
+    {
+      "file": "Rewards.dc.html",
+      "x": 960,
+      "y": 1004,
+      "w": 390,
+      "h": 844,
+      "title": "KIX Rewards",
+      "page": "page-1"
+    },
+    {
+      "file": "WebHome.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Web · Accueil",
+      "page": "page-2"
+    },
+    {
+      "file": "WebScan.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Web · Espace gérant",
+      "page": "page-2"
+    },
+    {
+      "file": "WebShop.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Web · KIX Shop",
+      "page": "page-2"
+    },
+    {
+      "file": "Systeme.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 900,
+      "title": "Système de design",
+      "page": "page-3"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-mobile",
+      "x": 0,
+      "y": -150,
+      "w": 760,
+      "page": "page-1",
+      "text": "Parcours MVP, de gauche à droite : accueil → recharge de jetons (Orange Money / MTN MoMo) → KIX Pass avec QR + code de secours 4 chiffres → KIX Scan côté gérant.\nCible tactile 44 px minimum, gouttière 20 px, barre d'onglets flottante en verre."
+    },
+    {
+      "id": "note-web",
+      "x": 0,
+      "y": -150,
+      "w": 760,
+      "page": "page-2",
+      "text": "Même système au format desktop : mêmes tokens, mêmes composants, gouttière 72 px. Breakpoints 390 → 768 → 1440, le mobile reste la référence.\nKIX Scan devient un poste de caisse : KPI du soir, scanner, code de secours, derniers passages."
+    },
+    {
+      "id": "note-systeme",
+      "x": 0,
+      "y": -150,
+      "w": 700,
+      "page": "page-3",
+      "text": "À remplacer avant production : prix, noms de salles et de personnes, et tous les chiffres entre crochets ([12] salles, [4 300] jetons) — ce sont des valeurs d'exemple."
+    }
+  ],
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Écrans mobiles"
+    },
+    {
+      "id": "page-2",
+      "name": "Web"
+    },
+    {
+      "id": "page-3",
+      "name": "Système"
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

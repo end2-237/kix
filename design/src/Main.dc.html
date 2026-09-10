@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!--KIX-BASE-->
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #0B0B0D">
+
+  <!-- ambiance : halo billard vert + halo nuit violet -->
+  <div style="position: absolute; top: -140px; left: -90px; width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, rgba(61,240,138,0.20), rgba(61,240,138,0) 70%)"></div>
+  <div style="position: absolute; top: 300px; right: -130px; width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, rgba(155,107,255,0.20), rgba(155,107,255,0) 70%)"></div>
+
+  <div style="position: relative; display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 0 20px">
+
+    <!-- en-tête -->
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <circle cx="15" cy="15" r="13.2" stroke="#3DF08A" stroke-width="1.6"></circle>
+          <path d="M3.4 10.6h23.2M3.4 19.4h23.2" stroke="#3DF08A" stroke-width="1.6" stroke-linecap="round" opacity="0.35"></path>
+          <circle cx="15" cy="15" r="5.4" fill="#3DF08A"></circle>
+        </svg>
+        <div style="display: flex; flex-direction: column; gap: 1px">
+          <div class="display" style="font-size: 19px; line-height: 19px; letter-spacing: 0.14em">KIX</div>
+          <div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #8C8F97">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8C8F97" stroke-width="2"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>
+            Douala · Akwa
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#8C8F97" stroke-width="3"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 14px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09)">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#F4F4F2" stroke-width="1.7" stroke-linecap="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-2 8-2 8h16s-2-1-2-8"></path><path d="M10.5 20.5a2 2 0 0 0 3 0"></path></svg>
+          <span style="position: absolute; top: 11px; right: 12px; width: 7px; height: 7px; border-radius: 50%; background: #3DF08A; box-shadow: 0 0 8px rgba(61,240,138,0.9)"></span>
+        </div>
+        <img src="p-ariel.jpg" alt="Ariel N." style="width: 44px; height: 44px; border-radius: 14px; object-fit: cover; border: 1px solid rgba(61,240,138,0.45)">
+      </div>
+    </div>
+
+    <!-- recherche -->
+    <div style="display: flex; gap: 10px">
+      <div style="flex-grow: 1; display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px; border-radius: 16px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8C8F97" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6" stroke-linecap="round"></path></svg>
+        <span style="font-size: 14px; color: #8C8F97">Salle, tournoi, puff…</span>
+      </div>
+      <div style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: rgba(155,107,255,0.16); border: 1px solid rgba(155,107,255,0.42)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4A6FF" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"></path></svg>
+      </div>
+    </div>
+
+    <!-- KIX Pass : solde jetons -->
+    <div style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; background: linear-gradient(120deg, rgba(61,240,138,0.14), rgba(255,255,255,0.05) 55%); border: 1px solid rgba(61,240,138,0.30)">
+      <div style="width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 14px; background: rgba(61,240,138,0.16); border: 1px solid rgba(61,240,138,0.35)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3DF08A" stroke-width="1.7"><circle cx="12" cy="12" r="8.4"></circle><path d="M12 7.6v8.8M9.6 9.6h4.2a1.9 1.9 0 0 1 0 3.8h-4M9.6 13.4h4.4" stroke-linecap="round"></path></svg>
+      </div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px">
+        <div style="font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: #8C8F97">Solde KIX Pass</div>
+        <div style="display: flex; align-items: baseline; gap: 7px">
+          <span class="display" style="font-size: 26px; line-height: 26px; color: #3DF08A">07</span>
+          <span style="font-size: 12px; color: #8C8F97; white-space: nowrap">jetons dispo</span>
+        </div>
+      </div>
+      <div style="flex-shrink: 0; display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border-radius: 14px; background: #3DF08A; color: #06130C; font-size: 13px; font-weight: 600">
+        Recharger
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06130C" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      </div>
+    </div>
+
+    <!-- à la une -->
+    <div style="position: relative; height: 172px; border-radius: 22px; overflow: hidden; border: 1px solid rgba(255,255,255,0.09)">
+      <img src="hero-player.jpg" alt="Joueur de billard" style="width: 100%; height: 100%; object-fit: cover">
+      <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,11,13,0.10) 20%, rgba(11,11,13,0.92))"></div>
+      <div style="position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; gap: 6px">
+          <span style="padding: 5px 10px; border-radius: 999px; background: rgba(61,240,138,0.18); border: 1px solid rgba(61,240,138,0.45); color: #3DF08A; font-size: 10px; font-weight: 600; letter-spacing: 0.08em">TOURNOI</span>
+          <span style="padding: 5px 10px; border-radius: 999px; background: rgba(11,11,13,0.55); border: 1px solid rgba(255,255,255,0.14); font-size: 10px; font-weight: 500; color: #F4F4F2">03 OCT · 18H</span>
+        </div>
+        <div class="display" style="font-size: 22px; line-height: 24px">KIX Open Douala<br>8-Ball Championship</div>
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <span style="font-size: 12px; color: #B9BCC2">Le Break Akwa · 128 inscrits</span>
+          <span style="padding: 8px 14px; border-radius: 12px; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18); font-size: 12px; font-weight: 600">Dès 3 000 F</span>
+        </div>
+      </div>
+      <div style="position: absolute; left: 0; right: 0; bottom: 6px; display: flex; justify-content: center; gap: 5px">
+        <span style="width: 16px; height: 3px; border-radius: 999px; background: #3DF08A"></span>
+        <span style="width: 5px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.35)"></span>
+        <span style="width: 5px; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.35)"></span>
+      </div>
+    </div>
+
+    <!-- catégories -->
+    <div style="display: flex; gap: 8px">
+      <span style="padding: 9px 16px; border-radius: 999px; background: #F4F4F2; color: #0B0B0D; font-size: 13px; font-weight: 600">Tout</span>
+      <span style="padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09); font-size: 13px; color: #B9BCC2">Billard</span>
+      <span style="padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09); font-size: 13px; color: #B9BCC2">Vapes</span>
+      <span style="padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09); font-size: 13px; color: #B9BCC2">Soirées</span>
+    </div>
+
+    <!-- salles -->
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <div class="display" style="font-size: 16px">Salles près de toi</div>
+        <span style="font-size: 12px; color: #3DF08A">Voir la carte</span>
+      </div>
+      <div style="display: flex; gap: 12px">
+        <div style="width: 178px; border-radius: 18px; overflow: hidden; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09)">
+          <div style="position: relative; height: 88px">
+            <img src="hall-dark.jpg" alt="Le Break Akwa" style="width: 100%; height: 100%; object-fit: cover">
+            <span style="position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; background: rgba(11,11,13,0.72); font-size: 10px; color: #3DF08A"><span style="width: 5px; height: 5px; border-radius: 50%; background: #3DF08A"></span>6 tables libres</span>
+          </div>
+          <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 14px; font-weight: 600">Le Break Akwa</div>
+            <div style="font-size: 11px; color: #8C8F97">1,2 km · Jeton 400 F</div>
+          </div>
+        </div>
+        <div style="width: 178px; border-radius: 18px; overflow: hidden; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09)">
+          <div style="position: relative; height: 88px">
+            <img src="hall-neon.jpg" alt="Zenith Pool Bar" style="width: 100%; height: 100%; object-fit: cover">
+            <span style="position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; background: rgba(11,11,13,0.72); font-size: 10px; color: #C4A6FF"><span style="width: 5px; height: 5px; border-radius: 50%; background: #9B6BFF"></span>Soirée néon</span>
+          </div>
+          <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px">
+            <div style="font-size: 14px; font-weight: 600">Zenith Pool Bar</div>
+            <div style="font-size: 11px; color: #8C8F97">3,4 km · Jeton 500 F</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ce soir -->
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 20px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09)">
+      <img src="crowd-green.jpg" alt="Soirée" style="width: 62px; height: 62px; border-radius: 14px; object-fit: cover">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 14px; font-weight: 600">Nuit Néon x Le Break</div>
+        <div style="font-size: 11px; color: #8C8F97">Ce soir · 21h · Pass 2 000 F</div>
+      </div>
+      <div style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(155,107,255,0.16); border: 1px solid rgba(155,107,255,0.40)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4A6FF" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- barre d'onglets -->
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 18px; height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-radius: 24px; background: rgba(18,18,21,0.82); border: 1px solid rgba(255,255,255,0.10); backdrop-filter: blur(22px)">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 48px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#3DF08A" stroke-width="1.8" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"></path></svg>
+      <span style="font-size: 9px; color: #3DF08A">Accueil</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 48px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#7E828A" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7.5 9 5l6 2.5L21 5v11.5L15 19l-6-2.5L3 19z"></path><path d="M9 5v11.5M15 7.5V19"></path></svg>
+      <span style="font-size: 9px; color: #7E828A">Salles</span>
+    </div>
+    <div style="width: 58px; height: 58px; margin-top: -26px; display: flex; align-items: center; justify-content: center; border-radius: 20px; background: #3DF08A; box-shadow: 0 10px 28px rgba(61,240,138,0.35)">
+      <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#06130C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"></rect><path d="M13.5 13.5h3v3h-3zM20.5 13.5v3M17.5 20.5h3M13.5 20.5h1"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 48px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#7E828A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h2.2l2 10.5h10L20 8H7"></path><circle cx="9.5" cy="19.5" r="1.4"></circle><circle cx="17.5" cy="19.5" r="1.4"></circle></svg>
+      <span style="font-size: 9px; color: #7E828A">Shop</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 48px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#7E828A" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.7"></circle><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4"></path></svg>
+      <span style="font-size: 9px; color: #7E828A">Profil</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
