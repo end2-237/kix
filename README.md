@@ -103,7 +103,10 @@ Variables utiles :
 ajouter un volume persistant, destination `/app/data`.
 
 Aucune dépendance native à compiler : ni Python ni node-gyp ne sont nécessaires
-dans l'image de build.
+dans l'image de build. Le `.npmrc` du dépôt pose `omit=peer` pour cela : npm
+installe sinon les peer dependencies optionnelles, dont le `better-sqlite3` de
+drizzle-orm, qui exige une chaîne de compilation. Toutes les dépendances
+réellement utilisées sont déclarées dans `package.json`.
 
 ## Migration vers Supabase
 

@@ -9,14 +9,20 @@ import * as schema from "./schema";
  * et driver asynchrone, donc le même code tournera sur Postgres / Supabase.
  * DATABASE_URL accepte un chemin de fichier ou une URL libsql:// (Turso).
  */
-const raw = process.env.DATABASE_URL ?? path.join(process.cwd(), "data", "kix.db");
-export const dbUrl = raw.includes("://") ? raw : `file:${path.resolve(raw)}`;
+export function getDbUrl(): string {
+  // Chemin relatif au dossier de travail du serveur : SQLite le résout lui-même,
+  // et le build n'a pas à tracer un chemin absolu calculé.
+  const raw = process.env.DATABASE_URL ?? "data/kix.db";
+  return raw.includes("://") ? raw : `file:${raw}`;
+}
 
 export function createDb() {
-  if (dbUrl.startsWith("file:")) {
-    fs.mkdirSync(path.dirname(dbUrl.slice("file:".length)), { recursive: true });
+  const url = getDbUrl();
+  if (url.startsWith("file:")) {
+    const dir = path.dirname(url.slice("file:".length));
+    if (dir && dir !== ".") fs.mkdirSync(dir, { recursive: true });
   }
-  return drizzle(createClient({ url: dbUrl }), { schema });
+  return drizzle(createClient({ url }), { schema });
 }
 
 export type Db = ReturnType<typeof createDb>;
