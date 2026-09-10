@@ -8,7 +8,7 @@ export function VenueCard({ venue, className }: { venue: Venue; className?: stri
   return (
     <Link
       href="/app/recharge"
-      className={cn("glass block w-45 shrink-0 overflow-hidden rounded-card transition hover:bg-surface-2 lg:w-full lg:shrink", className)}
+      className={cn("glass lift zoom press block w-45 shrink-0 overflow-hidden rounded-card lg:w-full lg:shrink", className)}
     >
       <div className="relative h-22 lg:h-44">
         <Image src={venue.image} alt={venue.name} fill sizes="180px" className="object-cover" />

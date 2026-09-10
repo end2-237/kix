@@ -45,7 +45,7 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
   if (status === "done") {
     return (
       <Card tone="green" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center lg:mx-auto lg:max-w-xl lg:py-14">
-        <span className="grid h-16 w-16 place-items-center rounded-full bg-green text-green-ink">
+        <span className="pop grid h-16 w-16 place-items-center rounded-full bg-green text-green-ink shadow-[0_0_50px_rgba(61,240,138,0.45)]">
           <CheckIcon size={30} />
         </span>
         <div className="flex flex-col gap-1.5">
@@ -76,7 +76,7 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
               key={v.id}
               onClick={() => setVenue(v)}
               className={cn(
-                "flex w-52 shrink-0 items-center gap-2.5 rounded-card p-2.5 text-left transition lg:w-full lg:shrink",
+                "press flex w-52 shrink-0 items-center gap-2.5 rounded-card p-2.5 text-left transition lg:w-full lg:shrink",
                 v.id === venue.id ? "glass-green border-[1.5px] border-green" : "glass hover:bg-surface-2",
               )}
             >
@@ -105,7 +105,7 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
               key={p.id}
               onClick={() => setPack(p)}
               className={cn(
-                "relative flex items-center gap-3.5 rounded-card px-4 py-3.5 text-left transition",
+                "press relative flex items-center gap-3.5 rounded-card px-4 py-3.5 text-left transition",
                 active
                   ? "glass-green border-[1.5px] border-green shadow-[0_0_26px_rgba(61,240,138,0.16)]"
                   : "glass hover:bg-surface-2",
@@ -170,7 +170,7 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
       </Card>
 
       <div className="mt-1 flex flex-col gap-2.5">
-        <Button size="lg" onClick={pay} disabled={status === "pending" || pending} className="w-full">
+        <Button size="lg" onClick={pay} loading={status === "pending" || pending} className="w-full">
           {status === "pending" || pending ? "Demande envoyée…" : `Payer ${fcfa(pack.price)}`}
           {status === "pending" || pending ? null : <ArrowRightIcon size={18} />}
         </Button>
@@ -201,7 +201,7 @@ function MethodTile({
     <button
       onClick={onClick}
       className={cn(
-        "flex grow items-center gap-2.5 rounded-card px-3.5 py-3 text-left transition",
+        "press flex grow items-center gap-2.5 rounded-card px-3.5 py-3 text-left transition",
         active ? "border-[1.5px] border-green/55 bg-green/10" : "glass hover:bg-surface-2",
       )}
     >

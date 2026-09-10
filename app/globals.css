@@ -195,18 +195,255 @@
     }
   }
 
+  /* ----------------------------------------------------------------------
+   * Mouvement. Court (150-500 ms), une seule courbe d'accélération, et tout
+   * s'arrête si la personne a demandé moins d'animations.
+   * -------------------------------------------------------------------- */
+
+  .rise {
+    animation: rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    animation-delay: calc(var(--d, 0) * 70ms);
+  }
+
+  /* chaque enfant entre en cascade, sans avoir à numéroter à la main */
+  .stagger > * {
+    animation: rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 40ms; }
+  .stagger > *:nth-child(2) { animation-delay: 110ms; }
+  .stagger > *:nth-child(3) { animation-delay: 180ms; }
+  .stagger > *:nth-child(4) { animation-delay: 250ms; }
+  .stagger > *:nth-child(5) { animation-delay: 320ms; }
+  .stagger > *:nth-child(6) { animation-delay: 390ms; }
+  .stagger > *:nth-child(n + 7) { animation-delay: 460ms; }
+
+  .pop {
+    animation: pop 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+  }
+
+  .flash {
+    animation: flash 0.6s ease-out both;
+  }
+
+  .shake {
+    animation: shake 0.4s ease-out both;
+  }
+
+  /* état de chargement : bandeau qui balaie la surface */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--kix-surface);
+  }
+
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--kix-ink) 8%, transparent),
+      transparent
+    );
+    animation: shimmer 1.4s infinite;
+  }
+
+  /* le point « en ligne » respire */
+  .live-dot {
+    position: relative;
+  }
+
+  .live-dot::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--kix-accent) 60%, transparent);
+    animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  /* survol : la carte se soulève, l'image respire */
+  .lift {
+    transition:
+      transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1),
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+
+  .lift:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--kix-accent) 35%, var(--kix-line));
+    box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--kix-accent) 55%, transparent);
+  }
+
+  .zoom img {
+    transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  .zoom:hover img {
+    transform: scale(1.06);
+  }
+
+  /* pression : tout ce qui se clique s'enfonce un peu */
+  .press {
+    transition:
+      transform 0.12s ease,
+      filter 0.2s ease;
+  }
+
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  /* flèche qui part en avant au survol */
+  .go svg {
+    transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  .go:hover svg {
+    transform: translateX(3px);
+  }
+
+  .spin {
+    animation: spin 0.8s linear infinite;
+  }
+
   .snackbar-in {
-    animation: snackbar-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+    animation: snackbar-in 0.28s cubic-bezier(0.2, 1.2, 0.4, 1);
+  }
+
+  .scan-line {
+    animation: scan 2.6s ease-in-out infinite;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes flash {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--kix-accent) 55%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 18px transparent;
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    45% { transform: translateX(5px); }
+    70% { transform: translateX(-3px); }
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes ping {
+    0% {
+      transform: scale(0.9);
+      opacity: 0.9;
+    }
+    80%, 100% {
+      transform: scale(2.1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes scan {
+    0%, 100% {
+      transform: translateY(-64px);
+      opacity: 0.15;
+    }
+    50% {
+      transform: translateY(64px);
+      opacity: 1;
+    }
+  }
+
+  .snackbar-out {
+    animation: snackbar-out 0.3s ease-in both;
+  }
+
+  .snackbar-life {
+    animation: life 2.4s linear both;
+  }
+
+  @keyframes snackbar-out {
+    to {
+      opacity: 0;
+      transform: translateY(10px) scale(0.96);
+    }
+  }
+
+  @keyframes life {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
   }
 
   @keyframes snackbar-in {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(16px) scale(0.96);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rise,
+    .stagger > *,
+    .pop,
+    .flash,
+    .shake,
+    .marquee,
+    .snackbar-in,
+    .snackbar-out,
+    .snackbar-life,
+    .scan-line,
+    .live-dot::after,
+    .skeleton::after {
+      animation: none !important;
+    }
+
+    .lift:hover,
+    .press:active {
+      transform: none;
     }
   }
 }

@@ -24,7 +24,7 @@ export function AddToCartButton({ slug, name, price, qty = 1, full = false, clas
       <button
         onClick={add}
         className={cn(
-          "flex h-14 grow items-center justify-center gap-2.5 rounded-full bg-green px-6 text-[15px] font-semibold text-green-ink transition hover:brightness-105",
+          "press flex h-14 grow items-center justify-center gap-2.5 rounded-full bg-green px-6 text-[15px] font-semibold text-green-ink transition hover:brightness-105",
           className,
         )}
       >
@@ -39,14 +39,20 @@ export function AddToCartButton({ slug, name, price, qty = 1, full = false, clas
       onClick={add}
       aria-label={`Ajouter ${name} au panier`}
       className={cn(
-        "grid h-9 w-11 place-items-center rounded-full border transition",
+        "press grid h-9 w-11 place-items-center rounded-full border transition",
         inCart > 0
           ? "border-green bg-green text-green-ink"
           : "border-green/40 bg-green/15 text-green-text hover:bg-green/25",
         className,
       )}
     >
-      {inCart > 0 ? <span className="text-[13px] font-semibold">{inCart}</span> : <PlusIcon size={15} />}
+      {inCart > 0 ? (
+        <span key={inCart} className="pop text-[13px] font-semibold">
+          {inCart}
+        </span>
+      ) : (
+        <PlusIcon size={15} />
+      )}
     </button>
   );
 }

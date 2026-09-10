@@ -10,6 +10,7 @@ import { ArrowRightIcon, CartIcon, CheckIcon, MinusIcon, PinIcon, PlusIcon, Truc
 import { checkout } from "@/lib/actions";
 import { clearCart, setQty, useCart } from "@/lib/cart";
 import { cn } from "@/lib/cn";
+import { Counter } from "@/components/ui/Counter";
 import { f, fcfa } from "@/lib/format";
 import { DELIVERY_FEE } from "@/lib/constants";
 import type { Product, Venue } from "@/db";
@@ -97,7 +98,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
     <div className="grid gap-3.5 lg:grid-cols-3 lg:items-start lg:gap-8">
       <div className="flex flex-col gap-2.5 lg:col-span-2 lg:gap-4">
         {lines.map(({ product, qty }) => (
-          <div key={product.id} className="glass flex items-center gap-3 rounded-card p-3">
+          <div key={product.id} className="glass lift flex items-center gap-3 rounded-card p-3">
             <Link href={`/app/shop/${product.slug}`}>
               <Image
                 src={product.image}
@@ -116,15 +117,15 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
               <button
                 onClick={() => setQty(product.slug, qty - 1)}
                 aria-label="Retirer un article"
-                className="glass grid h-9 w-9 place-items-center rounded-full"
+                className="glass press grid h-9 w-9 place-items-center rounded-full hover:text-green-text"
               >
                 <MinusIcon size={14} />
               </button>
-              <span className="w-5 text-center text-[13px] font-semibold">{qty}</span>
+              <span key={qty} className="pop w-5 text-center text-[13px] font-semibold">{qty}</span>
               <button
                 onClick={() => setQty(product.slug, qty + 1)}
                 aria-label="Ajouter un article"
-                className="grid h-9 w-9 place-items-center rounded-full bg-green text-green-ink"
+                className="press grid h-9 w-9 place-items-center rounded-full bg-green text-green-ink hover:brightness-105"
               >
                 <PlusIcon size={14} />
               </button>
@@ -165,11 +166,13 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
         <Line label={fulfillment === "pickup" ? "Retrait en salle" : "Livraison Douala"} value={shipping ? fcfa(shipping) : "Gratuit"} />
         <div className="mt-1 flex items-center justify-between border-t border-line pt-2.5">
           <span className="text-[13px] font-semibold">Total</span>
-          <span className="text-[22px] font-bold tracking-[-0.03em]">{fcfa(total)}</span>
+          <span className="text-[22px] font-bold tracking-[-0.03em]">
+            <Counter value={total} format="grouped" duration={450} /> FCFA
+          </span>
         </div>
       </Card>
 
-      <Button size="lg" className="w-full" onClick={pay} disabled={pending}>
+      <Button size="lg" className="w-full" onClick={pay} loading={pending}>
         {pending ? "Paiement en cours…" : `Payer ${fcfa(total)}`}
         {pending ? null : <ArrowRightIcon size={18} />}
       </Button>
@@ -193,7 +196,7 @@ function Toggle({
     <button
       onClick={onClick}
       className={cn(
-        "flex h-11 grow items-center justify-center gap-1.5 rounded-full text-xs transition",
+        "press flex h-11 grow items-center justify-center gap-1.5 rounded-full text-xs transition",
         active ? "border border-green/40 bg-green/15 font-semibold text-green-text" : "glass text-muted",
       )}
     >

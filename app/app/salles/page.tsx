@@ -28,7 +28,7 @@ export default async function SallesPage() {
         <Link
           key={venue.id}
           href="/app/recharge"
-          className="glass flex gap-3 rounded-card p-3 transition hover:bg-surface-2"
+          className="glass lift zoom flex gap-3 overflow-hidden rounded-card p-3"
         >
           <Image
             src={venue.image}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
 
 type Variant = "primary" | "glass" | "violet" | "outline" | "ghost";
@@ -21,7 +22,7 @@ const sizes: Record<Size, string> = {
 };
 
 const base =
-  "inline-flex items-center justify-center rounded-full whitespace-nowrap transition select-none active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green disabled:opacity-45";
+  "press go inline-flex items-center justify-center rounded-full whitespace-nowrap transition select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green disabled:opacity-45 disabled:pointer-events-none";
 
 type CommonProps = { variant?: Variant; size?: Size; className?: string; children: React.ReactNode };
 
@@ -29,11 +30,17 @@ export function Button({
   variant = "primary",
   size = "md",
   className,
+  loading = false,
   children,
   ...rest
-}: CommonProps & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+}: CommonProps & { loading?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button className={cn(base, variants[variant], sizes[size], className)} {...rest}>
+    <button
+      className={cn(base, variants[variant], sizes[size], className)}
+      disabled={loading || rest.disabled}
+      {...rest}
+    >
+      {loading ? <Spinner size={17} /> : null}
       {children}
     </button>
   );
@@ -57,7 +64,7 @@ export function IconButton({ className, children, ...rest }: React.ButtonHTMLAtt
   return (
     <button
       className={cn(
-        "glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2",
+        "glass press grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2 hover:text-green-text",
         className,
       )}
       {...rest}
@@ -72,7 +79,7 @@ export function IconLink({ href, className, children, ...rest }: { href: string;
     <Link
       href={href}
       className={cn(
-        "glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2",
+        "glass press grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2 hover:text-green-text",
         className,
       )}
       {...rest}

@@ -3,6 +3,7 @@ import { PageHead, Pill, Table, Td } from "@/components/admin/AdminUI";
 import { StatBlock } from "@/components/ui/Card";
 import { getAdminStats, getRecentScans, getVenueBreakdown } from "@/lib/queries";
 import { f, group } from "@/lib/format";
+import { Counter } from "@/components/ui/Counter";
 
 export const metadata = { title: "Tableau de bord" };
 
@@ -29,10 +30,39 @@ export default async function AdminDashboard() {
       />
 
       <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatBlock label="Recette jetons du jour" value={f(stats.revenueToday)} hint="parties scannées" tone="green" className="rounded-none" />
-        <StatBlock label="Recharges sur 30 jours" value={f(stats.revenueMonth)} hint={`${stats.tokensSold} jetons vendus`} className="rounded-none" />
-        <StatBlock label="Boutique sur 30 jours" value={f(stats.ordersTotal)} hint={`${stats.ordersCount} commandes`} tone="violet" className="rounded-none" />
-        <StatBlock label="Billets vendus" value={stats.ticketsSold} hint={`${stats.clients} clients inscrits`} className="rounded-none" />
+        <StatBlock
+          label="Recette jetons du jour"
+          value={
+            <>
+              <Counter value={stats.revenueToday} format="grouped" /> F
+            </>
+          }
+          hint="parties scannées"
+          tone="green"
+          className="rounded-none"
+        />
+        <StatBlock
+          label="Recharges sur 30 jours"
+          value={
+            <>
+              <Counter value={stats.revenueMonth} format="grouped" /> F
+            </>
+          }
+          hint={`${stats.tokensSold} jetons vendus`}
+          className="rounded-none"
+        />
+        <StatBlock
+          label="Boutique sur 30 jours"
+          value={
+            <>
+              <Counter value={stats.ordersTotal} format="grouped" /> F
+            </>
+          }
+          hint={`${stats.ordersCount} commandes`}
+          tone="violet"
+          className="rounded-none"
+        />
+        <StatBlock label="Billets vendus" value={<Counter value={stats.ticketsSold} />} hint={`${stats.clients} clients inscrits`} className="rounded-none" />
       </div>
 
       <section className="flex flex-col gap-3">
@@ -59,7 +89,7 @@ export default async function AdminDashboard() {
         </div>
         <Table head={["Heure", "Client", "Salle", "Type", "Code", "Montant"]}>
           {recent.map(({ scan, user, venue }) => (
-            <tr key={scan.id}>
+            <tr key={scan.id} className="transition hover:bg-surface">
               <Td className="text-muted">
                 {scan.createdAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
               </Td>

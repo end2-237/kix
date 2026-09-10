@@ -7,8 +7,8 @@ import type { Product } from "@/db";
 
 export function ProductCard({ product }: { product: Product }) {
   return (
-    <div className="glass flex flex-col overflow-hidden rounded-card">
-      <Link href={`/app/shop/${product.slug}`} className="relative block h-27 lg:h-52">
+    <div className="glass lift zoom flex flex-col overflow-hidden rounded-card">
+      <Link href={`/app/shop/${product.slug}`} className="relative block h-27 overflow-hidden lg:h-52">
         <Image src={product.image} alt={product.name} fill sizes="180px" className="object-cover" />
         {product.badgeLabel ? (
           <span

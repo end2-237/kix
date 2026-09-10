@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 import { CheckIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
-type Snack = { id: number; message: string; detail?: string; tone: "green" | "violet" | "amber" };
+type Snack = { id: number; message: string; detail?: string; tone: "green" | "violet" | "amber"; leaving?: boolean };
 
 type SnackbarApi = {
   /** Affiche un message court en bas de l'écran (2,6 s). */
@@ -20,7 +20,12 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
   const notify = useCallback<SnackbarApi["notify"]>((message, options) => {
     const id = ++seq.current;
     setSnacks((list) => [...list, { id, message, detail: options?.detail, tone: options?.tone ?? "green" }]);
-    window.setTimeout(() => setSnacks((list) => list.filter((s) => s.id !== id)), 2600);
+    // on marque la sortie avant de retirer : le message s'efface au lieu de sauter
+    window.setTimeout(
+      () => setSnacks((list) => list.map((s) => (s.id === id ? { ...s, leaving: true } : s))),
+      2400,
+    );
+    window.setTimeout(() => setSnacks((list) => list.filter((s) => s.id !== id)), 2700);
   }, []);
 
   const api = useMemo(() => ({ notify }), [notify]);
@@ -30,13 +35,14 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] flex-col gap-2 px-5 pb-40 sm:max-w-[520px] sm:pb-6"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] flex-col gap-2 px-5 pb-40 sm:inset-x-auto sm:right-6 sm:mx-0 sm:max-w-[420px] sm:pb-6"
       >
         {snacks.map((snack) => (
           <div
             key={snack.id}
             className={cn(
-              "snackbar-in glass-strong flex items-center gap-3 rounded-full py-2.5 pr-5 pl-2.5 shadow-[var(--kix-shadow)]",
+              "glass-strong relative flex items-center gap-3 overflow-hidden rounded-full py-2.5 pr-5 pl-2.5 shadow-[var(--kix-shadow)]",
+              snack.leaving ? "snackbar-out" : "snackbar-in",
               snack.tone === "green" && "border-green/45",
               snack.tone === "violet" && "border-violet/45",
               snack.tone === "amber" && "border-amber/45",
@@ -44,7 +50,7 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
           >
             <span
               className={cn(
-                "grid h-8 w-8 shrink-0 place-items-center rounded-full",
+                "pop grid h-8 w-8 shrink-0 place-items-center rounded-full",
                 snack.tone === "green" && "bg-green text-green-ink",
                 snack.tone === "violet" && "bg-violet text-white",
                 snack.tone === "amber" && "bg-amber text-green-ink",
@@ -56,6 +62,14 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
               <span className="truncate text-[13px] font-medium">{snack.message}</span>
               {snack.detail ? <span className="truncate text-[11px] text-muted">{snack.detail}</span> : null}
             </span>
+            <span
+              className={cn(
+                "snackbar-life absolute inset-x-0 bottom-0 h-0.5 origin-left",
+                snack.tone === "green" && "bg-green",
+                snack.tone === "violet" && "bg-violet",
+                snack.tone === "amber" && "bg-amber",
+              )}
+            />
           </div>
         ))}
       </div>

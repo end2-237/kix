@@ -19,7 +19,8 @@ import { getRecentScans, getVenueStats } from "@/lib/queries";
 import { requireRole } from "@/lib/session";
 import { signOut } from "@/lib/actions";
 import { cn } from "@/lib/cn";
-import { f, group } from "@/lib/format";
+import { group } from "@/lib/format";
+import { Counter } from "@/components/ui/Counter";
 
 export const metadata = { title: "KIX Scan" };
 
@@ -135,7 +136,7 @@ export default async function GerantPage() {
           </div>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-2 rounded-full border border-green/30 bg-green/12 px-3 py-2 text-[11px] text-green-text">
-              <span className="h-1.5 w-1.5 rounded-full bg-green" />
+              <span className="live-dot h-1.5 w-1.5 rounded-full bg-green" />
               En ligne
             </span>
             <span className="lg:hidden">
@@ -147,13 +148,17 @@ export default async function GerantPage() {
         <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
           <StatBlock
             label="Jetons débités"
-            value={stats?.debited ?? 0}
+            value={<Counter value={stats?.debited ?? 0} />}
             hint="depuis minuit"
             className="rounded-none"
           />
           <StatBlock
             label="Recette du jour"
-            value={f(stats?.revenue ?? 0)}
+            value={
+              <>
+                <Counter value={stats?.revenue ?? 0} format="grouped" /> F
+              </>
+            }
             hint="versement lundi"
             tone="green"
             className="rounded-none"
@@ -166,7 +171,7 @@ export default async function GerantPage() {
           />
           <StatBlock
             label="Billets scannés"
-            value={stats?.tickets ?? 0}
+            value={<Counter value={stats?.tickets ?? 0} />}
             hint="entrées validées"
             tone="violet"
             className="rounded-none"
@@ -184,7 +189,7 @@ export default async function GerantPage() {
 
             <div className="flex flex-col gap-2.5">
               {recent.map(({ scan, user, venue: scanVenue }) => (
-                <div key={scan.id} className="flex items-center gap-3 rounded-none bg-surface px-3.5 py-3">
+                <div key={scan.id} className="flex items-center gap-3 rounded-none bg-surface px-3.5 py-3 transition hover:bg-surface-2">
                   {user?.avatar ? (
                     <Image
                       src={user.avatar}

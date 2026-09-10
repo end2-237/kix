@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useSnackbar } from "@/components/ui/Snackbar";
+import { Spinner } from "@/components/ui/Spinner";
 import { convertPoints } from "@/lib/actions";
 import { POINTS_PER_FREE_TOKEN } from "@/lib/constants";
 
@@ -20,9 +21,10 @@ export function ConvertButton({ points }: { points: number }) {
           else notify("Conversion impossible", { detail: result.error, tone: "amber" });
         })
       }
-      className="flex h-11 items-center rounded-full bg-green px-4 text-[13px] font-semibold text-green-ink transition hover:brightness-105 disabled:opacity-40"
+      className="press flex h-11 items-center gap-2 rounded-full bg-green px-4 text-[13px] font-semibold text-green-ink transition hover:brightness-105 disabled:opacity-40"
     >
-      {pending ? "…" : "Convertir"}
+      {pending ? <Spinner size={15} /> : null}
+      {pending ? "En cours" : "Convertir"}
     </button>
   );
 }

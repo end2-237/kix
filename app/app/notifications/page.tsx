@@ -57,7 +57,12 @@ export default async function NotificationsPage() {
       <div className="flex flex-col gap-3.5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
       {list.map((notification) => {
         const body = (
-          <div className={cn("flex gap-3 rounded-card px-4 py-3.5", notification.read ? "glass" : "glass-green")}>
+          <div
+            className={cn(
+              "lift flex gap-3 rounded-card px-4 py-3.5",
+              notification.read ? "glass" : "glass-green",
+            )}
+          >
             <span
               className={cn(
                 "grid h-10 w-10 shrink-0 place-items-center rounded-full",

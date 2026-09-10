@@ -49,7 +49,7 @@ export default async function CommandesPage() {
       {orders.map((order) => {
         const status = statusLabels[order.status] ?? statusLabels.paid;
         return (
-          <Card key={order.id} className="flex flex-col gap-3 p-4">
+          <Card key={order.id} className="lift flex flex-col gap-3 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-col gap-1">
                 <span className="text-[13px] font-semibold">

@@ -67,7 +67,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </aside>
 
-      <main className="flex grow flex-col gap-6 p-5 lg:p-8">{children}</main>
+      <main className="stagger flex grow flex-col gap-6 p-5 lg:p-8">{children}</main>
     </div>
   );
 }

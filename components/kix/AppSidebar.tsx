@@ -17,7 +17,7 @@ import {
 } from "@/components/icons";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/cn";
-import { pad2 } from "@/lib/format";
+import { Counter } from "@/components/ui/Counter";
 import { useCart } from "@/lib/cart";
 import type { User } from "@/db";
 
@@ -59,14 +59,16 @@ export function AppSidebar({ user, balance, unread }: { user: User; balance: num
         <div className="glass-green flex flex-col gap-3 rounded-card p-4">
           <span className="label-caps">Solde KIX Pass</span>
           <span className="flex items-baseline gap-2">
-            <span className="text-[28px] leading-none font-bold tracking-[-0.03em] text-green-text">
-              {pad2(balance)}
-            </span>
+            <Counter
+              value={balance}
+              format="pad2"
+              className="text-[28px] leading-none font-bold tracking-[-0.03em] text-green-text"
+            />
             <span className="text-xs text-muted">jetons</span>
           </span>
           <Link
             href="/app/recharge"
-            className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-green text-[13px] font-semibold text-green-ink transition hover:brightness-105"
+            className="press go flex h-10 items-center justify-center gap-1.5 rounded-full bg-green text-[13px] font-semibold text-green-ink transition hover:brightness-105"
           >
             Recharger
             <PlusIcon size={14} />
@@ -79,7 +81,7 @@ export function AppSidebar({ user, balance, unread }: { user: User; balance: num
               key={href}
               href={href}
               className={cn(
-                "flex h-11 items-center gap-3 rounded-full px-4 text-sm transition",
+                "press flex h-11 items-center gap-3 rounded-full px-4 text-sm transition hover:translate-x-0.5",
                 isActive(href)
                   ? "border border-green/30 bg-green/12 font-semibold text-green-text"
                   : "text-dim hover:bg-surface-2 hover:text-ink",
@@ -102,7 +104,7 @@ export function AppSidebar({ user, balance, unread }: { user: User; balance: num
               key={href}
               href={href}
               className={cn(
-                "flex h-9 items-center gap-2 rounded-full px-4 text-[13px] transition hover:text-ink",
+                "flex h-9 items-center gap-2 rounded-full px-4 text-[13px] transition hover:translate-x-0.5 hover:text-ink",
                 isActive(href) ? "text-green-text" : "text-muted",
               )}
             >
@@ -116,7 +118,7 @@ export function AppSidebar({ user, balance, unread }: { user: User; balance: num
           ))}
         </div>
 
-        <Link href="/app/rewards" className="glass mt-auto flex items-center gap-3 rounded-card p-3">
+        <Link href="/app/rewards" className="glass lift mt-auto flex items-center gap-3 rounded-card p-3">
           {user.avatar ? (
             <Image
               src={user.avatar}

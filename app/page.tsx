@@ -4,6 +4,7 @@ import { DotGrid } from "@/components/site/DotGrid";
 import { Marquee } from "@/components/site/Marquee";
 import { SiteNav } from "@/components/site/SiteNav";
 import { ArrowRightIcon, ClockIcon, UserIcon } from "@/components/icons";
+import { Reveal } from "@/components/ui/Reveal";
 import { getEvents, getVenues } from "@/lib/queries";
 import { f } from "@/lib/format";
 
@@ -42,7 +43,7 @@ export default async function LandingPage() {
         <div className="halo halo-violet -right-40 bottom-0 h-150 w-150" />
 
         <div className="relative mx-auto flex min-h-[660px] max-w-400 flex-col px-5 pt-12 pb-6 lg:min-h-[720px] lg:px-10">
-          <div className="grid gap-8 lg:grid-cols-3 lg:items-start lg:gap-6">
+          <div className="stagger grid gap-8 lg:grid-cols-3 lg:items-start lg:gap-6">
             <div className="flex flex-col gap-4">
               <h1 className="text-[58px] font-extrabold lg:text-[86px] xl:text-[104px]">Casse.</h1>
               <p className="max-w-64 text-[13px] leading-5 text-muted">
@@ -73,7 +74,7 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <div className="relative mt-8 flex grow items-end justify-center lg:mt-2">
+          <div className="rise relative mt-8 flex grow items-end justify-center lg:mt-2" style={{ ["--d" as string]: 4 }}>
             <div className="relative h-90 w-72 overflow-hidden rounded-t-[160px] border border-line lg:h-100 lg:w-84">
               <Image
                 src="/img/player-cut.jpg"
@@ -87,8 +88,8 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col gap-6 border-t border-line pt-6 sm:flex-row sm:items-end sm:justify-between">
-            <div className="rect flex w-fit items-center gap-5 px-5 py-4">
+          <div className="rise mt-8 flex flex-col gap-6 border-t border-line pt-6 sm:flex-row sm:items-end sm:justify-between" style={{ ["--d" as string]: 6 }}>
+            <div className="rect lift flex w-fit items-center gap-5 px-5 py-4">
               <span className="flex flex-col gap-1">
                 <span className="label-caps">Ta salle du soir</span>
                 <span className="text-[15px] font-semibold">{venues[0]?.name ?? "Le Break Akwa"}</span>
@@ -107,7 +108,7 @@ export default async function LandingPage() {
 
             <Link
               href="/app/recharge"
-              className="group flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-green-text uppercase"
+              className="press group flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-green-text uppercase"
             >
               Réserver une table
               <span className="grid h-9 w-9 place-items-center rounded-full border border-green/45 transition group-hover:bg-green group-hover:text-green-ink">
@@ -131,7 +132,7 @@ export default async function LandingPage() {
         />
         <div className="absolute inset-0 -z-10 bg-bg/72" />
 
-        <div className="flex max-w-3xl flex-col items-center gap-7 text-center">
+        <Reveal className="stagger flex max-w-3xl flex-col items-center gap-7 text-center">
           <p className="text-[12px] tracking-[0.22em] text-dim uppercase">
             Trouve une table, achète tes jetons, scanne, joue
           </p>
@@ -148,17 +149,17 @@ export default async function LandingPage() {
           </p>
           <Link
             href="/app"
-            className="flex h-13 items-center gap-3 rounded-full bg-green px-7 text-[13px] font-semibold tracking-[0.16em] text-green-ink uppercase transition hover:brightness-105"
+            className="press go flex h-13 items-center gap-3 rounded-full bg-green px-7 text-[13px] font-semibold tracking-[0.16em] text-green-ink uppercase transition hover:brightness-105"
           >
             Réserver une table
             <ArrowRightIcon size={16} className="-rotate-45" />
           </Link>
-        </div>
+        </Reveal>
       </section>
 
       {/* --------------------------------------------------------------- coachs */}
       <section className="border-y border-line px-5 py-16 lg:px-10">
-        <div className="mx-auto flex max-w-400 flex-col gap-8">
+        <Reveal className="mx-auto flex max-w-400 flex-col gap-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <span className="h-px w-12 bg-green" />
@@ -166,7 +167,7 @@ export default async function LandingPage() {
                 Joue comme un pro
               </h2>
             </div>
-            <Link href="/app/events" className="flex items-center gap-2 text-[13px] text-dim hover:text-ink">
+            <Link href="/app/events" className="go flex items-center gap-2 text-[13px] text-dim hover:text-ink">
               Voir tous les coachs
               <span className="grid h-8 w-8 place-items-center rounded-full border border-line">
                 <ArrowRightIcon size={14} />
@@ -178,7 +179,7 @@ export default async function LandingPage() {
             {coaches.map((coach) => (
               <article
                 key={coach.name}
-                className="relative h-100 overflow-hidden rounded-panel border border-line lg:h-115"
+                className="lift zoom group relative h-100 overflow-hidden rounded-panel border border-line lg:h-115"
               >
                 <Image
                   src={coach.image}
@@ -192,7 +193,7 @@ export default async function LandingPage() {
                 <div className="absolute inset-x-5 top-5 flex items-start justify-between">
                   <Link
                     href="/app/recharge"
-                    className="flex h-10 items-center rounded-full bg-green px-4 text-[11px] font-semibold tracking-[0.12em] text-green-ink uppercase"
+                    className="press flex h-10 items-center rounded-full bg-green px-4 text-[11px] font-semibold tracking-[0.12em] text-green-ink uppercase"
                   >
                     Réserver une séance
                   </Link>
@@ -202,7 +203,7 @@ export default async function LandingPage() {
                 </div>
 
                 <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4">
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 transition-transform duration-500 group-hover:-translate-y-1">
                     <div className="flex gap-2">
                       <Stat icon={<ClockIcon size={14} />} value={coach.hours} label="de table" />
                       <Stat icon={<UserIcon size={14} />} value={coach.students} label="élèves" />
@@ -224,7 +225,7 @@ export default async function LandingPage() {
               Joue comme un champion
             </span>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* --------------------------------------------------------------- tables */}
@@ -238,7 +239,7 @@ export default async function LandingPage() {
         />
         <div className="absolute inset-0 -z-10 bg-black/62" />
 
-        <div className="mx-auto flex min-h-[560px] max-w-400 flex-col justify-between gap-10">
+        <Reveal className="mx-auto flex min-h-[560px] max-w-400 flex-col justify-between gap-10">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <span className="flex items-center gap-2.5 rounded-full bg-white/12 px-4 py-2.5 text-[11px] font-semibold tracking-[0.16em] text-white uppercase backdrop-blur">
               Choisis ta table
@@ -250,7 +251,7 @@ export default async function LandingPage() {
             </span>
           </div>
 
-          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+          <div className="stagger flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
             {["Élève", "Ton", "Jeu", "De Billard"].map((word) => (
               <span key={word} className="text-[44px] font-extrabold text-green lg:text-[76px] xl:text-[92px]">
                 {word}
@@ -261,7 +262,7 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-end justify-between gap-6">
             <Link
               href="/app/salles"
-              className="flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-green uppercase"
+              className="press go flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-green uppercase"
             >
               Réserver une table
               <span className="grid h-9 w-9 place-items-center rounded-full border border-green/60">
@@ -274,7 +275,7 @@ export default async function LandingPage() {
                 <Link
                   key={venue.id}
                   href="/app/salles"
-                  className="relative h-20 w-28 overflow-hidden border border-white/25 lg:h-24 lg:w-36"
+                  className="zoom relative h-20 w-28 overflow-hidden border border-white/25 transition hover:border-green lg:h-24 lg:w-36"
                 >
                   <Image src={venue.image} alt={venue.name} fill sizes="144px" className="object-cover" />
                   <span className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-[10px] text-white">
@@ -284,7 +285,7 @@ export default async function LandingPage() {
               ))}
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* --------------------------------------------------------------- footer */}

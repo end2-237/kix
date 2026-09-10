@@ -14,7 +14,11 @@ export function SiteNav() {
     <header className="relative z-20 flex items-center justify-between gap-4 border-b border-line px-5 py-4 lg:px-10">
       <nav className="hidden items-center gap-7 text-[13px] text-dim lg:flex">
         {links.map((link) => (
-          <Link key={link.href} href={link.href} className="transition hover:text-ink">
+          <Link
+            key={link.href}
+            href={link.href}
+            className="relative transition after:absolute after:-bottom-1.5 after:left-0 after:h-px after:w-0 after:bg-green after:transition-all after:duration-300 hover:text-ink hover:after:w-full"
+          >
             {link.label}
           </Link>
         ))}
@@ -30,7 +34,7 @@ export function SiteNav() {
         <ThemeToggle />
         <Link
           href="/app"
-          className="flex h-11 items-center rounded-full bg-green px-5 text-[13px] font-semibold text-green-ink transition hover:brightness-105"
+          className="press flex h-11 items-center rounded-full bg-green px-5 text-[13px] font-semibold text-green-ink transition hover:brightness-105"
         >
           Ouvrir l&apos;app
         </Link>

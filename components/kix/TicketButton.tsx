@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { CheckIcon, TicketIcon } from "@/components/icons";
+import { Spinner } from "@/components/ui/Spinner";
 import { buyTicket } from "@/lib/actions";
 import { fcfa } from "@/lib/format";
 
@@ -45,12 +46,12 @@ export function TicketButton({
         disabled={pending}
         className={
           taken
-            ? "flex h-12 grow items-center justify-center gap-2 rounded-full border border-green/45 bg-green/15 text-sm font-semibold text-green-text"
-            : "flex h-12 grow items-center justify-center gap-2 rounded-full bg-green text-sm font-semibold text-green-ink transition hover:brightness-105"
+            ? "pop press flex h-12 grow items-center justify-center gap-2 rounded-full border border-green/45 bg-green/15 text-sm font-semibold text-green-text"
+            : "press flex h-12 grow items-center justify-center gap-2 rounded-full bg-green text-sm font-semibold text-green-ink transition hover:brightness-105"
         }
       >
-        {taken ? <CheckIcon size={18} /> : <TicketIcon size={18} />}
-        {pending ? "…" : taken ? "Voir mon billet" : "Prendre mon billet"}
+        {pending ? <Spinner size={17} /> : taken ? <CheckIcon size={18} /> : <TicketIcon size={18} />}
+        {pending ? "Réservation…" : taken ? "Voir mon billet" : "Prendre mon billet"}
       </button>
     </div>
   );
