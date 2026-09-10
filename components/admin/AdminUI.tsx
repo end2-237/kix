@@ -1,0 +1,185 @@
+import { cn } from "@/lib/cn";
+
+/* Les écrans d'admin assument le rectangle : tableaux, champs et filets nets,
+   pastilles réservées aux actions. */
+
+export function PageHead({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-[26px] lg:text-[32px]">{title}</h1>
+        {subtitle ? <p className="text-[13px] text-muted">{subtitle}</p> : null}
+      </div>
+      {action}
+    </header>
+  );
+}
+
+export function Table({ head, children }: { head: string[]; children: React.ReactNode }) {
+  return (
+    <div className="overflow-x-auto border border-line">
+      <table className="w-full min-w-160 border-collapse text-left text-[13px]">
+        <thead>
+          <tr className="border-b border-line bg-surface">
+            {head.map((cell) => (
+              <th key={cell} className="px-4 py-3 text-[11px] font-medium tracking-[0.1em] text-muted uppercase">
+                {cell}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+export function Td({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <td className={cn("px-4 py-3 align-middle", className)}>{children}</td>;
+}
+
+export function Field({
+  label,
+  name,
+  defaultValue,
+  type = "text",
+  placeholder,
+  required,
+  className,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | number | null;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+}) {
+  return (
+    <label className={cn("flex flex-col gap-1.5", className)}>
+      <span className="text-[11px] tracking-[0.1em] text-muted uppercase">{label}</span>
+      <input
+        name={name}
+        type={type}
+        defaultValue={defaultValue ?? ""}
+        placeholder={placeholder}
+        required={required}
+        className="h-11 rounded-none border border-line bg-surface px-3 text-[13px] text-ink outline-none focus:border-green"
+      />
+    </label>
+  );
+}
+
+export function TextArea({
+  label,
+  name,
+  defaultValue,
+  rows = 3,
+  className,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | null;
+  rows?: number;
+  className?: string;
+}) {
+  return (
+    <label className={cn("flex flex-col gap-1.5", className)}>
+      <span className="text-[11px] tracking-[0.1em] text-muted uppercase">{label}</span>
+      <textarea
+        name={name}
+        rows={rows}
+        defaultValue={defaultValue ?? ""}
+        className="rounded-none border border-line bg-surface px-3 py-2.5 text-[13px] text-ink outline-none focus:border-green"
+      />
+    </label>
+  );
+}
+
+export function Select({
+  label,
+  name,
+  defaultValue,
+  options,
+  className,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | null;
+  options: { value: string; label: string }[];
+  className?: string;
+}) {
+  return (
+    <label className={cn("flex flex-col gap-1.5", className)}>
+      <span className="text-[11px] tracking-[0.1em] text-muted uppercase">{label}</span>
+      <select
+        name={name}
+        defaultValue={defaultValue ?? options[0]?.value}
+        className="h-11 rounded-none border border-line bg-surface px-3 text-[13px] text-ink outline-none focus:border-green"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="bg-bg text-ink">
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+export function Switch({ label, name, defaultChecked = true }: { label: string; name: string; defaultChecked?: boolean }) {
+  return (
+    <label className="flex items-center gap-2.5 self-end pb-2.5 text-[13px]">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 accent-[var(--kix-accent)]" />
+      {label}
+    </label>
+  );
+}
+
+export function SubmitButton({ children = "Enregistrer" }: { children?: React.ReactNode }) {
+  return (
+    <button className="h-11 rounded-full bg-green px-6 text-[13px] font-semibold text-green-ink transition hover:brightness-105">
+      {children}
+    </button>
+  );
+}
+
+export function Pill({
+  tone = "neutral",
+  children,
+}: {
+  tone?: "green" | "violet" | "amber" | "neutral";
+  children: React.ReactNode;
+}) {
+  const tones = {
+    green: "bg-green/15 text-green-text border-green/35",
+    violet: "bg-violet/15 text-violet-text border-violet/35",
+    amber: "bg-amber/15 text-amber border-amber/35",
+    neutral: "bg-surface-2 text-dim border-line",
+  } as const;
+  return (
+    <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[11px]", tones[tone])}>
+      {children}
+    </span>
+  );
+}
+
+/** Formulaire repliable : la liste reste lisible, l'édition tient sur place. */
+export function Drawer({ summary, children }: { summary: string; children: React.ReactNode }) {
+  return (
+    <details className="border border-line bg-surface open:pb-4">
+      <summary className="cursor-pointer list-none px-4 py-3.5 text-[13px] font-semibold marker:hidden">
+        {summary}
+      </summary>
+      <div className="px-4">{children}</div>
+    </details>
+  );
+}

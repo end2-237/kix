@@ -1,15 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import { KixMark, BellIcon, ChevronDownIcon, PinIcon } from "@/components/icons";
-import { you } from "@/lib/data";
+import { BellIcon, ChevronDownIcon, ChevronLeftIcon, KixMark, PinIcon } from "@/components/icons";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import type { User } from "@/db";
 
-export function AppHeader({ city = "Douala", area = "Akwa" }: { city?: string; area?: string }) {
+export function AppHeader({ user, unread = 0, city = "Douala", area = "Akwa" }: { user: User; unread?: number; city?: string; area?: string }) {
   return (
-    <header className="flex items-center justify-between">
+    <header className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2.5">
         <KixMark />
         <div className="flex flex-col gap-0.5">
-          <span className="font-display text-[19px] leading-[19px] tracking-[0.14em]">KIX</span>
+          <span className="text-[19px] leading-[19px] font-bold tracking-[0.14em]">KIX</span>
           <span className="flex items-center gap-1 text-[11px] text-muted">
             <PinIcon size={11} />
             {city} · {area}
@@ -19,21 +20,33 @@ export function AppHeader({ city = "Douala", area = "Akwa" }: { city?: string; a
       </div>
 
       <div className="flex items-center gap-2.5">
-        <button
-          aria-label="Notifications"
-          className="glass relative grid h-11 w-11 place-items-center rounded-[14px]"
+        <ThemeToggle />
+        <Link
+          href="/app/notifications"
+          aria-label={unread > 0 ? `${unread} notifications non lues` : "Notifications"}
+          className="glass relative grid h-11 w-11 place-items-center rounded-full"
         >
           <BellIcon size={19} />
-          <span className="absolute top-2.5 right-3 h-1.5 w-1.5 rounded-full bg-green shadow-[0_0_8px_rgba(61,240,138,0.9)]" />
-        </button>
+          {unread > 0 ? (
+            <span className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-green px-1.5 text-[10px] font-semibold text-green-ink">
+              {unread}
+            </span>
+          ) : null}
+        </Link>
         <Link href="/app/rewards" aria-label="Mon profil">
-          <Image
-            src={you.avatar}
-            alt={you.name}
-            width={44}
-            height={44}
-            className="h-11 w-11 rounded-[14px] border border-green/45 object-cover"
-          />
+          {user.avatar ? (
+            <Image
+              src={user.avatar}
+              alt={user.name}
+              width={44}
+              height={44}
+              className="h-11 w-11 rounded-full border border-green/45 object-cover"
+            />
+          ) : (
+            <span className="grid h-11 w-11 place-items-center rounded-full border border-green/45 bg-surface text-[13px] font-semibold">
+              {user.name.slice(0, 2).toUpperCase()}
+            </span>
+          )}
         </Link>
       </div>
     </header>
@@ -54,14 +67,12 @@ export function ScreenHeader({
       <Link
         href={back}
         aria-label="Retour"
-        className="glass grid h-11 w-11 shrink-0 place-items-center rounded-[14px]"
+        className="glass grid h-11 w-11 shrink-0 place-items-center rounded-full"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M14 6l-6 6 6 6" />
-        </svg>
+        <ChevronLeftIcon size={18} />
       </Link>
-      <h1 className="text-[17px]">{title}</h1>
-      <div className="flex h-11 w-11 shrink-0 items-center justify-end">{action}</div>
+      <h1 className="truncate text-[17px]">{title}</h1>
+      <div className="flex h-11 min-w-11 shrink-0 items-center justify-end">{action}</div>
     </header>
   );
 }

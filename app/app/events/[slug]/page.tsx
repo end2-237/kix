@@ -4,50 +4,49 @@ import { notFound } from "next/navigation";
 import { TicketButton } from "@/components/kix/TicketButton";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
-import {
-  BookmarkIcon,
-  CalendarIcon,
-  ChevronLeftIcon,
-  PinIcon,
-  ShareIcon,
-} from "@/components/icons";
-import { eventBySlug, events, venueById, you } from "@/lib/exports";
+import { BookmarkIcon, CalendarIcon, ChevronLeftIcon, PinIcon, ShareIcon } from "@/components/icons";
+import { getEvent, getTickets, getVenues } from "@/lib/queries";
+import { requireUser } from "@/lib/session";
 
-export function generateStaticParams() {
-  return events.map((event) => ({ slug: event.slug }));
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const event = await getEvent(slug);
+  return { title: event?.title ?? "Événement" };
 }
 
 export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const event = eventBySlug(slug);
+  const [event, user] = await Promise.all([getEvent(slug), requireUser()]);
   if (!event) notFound();
 
-  const venue = venueById(event.venueId);
+  const [venues, tickets] = await Promise.all([getVenues(), getTickets(user.id)]);
+  const venue = venues.find((v) => v.id === event.venueId);
+  const owned = tickets.some((t) => t.event.id === event.id && t.ticket.status === "valid");
   const avatars = ["/img/p-ariel.jpg", "/img/p-yannick.jpg", "/img/p-champion.jpg"];
 
   return (
     <div className="-mx-5 -mt-4 pb-40">
       <div className="relative h-80">
         <Image src={event.image} alt={event.title} fill sizes="430px" className="object-cover" priority />
-        <div className="absolute inset-0 bg-linear-to-b from-night/55 via-night/10 to-night" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/55 via-black/10 to-bg" />
         <div className="absolute inset-x-5 top-4 flex items-center justify-between">
           <Link
-            href="/app"
+            href="/app/events"
             aria-label="Retour"
-            className="grid h-11 w-11 place-items-center rounded-[14px] border border-white/15 bg-night/55 backdrop-blur"
+            className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur"
           >
             <ChevronLeftIcon size={18} />
           </Link>
           <div className="flex gap-2.5">
             <button
               aria-label="Partager"
-              className="grid h-11 w-11 place-items-center rounded-[14px] border border-white/15 bg-night/55 backdrop-blur"
+              className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur"
             >
               <ShareIcon size={17} />
             </button>
             <button
               aria-label="Enregistrer"
-              className="grid h-11 w-11 place-items-center rounded-[14px] border border-white/15 bg-night/55 text-green backdrop-blur"
+              className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/50 text-green backdrop-blur"
             >
               <BookmarkIcon size={17} />
             </button>
@@ -55,10 +54,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      <div className="relative -mt-24 flex flex-col gap-4 rounded-t-[30px] border-t border-white/10 bg-night/92 px-5 pt-6 backdrop-blur-xl">
+      <div className="relative -mt-24 flex flex-col gap-4 rounded-t-[30px] border-t border-line bg-bg/95 px-5 pt-6 backdrop-blur-xl">
         <div className="flex flex-col gap-2.5">
           <div className="flex gap-1.5">
-            {event.tags.map((tag, i) => (
+            {event.tags.split(",").filter(Boolean).map((tag, i) => (
               <Chip
                 key={tag}
                 tone={i === 0 ? "green" : "violet"}
@@ -70,8 +69,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </div>
           <h1 className="text-[26px] leading-7">
             {event.title}
-            <br />
-            {event.subtitle}
+            {event.subtitle ? (
+              <>
+                <br />
+                {event.subtitle}
+              </>
+            ) : null}
           </h1>
         </div>
 
@@ -86,28 +89,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           <Row
             icon={<PinIcon size={19} />}
             tone="violet"
-            title={venue.name}
+            title={venue?.name ?? "Salle partenaire"}
             detail={event.address}
             action="Itinéraire"
           />
-          <div className="flex items-center gap-3">
-            <Image
-              src={event.organizer.avatar}
-              alt={event.organizer.name}
-              width={44}
-              height={44}
-              className="h-11 w-11 rounded-[14px] object-cover"
-            />
-            <div className="flex grow flex-col gap-0.5">
-              <span className="text-sm font-semibold">
-                {event.organizer.name} · {event.organizer.role}
-              </span>
-              <span className="text-xs text-muted">{event.organizer.detail}</span>
-            </div>
-            <span className="rounded-xl border border-green/38 bg-green/15 px-3.5 py-2 text-xs font-semibold text-green">
-              Suivre
-            </span>
-          </div>
         </div>
 
         <Card className="flex items-center gap-3 px-3.5 py-3">
@@ -119,36 +104,34 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                 alt=""
                 width={34}
                 height={34}
-                className={`h-9 w-9 rounded-full border-2 border-night object-cover ${i > 0 ? "-ml-3" : ""}`}
+                className={`h-9 w-9 rounded-full border-2 border-bg object-cover ${i > 0 ? "-ml-3" : ""}`}
               />
             ))}
-            <span className="-ml-3 grid h-9 w-9 place-items-center rounded-full border-2 border-night bg-night-2 text-[10px] font-semibold text-dim">
-              +{event.attendees - avatars.length}
+            <span className="-ml-3 grid h-9 w-9 place-items-center rounded-full border-2 border-bg bg-surface-2 text-[10px] font-semibold text-dim">
+              +{Math.max(0, event.attendees - avatars.length)}
             </span>
           </div>
           <div className="flex grow flex-col gap-0.5">
             <span className="text-[13px] font-semibold">{event.attendees} joueurs inscrits</span>
             <span className="text-[11px] text-muted">
-              Il reste {event.capacity - event.attendees} places sur {event.capacity}
+              Il reste {Math.max(0, event.capacity - event.attendees)} places sur {event.capacity}
             </span>
           </div>
         </Card>
 
         <div className="flex flex-col gap-2">
           <h2 className="text-base">Le déroulé</h2>
-          <p className="text-[13px] leading-5 text-dim text-pretty">
-            {event.description} <span className="text-green">Lire la suite</span>
-          </p>
+          <p className="text-[13px] leading-5 text-dim text-pretty">{event.description}</p>
         </div>
 
         <p className="text-[11px] text-muted">
-          Ton pass est scanné à l&apos;entrée, comme un jeton — au nom de {you.name}.
+          Ton pass est scanné à l&apos;entrée, comme un jeton — au nom de {user.name}.
         </p>
       </div>
 
       <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-full max-w-[430px] px-5">
-        <div className="glass-strong rounded-card px-4 py-3">
-          <TicketButton price={event.price} />
+        <div className="glass-strong rounded-full px-4 py-3">
+          <TicketButton eventId={event.id} price={event.price} owned={owned} />
         </div>
       </div>
     </div>
@@ -173,8 +156,8 @@ function Row({
       <span
         className={
           tone === "green"
-            ? "grid h-11 w-11 shrink-0 place-items-center rounded-[14px] border border-green/30 bg-green/12 text-green"
-            : "grid h-11 w-11 shrink-0 place-items-center rounded-[14px] border border-violet/30 bg-violet/12 text-violet-soft"
+            ? "grid h-11 w-11 shrink-0 place-items-center rounded-full border border-green/30 bg-green/12 text-green-text"
+            : "grid h-11 w-11 shrink-0 place-items-center rounded-full border border-violet/30 bg-violet/12 text-violet-text"
         }
       >
         {icon}
@@ -183,7 +166,7 @@ function Row({
         <span className="text-sm font-semibold">{title}</span>
         <span className="text-xs text-muted">{detail}</span>
       </div>
-      <span className="glass rounded-xl px-3 py-2 text-xs">{action}</span>
+      <span className="glass rounded-full px-3 py-2 text-xs">{action}</span>
     </div>
   );
 }

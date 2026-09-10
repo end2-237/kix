@@ -1,211 +1,323 @@
 import Image from "next/image";
 import Link from "next/link";
-import { QrCode } from "@/components/kix/QrCode";
-import { ButtonLink } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import {
-  CartIcon,
-  CheckIcon,
-  KixMark,
-  QrIcon,
-  TargetIcon,
-  TicketIcon,
-} from "@/components/icons";
+import { DotGrid } from "@/components/site/DotGrid";
+import { Marquee } from "@/components/site/Marquee";
+import { SiteNav } from "@/components/site/SiteNav";
+import { ArrowRightIcon, ClockIcon, UserIcon } from "@/components/icons";
+import { getEvents, getVenues } from "@/lib/queries";
+import { f } from "@/lib/format";
 
-const navLinks = [
-  { href: "/app/salles", label: "Salles" },
-  { href: "/app/shop", label: "KIX Shop" },
-  { href: "/app/events", label: "Événements" },
-  { href: "/app/recharge", label: "Tarifs" },
-];
-
-const modules = [
+const coaches = [
   {
-    icon: <QrIcon size={19} />,
-    tone: "green" as const,
-    title: "KIX Pass",
-    text: "Jetons achetés à distance, QR unique par partie, code de secours hors ligne.",
-    href: "/app/pass",
+    name: "Max Douala",
+    role: "8-ball · effet rétro",
+    image: "/img/coach-1.jpg",
+    hours: "9.000h",
+    students: "700+",
+    price: 15000,
   },
   {
-    icon: <TargetIcon size={19} />,
-    tone: "green" as const,
-    title: "KIX Scan",
-    text: "Le gérant scanne, le jeton tombe. Moins d'une seconde, même en 3G.",
-    href: "/gerant",
-  },
-  {
-    icon: <CartIcon size={19} />,
-    tone: "violet" as const,
-    title: "KIX Shop",
-    text: "Puffs, e-liquides, queues et craies livrés à Douala ou retirés en salle.",
-    href: "/app/shop",
-  },
-  {
-    icon: <TicketIcon size={19} />,
-    tone: "violet" as const,
-    title: "KIX Events",
-    text: "Billetterie de tournois, pass scannés à l'entrée, classement à la clé.",
-    href: "/app/events",
+    name: "Alex Mercier",
+    role: "9-ball · casse et sécurité",
+    image: "/img/coach-2.jpg",
+    hours: "5.400h",
+    students: "300+",
+    price: 12000,
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const [venues, events] = await Promise.all([getVenues(), getEvents()]);
+  const featured = events[0];
+
   return (
-    <div className="relative min-h-dvh overflow-x-hidden">
-      <div className="halo halo-green -top-56 -left-30 h-175 w-175" />
-      <div className="halo halo-violet top-30 -right-45 h-160 w-160" />
+    <div className="min-h-dvh bg-bg">
+      <SiteNav />
 
-      <header className="relative flex h-20 items-center justify-between border-b border-white/7 px-5 lg:px-18">
-        <div className="flex items-center gap-11">
-          <Link href="/" className="flex items-center gap-2.5">
-            <KixMark size={32} />
-            <span className="font-display text-[21px] tracking-[0.16em]">KIX</span>
-          </Link>
-          <nav className="hidden items-center gap-7 text-sm text-dim lg:flex">
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="transition hover:text-ink">
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-3">
-          <ButtonLink href="/gerant" variant="glass" size="sm" className="hidden sm:inline-flex">
-            <QrIcon size={16} />
-            Espace gérant
-          </ButtonLink>
-          <ButtonLink href="/app" size="sm">
-            Ouvrir l&apos;app
-          </ButtonLink>
-        </div>
-      </header>
+      {/* ---------------------------------------------------------------- héros */}
+      <section className="relative overflow-hidden border-b border-line">
+        <div className="halo halo-green -top-40 -left-30 h-160 w-160" />
+        <div className="halo halo-violet -right-40 bottom-0 h-150 w-150" />
 
-      <main className="relative px-5 pt-12 pb-16 lg:px-18 lg:pt-12">
-        <div className="flex flex-col gap-12 lg:flex-row lg:items-start lg:gap-15">
-          <div className="flex w-full flex-col gap-6 lg:w-155 lg:shrink-0">
-            <span className="flex w-fit items-center gap-2.5 rounded-full border border-green/32 bg-green/12 px-3.5 py-2 text-xs tracking-[0.04em] text-green">
-              <span className="h-1.5 w-1.5 rounded-full bg-green shadow-[0_0_8px_rgba(61,240,138,0.9)]" />
-              Douala &amp; Yaoundé · [12] salles partenaires
-            </span>
-
-            <h1 className="text-[42px] leading-[1.02] lg:text-[62px]">
-              Le billard, la vape
-              <br />
-              et la nuit — dans
-              <br />
-              <span className="text-green">une seule app.</span>
-            </h1>
-
-            <p className="max-w-130 text-base leading-7 text-dim text-pretty lg:text-[17px]">
-              Achète tes jetons depuis ton téléphone, scanne ton QR à la table, commande tes puffs et
-              prends tes billets de tournoi. Paiement Orange Money et MTN MoMo, crédit instantané.
-            </p>
-
-            <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center">
-              <ButtonLink href="/app/recharge" size="lg">
-                Acheter mes jetons
-                <QrIcon size={18} />
-              </ButtonLink>
-              <ButtonLink href="/gerant" variant="glass" size="lg">
-                Devenir salle partenaire
-              </ButtonLink>
+        <div className="relative mx-auto flex min-h-[660px] max-w-400 flex-col px-5 pt-12 pb-6 lg:min-h-[720px] lg:px-10">
+          <div className="grid gap-8 lg:grid-cols-3 lg:items-start lg:gap-6">
+            <div className="flex flex-col gap-4">
+              <h1 className="text-[58px] font-extrabold lg:text-[86px] xl:text-[104px]">Casse.</h1>
+              <p className="max-w-64 text-[13px] leading-5 text-muted">
+                Tu choisis ta salle, tu paies tes jetons au chaud. La table t&apos;attend, personne ne
+                cherche la monnaie.
+              </p>
+              <span className="w-fit rounded-full border border-line px-3 py-1 text-[11px] tracking-[0.18em] text-muted uppercase">
+                v1.0
+              </span>
             </div>
 
-            <dl className="mt-2 flex flex-wrap gap-x-10 gap-y-5 border-t border-white/8 pt-6">
-              {[
-                { value: "[4 300]", label: "jetons scannés / mois" },
-                { value: "< 2 s", label: "pour débiter un jeton" },
-                { value: "OM · MoMo", label: "paiement mobile natif" },
-              ].map((stat) => (
-                <div key={stat.label} className="flex flex-col gap-1.5">
-                  <dt className="font-display text-[26px]">{stat.value}</dt>
-                  <dd className="text-[13px] text-muted">{stat.label}</dd>
-                </div>
-              ))}
-            </dl>
+            <div className="flex flex-col items-start gap-4 lg:items-center lg:text-center">
+              <h1 className="text-[58px] font-extrabold text-green-text lg:text-[86px] xl:text-[104px]">
+                Contrôle.
+              </h1>
+              <p className="max-w-64 text-[13px] leading-5 text-muted">
+                Un QR par partie, un code de secours à 4 chiffres quand le réseau lâche. Le gérant
+                scanne, le jeton tombe.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4 lg:items-end lg:text-right">
+              <h1 className="text-[58px] font-extrabold lg:text-[86px] xl:text-[104px]">Victoire.</h1>
+              <p className="max-w-64 text-[13px] leading-5 text-muted">
+                Chaque partie compte des points, chaque tournoi te classe. Douala regarde qui tient
+                la table.
+              </p>
+            </div>
           </div>
 
-          <div className="relative min-h-100 w-full grow lg:min-h-113">
-            <div className="absolute inset-0 overflow-hidden rounded-[28px] border border-white/9">
+          <div className="relative mt-8 flex grow items-end justify-center lg:mt-2">
+            <div className="relative h-90 w-72 overflow-hidden rounded-t-[160px] border border-line lg:h-100 lg:w-84">
               <Image
-                src="/img/hero-player.jpg"
-                alt="Joueur de billard dans une salle de Douala"
+                src="/img/player-cut.jpg"
+                alt="Joueur au break sur une table du Break Akwa"
                 fill
-                sizes="(max-width: 1024px) 100vw, 640px"
+                sizes="(max-width: 1024px) 288px, 360px"
                 className="object-cover"
                 priority
               />
-              <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(11,11,13,0.30),rgba(11,11,13,0.90))]" />
+              <div className="absolute inset-0 bg-linear-to-t from-bg via-transparent to-transparent" />
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-6 border-t border-line pt-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="rect flex w-fit items-center gap-5 px-5 py-4">
+              <span className="flex flex-col gap-1">
+                <span className="label-caps">Ta salle du soir</span>
+                <span className="text-[15px] font-semibold">{venues[0]?.name ?? "Le Break Akwa"}</span>
+              </span>
+              <span className="h-10 w-px bg-line" />
+              <span className="flex flex-col gap-1">
+                <span className="text-[22px] font-bold text-green-text">4,8</span>
+                <span className="text-[11px] text-muted">128 avis</span>
+              </span>
+              <span className="h-10 w-px bg-line" />
+              <span className="flex flex-col gap-1">
+                <span className="text-[22px] font-bold">{venues[0]?.freeTables ?? 2}</span>
+                <span className="text-[11px] text-muted">tables libres</span>
+              </span>
             </div>
 
-            <Card className="absolute top-8 left-6 flex w-67 flex-col items-center gap-3.5 rounded-[26px] bg-night-2/80 p-5 backdrop-blur-xl lg:top-11 lg:left-11">
-              <div className="flex w-full items-center justify-between">
-                <div className="flex flex-col gap-0.5">
-                  <span className="label-caps">KIX Pass</span>
-                  <span className="font-display text-xl text-green">07 jetons</span>
-                </div>
-                <span className="flex items-center gap-1.5 rounded-full bg-green/15 px-2.5 py-1.5 text-[10px] text-green">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green" />
-                  Prêt
-                </span>
-              </div>
-              <div className="rounded-[18px] bg-white p-2.5">
-                <QrCode value="kix://jeton/4826" size={150} />
-              </div>
-              <span className="text-xs text-dim">
-                Code de secours · <span className="font-display tracking-[0.14em] text-ink">4826</span>
+            <Link
+              href="/app/recharge"
+              className="group flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-green-text uppercase"
+            >
+              Réserver une table
+              <span className="grid h-9 w-9 place-items-center rounded-full border border-green/45 transition group-hover:bg-green group-hover:text-green-ink">
+                <ArrowRightIcon size={15} className="-rotate-45" />
               </span>
-            </Card>
-
-            <Card className="absolute right-6 bottom-14 flex items-center gap-3 rounded-card border-green/45 bg-night-2/85 px-4 py-3.5 backdrop-blur-xl lg:right-8">
-              <span className="grid h-10 w-10 place-items-center rounded-[13px] bg-green text-green-ink">
-                <CheckIcon size={20} />
-              </span>
-              <span className="flex flex-col gap-0.5">
-                <span className="text-[13px] font-semibold">Jeton débité · Table 3</span>
-                <span className="text-[11px] text-muted">Le Break Akwa · il y a 2 s</span>
-              </span>
-            </Card>
+            </Link>
           </div>
         </div>
+      </section>
 
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:mt-18 lg:grid-cols-4">
-          {modules.map((module) => (
-            <Link
-              key={module.title}
-              href={module.href}
-              className="glass flex flex-col gap-2.5 rounded-[22px] p-5 transition hover:bg-white/8"
-            >
-              <span
-                className={
-                  module.tone === "green"
-                    ? "grid h-10 w-10 place-items-center rounded-[13px] border border-green/30 bg-green/15 text-green"
-                    : "grid h-10 w-10 place-items-center rounded-[13px] border border-violet/30 bg-violet/15 text-violet-soft"
-                }
-              >
-                {module.icon}
-              </span>
-              <span className="text-[15px] font-semibold">{module.title}</span>
-              <span className="text-[13px] leading-5 text-muted">{module.text}</span>
-            </Link>
-          ))}
+      <Marquee items={["KIX Social Club", "Billard", "Vape", "Nuit", "Douala"]} />
+
+      {/* ------------------------------------------------------------- énergie */}
+      <section className="relative isolate flex min-h-[560px] items-center justify-center overflow-hidden px-5 py-20 lg:min-h-[680px]">
+        <Image
+          src="/img/balls-glow.jpg"
+          alt="Billes de billard sous les néons"
+          fill
+          sizes="100vw"
+          className="-z-10 object-cover"
+        />
+        <div className="absolute inset-0 -z-10 bg-bg/72" />
+
+        <div className="flex max-w-3xl flex-col items-center gap-7 text-center">
+          <p className="text-[12px] tracking-[0.22em] text-dim uppercase">
+            Trouve une table, achète tes jetons, scanne, joue
+          </p>
+          <DotGrid size={7} className="text-green" />
+          <h2 className="text-[38px] font-extrabold text-balance uppercase lg:text-[62px]">
+            Vis la vraie énergie
+            <br />
+            du billard
+          </h2>
+          <p className="max-w-xl text-[14px] leading-6 text-dim text-pretty">
+            {venues.length} salles partenaires à Douala, jetons crédités en quelques secondes par
+            Orange Money ou MTN MoMo, et une file d&apos;attente qui n&apos;existe plus. Le reste,
+            c&apos;est ton break.
+          </p>
+          <Link
+            href="/app"
+            className="flex h-13 items-center gap-3 rounded-full bg-green px-7 text-[13px] font-semibold tracking-[0.16em] text-green-ink uppercase transition hover:brightness-105"
+          >
+            Réserver une table
+            <ArrowRightIcon size={16} className="-rotate-45" />
+          </Link>
         </div>
-      </main>
+      </section>
 
-      <footer className="relative border-t border-white/7 px-5 py-8 lg:px-18">
-        <div className="flex flex-col gap-3 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-          <span>KIX · Douala, Cameroun · prix et salles donnés à titre d&apos;exemple</span>
-          <span className="flex gap-5">
-            <Link href="/app" className="hover:text-dim">
-              L&apos;app
+      {/* --------------------------------------------------------------- coachs */}
+      <section className="border-y border-line px-5 py-16 lg:px-10">
+        <div className="mx-auto flex max-w-400 flex-col gap-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="h-px w-12 bg-green" />
+              <h2 className="text-[22px] font-bold tracking-[0.06em] uppercase lg:text-[26px]">
+                Joue comme un pro
+              </h2>
+            </div>
+            <Link href="/app/events" className="flex items-center gap-2 text-[13px] text-dim hover:text-ink">
+              Voir tous les coachs
+              <span className="grid h-8 w-8 place-items-center rounded-full border border-line">
+                <ArrowRightIcon size={14} />
+              </span>
             </Link>
-            <Link href="/gerant" className="hover:text-dim">
-              Espace gérant
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-2">
+            {coaches.map((coach) => (
+              <article
+                key={coach.name}
+                className="relative h-100 overflow-hidden rounded-panel border border-line lg:h-115"
+              >
+                <Image
+                  src={coach.image}
+                  alt={coach.name}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 640px"
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/25 to-black/40" />
+
+                <div className="absolute inset-x-5 top-5 flex items-start justify-between">
+                  <Link
+                    href="/app/recharge"
+                    className="flex h-10 items-center rounded-full bg-green px-4 text-[11px] font-semibold tracking-[0.12em] text-green-ink uppercase"
+                  >
+                    Réserver une séance
+                  </Link>
+                  <span className="rounded-none border border-white/25 bg-black/40 px-3 py-2 text-[11px] tracking-[0.12em] text-white/80 uppercase backdrop-blur">
+                    {f(coach.price)} / h
+                  </span>
+                </div>
+
+                <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2">
+                      <Stat icon={<ClockIcon size={14} />} value={coach.hours} label="de table" />
+                      <Stat icon={<UserIcon size={14} />} value={coach.students} label="élèves" />
+                    </div>
+                    <span className="text-[30px] font-extrabold text-white lg:text-[38px]">{coach.name}</span>
+                    <span className="text-[12px] text-white/70">{coach.role}</span>
+                  </div>
+                  <span className="hidden rounded-full border border-white/25 px-3 py-2 text-[11px] tracking-[0.12em] text-white/80 uppercase sm:inline">
+                    Coach KIX
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-5">
+            <span className="h-px grow bg-line" />
+            <span className="text-[13px] font-semibold tracking-[0.18em] uppercase">
+              Joue comme un champion
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* --------------------------------------------------------------- tables */}
+      <section className="relative isolate min-h-[620px] overflow-hidden px-5 py-10 lg:px-10">
+        <Image
+          src="/img/hall-neon.jpg"
+          alt="Salle de billard la nuit"
+          fill
+          sizes="100vw"
+          className="-z-10 object-cover"
+        />
+        <div className="absolute inset-0 -z-10 bg-black/62" />
+
+        <div className="mx-auto flex min-h-[560px] max-w-400 flex-col justify-between gap-10">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <span className="flex items-center gap-2.5 rounded-full bg-white/12 px-4 py-2.5 text-[11px] font-semibold tracking-[0.16em] text-white uppercase backdrop-blur">
+              Choisis ta table
+              <span className="h-1.5 w-1.5 rounded-full bg-green" />
+            </span>
+            <span className="text-[11px] tracking-[0.22em] text-white/70 uppercase">Table black</span>
+            <span className="text-[11px] tracking-[0.22em] text-white/70 uppercase">
+              {featured ? `${featured.title} · ${featured.day}` : "Tournoi du samedi"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+            {["Élève", "Ton", "Jeu", "De Billard"].map((word) => (
+              <span key={word} className="text-[44px] font-extrabold text-green lg:text-[76px] xl:text-[92px]">
+                {word}
+              </span>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <Link
+              href="/app/salles"
+              className="flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-green uppercase"
+            >
+              Réserver une table
+              <span className="grid h-9 w-9 place-items-center rounded-full border border-green/60">
+                <ArrowRightIcon size={15} className="-rotate-45" />
+              </span>
             </Link>
-          </span>
+
+            <div className="flex gap-3">
+              {venues.slice(0, 3).map((venue) => (
+                <Link
+                  key={venue.id}
+                  href="/app/salles"
+                  className="relative h-20 w-28 overflow-hidden border border-white/25 lg:h-24 lg:w-36"
+                >
+                  <Image src={venue.image} alt={venue.name} fill sizes="144px" className="object-cover" />
+                  <span className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-[10px] text-white">
+                    {venue.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* --------------------------------------------------------------- footer */}
+      <footer className="border-t border-line px-5 py-10 lg:px-10">
+        <div className="mx-auto flex max-w-400 flex-col gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <span className="text-[28px] font-extrabold lg:text-[40px]">KIX Social Club</span>
+            <div className="flex flex-wrap gap-3 text-[13px]">
+              <Link href="/app" className="rounded-full border border-line px-4 py-2.5 hover:bg-surface">
+                L&apos;app client
+              </Link>
+              <Link href="/gerant" className="rounded-full border border-line px-4 py-2.5 hover:bg-surface">
+                Espace gérant
+              </Link>
+              <Link href="/admin" className="rounded-full border border-line px-4 py-2.5 hover:bg-surface">
+                Administration
+              </Link>
+            </div>
+          </div>
+          <div className="flex flex-wrap justify-between gap-3 border-t border-line pt-5 text-[12px] text-muted">
+            <span>Douala, Cameroun · prix, salles et personnes donnés à titre d&apos;exemple</span>
+            <span>Paiement Orange Money &amp; MTN MoMo</span>
+          </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  return (
+    <span className="flex items-center gap-2 rounded-none border border-white/25 bg-black/35 px-3 py-2 text-white backdrop-blur">
+      {icon}
+      <span className="text-[15px] font-bold">{value}</span>
+      <span className="text-[11px] text-white/70">{label}</span>
+    </span>
   );
 }

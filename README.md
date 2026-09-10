@@ -4,66 +4,103 @@ Application lifestyle qui digitalise le billard, la vape et la nuit au Cameroun 
 jetons de billard achetés depuis le téléphone, QR scanné par le gérant, boutique
 de vapes et d'accessoires, billetterie de tournois et fidélité.
 
-Ce dépôt contient l'application Next.js et les maquettes qui lui servent de
-référence (`design/`).
+Le dépôt contient l'application Next.js, sa base de données et les maquettes
+d'origine (`design/`).
 
 ## Démarrer
 
 ```bash
 npm install
-npm run dev     # http://localhost:3000
-npm run build   # build de production
-npm run lint
+npm run db:migrate   # crée data/kix.db
+npm run db:seed      # jeu de données de démonstration
+npm run dev          # http://localhost:3000
 ```
+
+Autres scripts : `npm run build`, `npm run lint`, `npm run db:reset`
+(recrée la base à zéro), `npm run db:generate` (nouvelle migration après une
+modification de `db/schema.ts`).
+
+## Comptes de démonstration
+
+L'authentification est volontairement réduite à un cookie (`/connexion`) : pas de
+mot de passe tant que Supabase Auth n'est pas branché.
+
+| Compte | Rôle | Accès |
+| --- | --- | --- |
+| Ariel N. | client | `/app` — jetons, shop, billets, fidélité |
+| Serge M. | gérant | `/gerant` — KIX Scan, caisse du Break Akwa |
+| Direction KIX | admin | `/admin` — catalogue, salles, revenus |
 
 ## Parcours
 
-| Route | Écran |
-| --- | --- |
-| `/` | Accueil web : promesse produit, modules, accès app et espace gérant |
-| `/app` | Accueil de l'app : solde KIX Pass, à la une, salles proches |
-| `/app/recharge` | Achat de jetons + paiement Orange Money / MTN MoMo (simulé) |
-| `/app/pass` | Portefeuille : QR du jeton, code de secours 4 chiffres, historique |
-| `/app/shop` | Boutique vapes et matériel de billard, panier |
-| `/app/salles` | Salles partenaires |
-| `/app/events` · `/app/events/[slug]` | Événements et billetterie |
-| `/app/rewards` | XP, conversion en jetons, classement, défis |
-| `/gerant` | KIX Scan : scanner, code de secours, KPI du soir, derniers passages |
+**Public** — `/` accueil web (héros, sections pleine page, coachs, tables).
+
+**Client** — `/app` accueil · `/app/recharge` achat de jetons (Orange Money /
+MTN MoMo) · `/app/pass` QR + code de secours · `/app/shop` boutique ·
+`/app/shop/[slug]` fiche produit · `/app/panier` panier et paiement ·
+`/app/commandes` · `/app/events` et `/app/events/[slug]` billetterie ·
+`/app/billets` · `/app/notifications` · `/app/rewards` · `/app/salles`.
+
+**Gérant** — `/gerant` : scanner, code de secours à 4 chiffres, jetons débités du
+jour, recette, derniers passages, commission KIX.
+
+**Admin** — `/admin` tableau de bord, puis `salles`, `packs`, `produits`,
+`commandes`, `evenements`, `jetons`, `utilisateurs` (création, édition, retrait,
+changement de rôle et de statut).
 
 ### La boucle jeton, de bout en bout
 
-`/app/recharge` crédite des jetons → `/app/pass` affiche le QR (`kix://jeton/<code>`)
-et son code de secours → `/gerant` débite ce code et l'écran client se met à jour.
-L'état vit côté navigateur (`lib/store.ts`, `localStorage`) : pas de backend, mais
-la mécanique complète est jouable.
+Une recharge crée une ligne `purchases` et autant de `tokens` ; le KIX Pass
+affiche le QR (`kix://jeton/<code>`) et son code de secours ; KIX Scan débite le
+jeton, écrit un `scan`, crédite les points du client et lui envoie une
+notification. Le solde client, la recette du gérant et le tableau de bord admin
+bougent dans la même seconde.
 
 ## Stack
 
-- **Next.js 16** (App Router, React 19, TypeScript strict)
-- **Tailwind CSS v4** — tokens KIX déclarés dans `app/globals.css` (`@theme`)
-- **Space Grotesk** (titres) et **Outfit** (interface), auto-hébergées via `next/font/local`
-- **qrcode** pour des QR réellement encodés
-- PWA : `app/manifest.ts`, thème sombre, `start_url` sur `/app`
+- **Next.js 16** (App Router, React 19, TypeScript strict), Server Components et
+  Server Actions pour toutes les mutations
+- **Drizzle ORM + SQLite** (`better-sqlite3`) — schéma dans `db/schema.ts`,
+  migrations SQL dans `db/migrations/`
+- **Tailwind CSS v4** — jetons de design dans `app/globals.css`, thème sombre et
+  **thème clair** au commutateur (mémorisé, sans flash au chargement)
+- **Geist** auto-hébergée (`next/font/local`), `qrcode` pour des QR réellement
+  encodés, PWA (`app/manifest.ts`)
 
 ## Organisation
 
 ```
-app/            routes (App Router) ; app/app/* = l'app mobile, app/gerant = la caisse
-components/     ui/ (Button, Card, Chip), kix/ (QR, nav, cartes), icons.tsx
-lib/            data.ts (contenu d'exemple), store.ts (état client), format.ts (FCFA)
-design/         maquettes source + rendus PNG (voir design/README.md)
-public/img/     photos Unsplash
+app/            routes ; app/app/* = client, app/gerant = caisse, app/admin = back-office
+components/     ui/ (boutons, cartes, snackbar, thème), kix/, shop/, admin/, site/
+db/             schema.ts, migrations/, seed.ts, client.ts
+lib/            queries.ts (lectures), actions.ts (mutations), session.ts, cart.ts, format.ts
+design/         maquettes d'origine (voir design/README.md)
 ```
 
 ## Direction artistique
 
-Cyber-Urban Dark : fond `#0B0B0D`, cartes en verre, vert billard `#3DF08A`,
-violet nuit `#9B6BFF`. Cible tactile 44 px, gouttière 20 px en mobile et 72 px en
-desktop. Le mobile reste la référence : le web reprend les mêmes composants.
+Fond quasi noir, vert billard, violet nuit, et deux familles de formes assumées :
+des blocs bien rectangulaires pour la donnée (tableaux, blocs de chiffres,
+champs) et des pastilles bien rondes pour l'action (boutons, chips, avatars).
+Typographie Geist, titres très serrés (-0.03em). Cible tactile 44 px minimum.
+
+## Migration vers Supabase
+
+Le schéma est écrit en types portables. Pour passer à Postgres :
+
+1. `db/client.ts` : remplacer `better-sqlite3` par `postgres-js`
+   (`drizzle-orm/postgres-js`) et pointer `DATABASE_URL` sur Supabase.
+2. `db/schema.ts` : `sqliteTable` → `pgTable`, `integer(... { mode: "timestamp" })`
+   → `timestamp`, `integer(... { mode: "boolean" })` → `boolean`.
+3. `npm run db:generate` puis appliquer la migration.
+4. Remplacer `lib/session.ts` par Supabase Auth (OTP SMS) et déplacer le panier
+   (`lib/cart.ts`, aujourd'hui dans le navigateur) en table si besoin.
+
+Les lectures (`lib/queries.ts`) et les mutations (`lib/actions.ts`) sont déjà
+écrites en `await`, donc compatibles avec un driver asynchrone.
 
 ## Données d'exemple
 
-Prix, salles, personnes et statistiques sont fictifs. Les valeurs entre crochets
-sur l'accueil web (`[12]` salles, `[4 300]` jetons/mois) sont des placeholders à
-remplacer. Le paiement Mobile Money est simulé côté client : il reste à brancher
-sur les API Orange Money / MTN MoMo et leurs webhooks.
+Prix, salles, personnes et statistiques sont fictifs, y compris les valeurs entre
+crochets de l'accueil web. Le paiement Mobile Money est simulé côté serveur : il
+reste à brancher les API Orange Money / MTN MoMo et leurs webhooks.

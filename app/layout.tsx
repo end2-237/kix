@@ -1,20 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 import "./globals.css";
 
-const spaceGrotesk = localFont({
-  src: [{ path: "./fonts/SpaceGrotesk-700.woff2", weight: "700", style: "normal" }],
-  variable: "--font-space-grotesk",
-  display: "swap",
-});
-
-const outfit = localFont({
+const geist = localFont({
   src: [
-    { path: "./fonts/Outfit-400.woff2", weight: "400", style: "normal" },
-    { path: "./fonts/Outfit-500.woff2", weight: "500", style: "normal" },
-    { path: "./fonts/Outfit-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/Geist-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/Geist-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/Geist-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/Geist-700.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/Geist-800.woff2", weight: "800", style: "normal" },
   ],
-  variable: "--font-outfit",
+  variable: "--font-geist",
   display: "swap",
 });
 
@@ -30,18 +27,23 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0b0d",
-  colorScheme: "dark",
+  colorScheme: "dark light",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
 };
 
+// Applique le thème avant le premier rendu : pas de flash blanc au chargement.
+const themeScript = `try{var t=localStorage.getItem("kix.theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t}}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${spaceGrotesk.variable} ${outfit.variable}`}>
-      <body className="bg-night text-ink antialiased">
-        {children}
+    <html lang="fr" data-theme="dark" className={geist.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="bg-bg text-ink antialiased">
+        <SnackbarProvider>{children}</SnackbarProvider>
       </body>
     </html>
   );

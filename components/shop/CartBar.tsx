@@ -1,0 +1,31 @@
+"use client";
+
+import Link from "next/link";
+import { ArrowRightIcon } from "@/components/icons";
+import { useCart } from "@/lib/cart";
+
+/** Barre panier flottante, au-dessus de la barre d'onglets. */
+export function CartBar() {
+  const { count } = useCart();
+  if (count === 0) return null;
+
+  return (
+    <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-full max-w-[430px] px-5">
+      <Link
+        href="/app/panier"
+        className="glass-strong flex h-16 items-center gap-3 rounded-full border-green/35 px-5"
+      >
+        <span className="flex grow flex-col gap-0.5">
+          <span className="text-[11px] text-muted">Panier</span>
+          <span className="text-[15px] font-semibold">
+            {count} article{count > 1 ? "s" : ""}
+          </span>
+        </span>
+        <span className="flex h-11 items-center gap-1.5 rounded-full bg-green px-4 text-sm font-semibold text-green-ink">
+          Voir
+          <ArrowRightIcon size={16} />
+        </span>
+      </Link>
+    </div>
+  );
+}

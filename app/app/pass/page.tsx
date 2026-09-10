@@ -1,38 +1,41 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { ScreenHeader } from "@/components/kix/AppHeader";
-import { QrCode } from "@/components/kix/QrCode";
+import { PassWallet, type WalletToken } from "@/components/kix/PassWallet";
 import { Card } from "@/components/ui/Card";
 import { ArrowRightIcon, ClockIcon, CoinIcon, QrIcon, TrophyIcon } from "@/components/icons";
+import { getActiveTokens, getActivity, getVenues } from "@/lib/queries";
+import { requireUser } from "@/lib/session";
+import { qrShape } from "@/lib/qr";
 import { cn } from "@/lib/cn";
-import { clockFrom, pad2, venueById } from "@/lib/exports";
-import { useKix } from "@/lib/store";
+import { pad2 } from "@/lib/format";
 
-const CYCLE = 300; // le QR se régénère toutes les 5 minutes
+export const metadata = { title: "KIX Pass" };
 
-export default function PassPage() {
-  const { tokens, history } = useKix();
-  const [index, setIndex] = useState(0);
-  const [left, setLeft] = useState(CYCLE);
+export default async function PassPage() {
+  const user = await requireUser();
+  const [tokens, activity, venues] = await Promise.all([
+    getActiveTokens(user.id),
+    getActivity(user.id, 4),
+    getVenues(),
+  ]);
 
-  useEffect(() => {
-    const id = window.setInterval(() => setLeft((s) => (s <= 1 ? CYCLE : s - 1)), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const token = tokens[Math.min(index, Math.max(tokens.length - 1, 0))];
-  const venue = venueById(token?.venueId ?? "break-akwa");
+  const wallet: WalletToken[] = tokens.map((token) => ({
+    id: token.id,
+    code: token.code,
+    venue: venues.find((v) => v.id === token.venueId)?.name ?? "Toutes les salles partenaires",
+    shape: qrShape(`kix://jeton/${token.code}`),
+  }));
+  const current = tokens[0];
+  const currentVenue = venues.find((v) => v.id === current?.venueId);
 
   return (
     <>
       <ScreenHeader
         title="KIX Pass"
         action={
-          <span className="glass grid h-11 w-11 place-items-center rounded-[14px] text-muted">
+          <Link href="/app/notifications" className="glass grid h-11 w-11 place-items-center rounded-full text-muted">
             <ClockIcon size={18} />
-          </span>
+          </Link>
         }
       />
 
@@ -40,55 +43,26 @@ export default function PassPage() {
         <div className="flex grow flex-col gap-0.5">
           <span className="label-caps">Portefeuille de jetons</span>
           <span className="flex items-baseline gap-1.5">
-            <span className="font-display text-[30px] leading-[30px] text-green">{pad2(tokens.length)}</span>
-            <span className="text-xs text-muted">jetons · 1 en cours</span>
+            <span className="text-[30px] leading-[30px] font-bold tracking-[-0.03em] text-green-text">
+              {pad2(tokens.length)}
+            </span>
+            <span className="text-xs text-muted">jetons actifs</span>
           </span>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="flex items-center gap-1.5 rounded-full border border-white/12 bg-night/55 px-2.5 py-1.5 text-[11px]">
+          <span className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1.5 text-[11px]">
             <span className="h-1.5 w-1.5 rounded-full bg-green" />
-            {venue.name}
+            {currentVenue?.name ?? "Toutes salles"}
           </span>
-          <span className="text-[11px] text-muted">Table 3 · ouverte</span>
+          <span className="text-[11px] text-muted">{user.points} points KIX</span>
         </div>
       </Card>
 
-      {token ? (
-        <div className="glass flex flex-col items-center gap-3.5 rounded-[26px] px-5 pt-6 pb-4 backdrop-blur-lg">
-          <span className="flex items-center gap-2 rounded-full border border-green/35 bg-green/15 px-3 py-1.5 text-[11px] font-semibold tracking-[0.06em] text-green">
-            <span className="h-1.5 w-1.5 rounded-full bg-green shadow-[0_0_8px_rgba(61,240,138,0.9)]" />
-            JETON {index + 1} / {tokens.length} — PRÊT À SCANNER
-          </span>
-
-          <div className="rounded-[22px] bg-white p-3 shadow-[0_0_40px_rgba(61,240,138,0.22)]">
-            <QrCode value={`kix://jeton/${token.code}`} size={196} />
-          </div>
-
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-sm font-medium">Présente ce code au gérant</span>
-            <span className="flex items-center gap-1.5 text-xs text-muted">
-              <ClockIcon size={13} />
-              Se régénère dans <span className="font-medium text-ink">{clockFrom(left)}</span>
-            </span>
-          </div>
-
-          <div className="flex gap-1.5">
-            {tokens.slice(0, 5).map((t, i) => (
-              <button
-                key={t.id}
-                aria-label={`Jeton ${i + 1}`}
-                onClick={() => setIndex(i)}
-                className={cn(
-                  "h-1 rounded-full transition",
-                  i === index ? "w-4 bg-green" : "w-1.5 bg-white/30",
-                )}
-              />
-            ))}
-          </div>
-        </div>
+      {wallet.length > 0 ? (
+        <PassWallet tokens={wallet} />
       ) : (
-        <Card className="flex flex-col items-center gap-4 px-5 py-8 text-center">
-          <span className="grid h-14 w-14 place-items-center rounded-[18px] border border-white/10 bg-white/6 text-muted">
+        <Card shape="panel" className="flex flex-col items-center gap-4 px-5 py-9 text-center">
+          <span className="grid h-14 w-14 place-items-center rounded-full border border-line bg-surface text-muted">
             <QrIcon size={26} />
           </span>
           <div className="flex flex-col gap-1">
@@ -97,7 +71,7 @@ export default function PassPage() {
           </div>
           <Link
             href="/app/recharge"
-            className="flex h-12 items-center gap-2 rounded-2xl bg-green px-5 text-sm font-semibold text-green-ink"
+            className="flex h-12 items-center gap-2 rounded-full bg-green px-5 text-sm font-semibold text-green-ink"
           >
             Recharger
             <ArrowRightIcon size={16} />
@@ -105,17 +79,17 @@ export default function PassPage() {
         </Card>
       )}
 
-      {token ? (
+      {current ? (
         <Card tone="violet" className="flex items-center gap-3.5 px-4 py-3.5">
           <div className="flex grow flex-col gap-1">
-            <span className="text-[13px] font-semibold text-violet-soft">Réseau faible ?</span>
+            <span className="text-[13px] font-semibold text-violet-text">Réseau faible ?</span>
             <span className="text-[11px] text-muted">Donne ce code au gérant</span>
           </div>
           <div className="flex gap-1.5">
-            {token.code.split("").map((digit, i) => (
+            {current.code.split("").map((digit, i) => (
               <span
                 key={i}
-                className="grid h-11 w-9 place-items-center rounded-[11px] border border-violet/35 bg-night/55 font-display text-[19px]"
+                className="grid h-11 w-9 place-items-center rounded-none border border-violet/35 bg-bg-2 text-[19px] font-bold"
               >
                 {digit}
               </span>
@@ -127,17 +101,19 @@ export default function PassPage() {
       <div className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
           <h2 className="text-[15px]">Activité récente</h2>
-          <span className="text-xs text-green">Tout voir</span>
+          <Link href="/app/commandes" className="text-xs text-green-text">
+            Mes commandes
+          </Link>
         </div>
-        {history.slice(0, 3).map((entry) => (
+        {activity.map((entry) => (
           <div key={entry.id} className="flex items-center gap-3">
-            <span className="glass grid h-10 w-10 place-items-center rounded-xl">
+            <span className="glass grid h-10 w-10 place-items-center rounded-full">
               {entry.kind === "in" ? (
-                <ArrowRightIcon size={17} className="text-green" />
+                <CoinIcon size={17} className="text-green-text" />
               ) : entry.kind === "out" ? (
                 <QrIcon size={17} className="text-muted" />
               ) : (
-                <TrophyIcon size={17} className="text-violet-soft" />
+                <TrophyIcon size={17} className="text-violet-text" />
               )}
             </span>
             <span className="flex grow flex-col gap-0.5">
@@ -147,7 +123,7 @@ export default function PassPage() {
             <span
               className={cn(
                 "text-[13px] font-semibold",
-                entry.kind === "in" ? "text-green" : entry.kind === "xp" ? "text-violet-soft" : "text-muted",
+                entry.kind === "in" ? "text-green-text" : entry.kind === "xp" ? "text-violet-text" : "text-muted",
               )}
             >
               {entry.delta}
@@ -158,7 +134,7 @@ export default function PassPage() {
 
       <Link
         href="/gerant"
-        className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/14 px-4 py-3 text-xs text-muted transition hover:text-dim"
+        className="flex items-center justify-center gap-2 rounded-full border border-dashed border-line px-4 py-3 text-xs text-muted transition hover:text-dim"
       >
         <CoinIcon size={14} />
         Tu es gérant ? Ouvrir KIX Scan

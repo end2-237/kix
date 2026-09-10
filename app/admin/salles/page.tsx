@@ -1,0 +1,87 @@
+import { Drawer, Field, PageHead, Pill, SubmitButton, Table, Td } from "@/components/admin/AdminUI";
+import { deleteVenue, saveVenue } from "@/lib/actions";
+import { getAllVenues } from "@/lib/queries";
+import { f, km } from "@/lib/format";
+
+export const metadata = { title: "Salles" };
+
+export default async function AdminVenues() {
+  const venues = await getAllVenues();
+
+  return (
+    <>
+      <PageHead title="Salles partenaires" subtitle="Tarif du jeton, tables disponibles, visibilité dans l'app." />
+
+      <Drawer summary="+ Nouvelle salle">
+        <form action={saveVenue} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Nom" name="name" required />
+          <Field label="Quartier" name="area" />
+          <Field label="Ville" name="city" defaultValue="Douala" />
+          <Field label="Adresse" name="address" className="lg:col-span-2" />
+          <Field label="Tables" name="tables" type="number" defaultValue={6} />
+          <Field label="Tables libres" name="freeTables" type="number" defaultValue={0} />
+          <Field label="Prix du jeton (F)" name="tokenPrice" type="number" defaultValue={400} />
+          <Field label="Distance (km)" name="distanceKm" type="number" defaultValue={1} />
+          <Field label="Image" name="image" defaultValue="/img/hall-dark.jpg" className="lg:col-span-2" />
+          <input type="hidden" name="active" value="on" />
+          <div className="flex items-end">
+            <SubmitButton>Créer la salle</SubmitButton>
+          </div>
+        </form>
+      </Drawer>
+
+      <Table head={["Salle", "Ville", "Tables", "Libres", "Jeton", "Distance", "État", ""]}>
+        {venues.map((venue) => (
+          <tr key={venue.id}>
+            <Td className="font-semibold">{venue.name}</Td>
+            <Td className="text-muted">
+              {venue.area} · {venue.city}
+            </Td>
+            <Td>{venue.tables}</Td>
+            <Td>{venue.freeTables}</Td>
+            <Td>{f(venue.tokenPrice)}</Td>
+            <Td className="text-muted">{km(venue.distanceKm)}</Td>
+            <Td>
+              <Pill tone={venue.active ? "green" : "neutral"}>{venue.active ? "Visible" : "Masquée"}</Pill>
+            </Td>
+            <Td>
+              <div className="flex items-center gap-2">
+                <details className="relative">
+                  <summary className="cursor-pointer rounded-full border border-line px-3 py-1.5 text-[11px] marker:hidden">
+                    Éditer
+                  </summary>
+                  <form
+                    action={saveVenue}
+                    className="absolute right-0 z-10 mt-2 grid w-80 gap-3 border border-line bg-bg p-4 shadow-[var(--kix-shadow)]"
+                  >
+                    <input type="hidden" name="id" value={venue.id} />
+                    <input type="hidden" name="slug" value={venue.slug} />
+                    <Field label="Nom" name="name" defaultValue={venue.name} />
+                    <Field label="Quartier" name="area" defaultValue={venue.area} />
+                    <Field label="Ville" name="city" defaultValue={venue.city} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Tables" name="tables" type="number" defaultValue={venue.tables} />
+                      <Field label="Libres" name="freeTables" type="number" defaultValue={venue.freeTables} />
+                      <Field label="Jeton (F)" name="tokenPrice" type="number" defaultValue={venue.tokenPrice} />
+                      <Field label="Distance" name="distanceKm" type="number" defaultValue={venue.distanceKm} />
+                    </div>
+                    <Field label="Image" name="image" defaultValue={venue.image} />
+                    <input type="hidden" name="address" value={venue.address} />
+                    <input type="hidden" name="active" value="on" />
+                    <SubmitButton />
+                  </form>
+                </details>
+                <form action={deleteVenue}>
+                  <input type="hidden" name="id" value={venue.id} />
+                  <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-amber">
+                    Masquer
+                  </button>
+                </form>
+              </div>
+            </Td>
+          </tr>
+        ))}
+      </Table>
+    </>
+  );
+}

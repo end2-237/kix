@@ -1,34 +1,93 @@
 @import "tailwindcss";
 
-@theme {
-  --color-night: #0b0b0d;
-  --color-night-2: #121215;
-  --color-ink: #f4f4f2;
-  --color-dim: #b9bcc2;
-  --color-muted: #8c8f97;
-  --color-faint: #64676e;
-  --color-green: #3df08a;
-  --color-green-ink: #06130c;
-  --color-violet: #9b6bff;
-  --color-violet-soft: #c4a6ff;
-  --color-amber: #ffb042;
+/* --------------------------------------------------------------------------
+ * Jetons de design KIX — thème sombre par défaut, thème clair au switch.
+ * Les composants n'utilisent que les couleurs sémantiques ci-dessous, jamais
+ * une valeur brute : c'est ce qui rend le light mode possible partout.
+ * -------------------------------------------------------------------------- */
 
-  --font-display: var(--font-space-grotesk), "Helvetica Neue", Arial, sans-serif;
-  --font-sans: var(--font-outfit), "Helvetica Neue", Arial, sans-serif;
+:root {
+  --kix-bg: #0b0b0d;
+  --kix-bg-2: #101013;
+  --kix-surface: rgba(255, 255, 255, 0.055);
+  --kix-surface-2: rgba(255, 255, 255, 0.09);
+  --kix-overlay: rgba(11, 11, 13, 0.72);
+  --kix-line: rgba(255, 255, 255, 0.1);
+  --kix-line-strong: rgba(255, 255, 255, 0.18);
+  --kix-ink: #f4f4f2;
+  --kix-dim: #b9bcc2;
+  --kix-muted: #8c8f97;
+  --kix-faint: #64676e;
+  --kix-accent: #3df08a;
+  --kix-accent-text: #3df08a;
+  --kix-accent-ink: #06130c;
+  --kix-accent-soft: rgba(61, 240, 138, 0.14);
+  --kix-violet: #9b6bff;
+  --kix-violet-text: #c4a6ff;
+  --kix-violet-soft: rgba(155, 107, 255, 0.14);
+  --kix-amber: #ffb042;
+  --kix-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+}
 
-  --radius-card: 20px;
-  --radius-panel: 24px;
+[data-theme="light"] {
+  --kix-bg: #f2f2ee;
+  --kix-bg-2: #ffffff;
+  --kix-surface: #ffffff;
+  --kix-surface-2: #e9e9e3;
+  --kix-overlay: rgba(255, 255, 255, 0.86);
+  --kix-line: rgba(11, 11, 13, 0.1);
+  --kix-line-strong: rgba(11, 11, 13, 0.18);
+  --kix-ink: #0b0b0d;
+  --kix-dim: #3c3f45;
+  --kix-muted: #6b6e75;
+  --kix-faint: #94979d;
+  --kix-accent: #22d46f;
+  --kix-accent-text: #0b8f4c;
+  --kix-accent-ink: #06130c;
+  --kix-accent-soft: rgba(34, 212, 111, 0.16);
+  --kix-violet: #7c4dff;
+  --kix-violet-text: #5b2fd6;
+  --kix-violet-soft: rgba(124, 77, 255, 0.12);
+  --kix-amber: #b96b00;
+  --kix-shadow: 0 24px 50px rgba(11, 11, 13, 0.12);
+}
+
+@theme inline {
+  --color-bg: var(--kix-bg);
+  --color-bg-2: var(--kix-bg-2);
+  --color-surface: var(--kix-surface);
+  --color-surface-2: var(--kix-surface-2);
+  --color-overlay: var(--kix-overlay);
+  --color-line: var(--kix-line);
+  --color-line-strong: var(--kix-line-strong);
+  --color-ink: var(--kix-ink);
+  --color-dim: var(--kix-dim);
+  --color-muted: var(--kix-muted);
+  --color-faint: var(--kix-faint);
+  --color-green: var(--kix-accent);
+  --color-green-text: var(--kix-accent-text);
+  --color-green-ink: var(--kix-accent-ink);
+  --color-violet: var(--kix-violet);
+  --color-violet-text: var(--kix-violet-text);
+  --color-amber: var(--kix-amber);
+
+  --font-sans: var(--font-geist), "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-geist), "Helvetica Neue", Arial, sans-serif;
+
+  /* Deux familles de formes assumées : des blocs bien carrés, des pastilles
+     bien rondes. Peu de valeurs intermédiaires. */
+  --radius-card: 18px;
+  --radius-panel: 28px;
 }
 
 @layer base {
   html {
-    background: var(--color-night);
-    color-scheme: dark;
+    background: var(--kix-bg);
   }
 
   body {
-    background: var(--color-night);
-    color: var(--color-ink);
+    background: var(--kix-bg);
+    color: var(--kix-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
@@ -36,9 +95,19 @@
   h1,
   h2,
   h3 {
-    font-family: var(--font-display);
+    margin: 0;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  ::selection {
+    background: var(--kix-accent);
+    color: var(--kix-accent-ink);
   }
 
   ::-webkit-scrollbar {
@@ -48,29 +117,35 @@
 }
 
 @layer components {
-  /* carte en verre : la brique de base de l'interface */
+  /* surfaces */
   .glass {
-    background: rgba(255, 255, 255, 0.055);
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: var(--kix-surface);
+    border: 1px solid var(--kix-line);
   }
 
   .glass-strong {
-    background: rgba(18, 18, 21, 0.84);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--kix-overlay);
+    border: 1px solid var(--kix-line);
     backdrop-filter: blur(22px);
   }
 
   .glass-green {
-    background: linear-gradient(120deg, rgba(61, 240, 138, 0.14), rgba(255, 255, 255, 0.05) 55%);
-    border: 1px solid rgba(61, 240, 138, 0.3);
+    background: var(--kix-accent-soft);
+    border: 1px solid color-mix(in srgb, var(--kix-accent) 32%, transparent);
   }
 
   .glass-violet {
-    background: rgba(155, 107, 255, 0.1);
-    border: 1px solid rgba(155, 107, 255, 0.32);
+    background: var(--kix-violet-soft);
+    border: 1px solid color-mix(in srgb, var(--kix-violet) 32%, transparent);
   }
 
-  /* halos d'ambiance : vert billard, violet nuit */
+  /* le bloc « rectangle » du design : angles vifs, filet net */
+  .rect {
+    background: var(--kix-surface);
+    border: 1px solid var(--kix-line);
+    border-radius: 0;
+  }
+
   .halo {
     position: absolute;
     border-radius: 9999px;
@@ -78,23 +153,60 @@
   }
 
   .halo-green {
-    background: radial-gradient(circle, rgba(61, 240, 138, 0.2), rgba(61, 240, 138, 0) 70%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--kix-accent) 20%, transparent), transparent 70%);
   }
 
   .halo-violet {
-    background: radial-gradient(circle, rgba(155, 107, 255, 0.2), rgba(155, 107, 255, 0) 70%);
-  }
-
-  .font-display {
-    font-family: var(--font-display);
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    background: radial-gradient(circle, color-mix(in srgb, var(--kix-violet) 20%, transparent), transparent 70%);
   }
 
   .label-caps {
     font-size: 11px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--color-muted);
+    color: var(--kix-muted);
+  }
+
+  .display {
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+  }
+
+  /* bandeau défilant du landing */
+  .marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee 32s linear infinite;
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee {
+      animation: none;
+    }
+  }
+
+  .snackbar-in {
+    animation: snackbar-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  @keyframes snackbar-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
