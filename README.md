@@ -60,8 +60,9 @@ bougent dans la même seconde.
 
 - **Next.js 16** (App Router, React 19, TypeScript strict), Server Components et
   Server Actions pour toutes les mutations
-- **Drizzle ORM + SQLite** (`better-sqlite3`) — schéma dans `db/schema.ts`,
-  migrations SQL dans `db/migrations/`
+- **Drizzle ORM + SQLite** via `@libsql/client` — binaires précompilés, aucune
+  compilation à l'installation ; schéma dans `db/schema.ts`, migrations SQL dans
+  `db/migrations/`
 - **Tailwind CSS v4** — jetons de design dans `app/globals.css`, thème sombre et
   **thème clair** au commutateur (mémorisé, sans flash au chargement)
 - **Geist** auto-hébergée (`next/font/local`), `qrcode` pour des QR réellement
@@ -84,11 +85,31 @@ des blocs bien rectangulaires pour la donnée (tableaux, blocs de chiffres,
 champs) et des pastilles bien rondes pour l'action (boutons, chips, avatars).
 Typographie Geist, titres très serrés (-0.03em). Cible tactile 44 px minimum.
 
+## Déploiement
+
+Le conteneur se suffit à lui-même : au démarrage, `instrumentation.ts` applique
+les migrations puis charge le jeu de démonstration **si la base est vide**. Aucune
+commande à lancer après le déploiement.
+
+Variables utiles :
+
+| Variable | Rôle |
+| --- | --- |
+| `DATABASE_URL` | chemin du fichier SQLite (`/app/data/kix.db` par défaut) ou URL `libsql://` (Turso) |
+| `KIX_SKIP_SEED` | `1` pour ne jamais charger le jeu de démonstration |
+
+**Persistance** : monter un volume sur `/app/data`, sinon la base repart de zéro
+à chaque redéploiement (le conteneur est immuable). Sur Coolify : Storages →
+ajouter un volume persistant, destination `/app/data`.
+
+Aucune dépendance native à compiler : ni Python ni node-gyp ne sont nécessaires
+dans l'image de build.
+
 ## Migration vers Supabase
 
 Le schéma est écrit en types portables. Pour passer à Postgres :
 
-1. `db/client.ts` : remplacer `better-sqlite3` par `postgres-js`
+1. `db/client.ts` : remplacer `@libsql/client` par `postgres-js`
    (`drizzle-orm/postgres-js`) et pointer `DATABASE_URL` sur Supabase.
 2. `db/schema.ts` : `sqliteTable` → `pgTable`, `integer(... { mode: "timestamp" })`
    → `timestamp`, `integer(... { mode: "boolean" })` → `boolean`.
@@ -97,7 +118,7 @@ Le schéma est écrit en types portables. Pour passer à Postgres :
    (`lib/cart.ts`, aujourd'hui dans le navigateur) en table si besoin.
 
 Les lectures (`lib/queries.ts`) et les mutations (`lib/actions.ts`) sont déjà
-écrites en `await`, donc compatibles avec un driver asynchrone.
+écrites en `await` sur un driver asynchrone : rien à réécrire côté application.
 
 ## Données d'exemple
 

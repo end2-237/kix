@@ -1,16 +1,22 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
+import fs from "node:fs";
 import path from "node:path";
 import * as schema from "./schema";
 
-export const dbFile = process.env.DATABASE_URL ?? path.join(process.cwd(), "data", "kix.db");
+/**
+ * SQLite via libsql : binaires précompilés (aucune compilation à l'installation)
+ * et driver asynchrone, donc le même code tournera sur Postgres / Supabase.
+ * DATABASE_URL accepte un chemin de fichier ou une URL libsql:// (Turso).
+ */
+const raw = process.env.DATABASE_URL ?? path.join(process.cwd(), "data", "kix.db");
+export const dbUrl = raw.includes("://") ? raw : `file:${path.resolve(raw)}`;
 
-/** Ouvre une connexion SQLite (scripts CLI et runtime serveur). */
 export function createDb() {
-  const sqlite = new Database(dbFile);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-  return drizzle(sqlite, { schema });
+  if (dbUrl.startsWith("file:")) {
+    fs.mkdirSync(path.dirname(dbUrl.slice("file:".length)), { recursive: true });
+  }
+  return drizzle(createClient({ url: dbUrl }), { schema });
 }
 
 export type Db = ReturnType<typeof createDb>;

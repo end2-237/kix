@@ -2,6 +2,8 @@ import { ScreenHeader } from "@/components/kix/AppHeader";
 import { CartClient } from "@/components/shop/CartClient";
 import { getProducts, getVenues } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Panier" };
 
 export default async function PanierPage() {

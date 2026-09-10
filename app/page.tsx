@@ -7,6 +7,8 @@ import { ArrowRightIcon, ClockIcon, UserIcon } from "@/components/icons";
 import { getEvents, getVenues } from "@/lib/queries";
 import { f } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 const coaches = [
   {
     name: "Max Douala",

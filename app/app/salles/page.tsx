@@ -6,6 +6,8 @@ import { ChevronRightIcon, PinIcon } from "@/components/icons";
 import { getVenues } from "@/lib/queries";
 import { f, km } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Salles partenaires" };
 
 export default async function SallesPage() {

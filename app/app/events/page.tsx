@@ -5,6 +5,8 @@ import { Chip } from "@/components/ui/Chip";
 import { getEvents } from "@/lib/queries";
 import { f } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Événements" };
 
 export default async function EventsPage() {

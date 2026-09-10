@@ -35,8 +35,9 @@ function code(taken: Set<string>) {
 }
 
 // on vide dans l'ordre des dépendances
+export async function seed() {
 for (const table of [notifications, scans, tickets, orderItems, orders, tokens, purchases, events, products, packs, users, venues]) {
-  db.delete(table).run();
+  await db.delete(table);
 }
 
 /* salles ------------------------------------------------------------------ */
@@ -81,7 +82,7 @@ const venueRows = [
     image: "/img/table-blue.jpg",
   },
 ];
-db.insert(venues).values(venueRows).run();
+await db.insert(venues).values(venueRows);
 const [breakAkwa, zenith] = venueRows;
 
 /* packs ------------------------------------------------------------------- */
@@ -90,7 +91,7 @@ const packRows = [
   { id: uid(), tokens: 3, price: 1000, bonus: 0, hint: "Soit 333 F la partie", badge: "Le plus pris", sort: 2 },
   { id: uid(), tokens: 10, price: 3000, bonus: 2, hint: "Soit 250 F la partie", badge: null, sort: 3 },
 ];
-db.insert(packs).values(packRows).run();
+await db.insert(packs).values(packRows);
 
 /* comptes ----------------------------------------------------------------- */
 const ariel = { id: uid(), name: "Ariel N.", phone: "677451208", avatar: "/img/p-ariel.jpg", role: "client", points: 1240, venueId: null };
@@ -102,7 +103,7 @@ const others = [
   { id: uid(), name: "Merline K.", phone: "670000003", avatar: null, role: "client", points: 2610, venueId: null },
   { id: uid(), name: "Duval N.", phone: "670000004", avatar: null, role: "client", points: 2280, venueId: null },
 ];
-db.insert(users).values([ariel, serge, admin, ...others]).run();
+await db.insert(users).values([ariel, serge, admin, ...others]);
 const clients = [ariel, ...others];
 
 /* jetons d'Ariel ---------------------------------------------------------- */
@@ -118,9 +119,9 @@ const purchase = {
   status: "paid",
   createdAt: hoursAgo(20),
 };
-db.insert(purchases).values(purchase).run();
+await db.insert(purchases).values(purchase);
 
-db.insert(tokens)
+await db.insert(tokens)
   .values(
     Array.from({ length: 7 }, () => ({
       id: uid(),
@@ -132,7 +133,7 @@ db.insert(tokens)
       createdAt: hoursAgo(20),
     })),
   )
-  .run();
+  ;
 
 /* historique de la soirée : jetons consommés + passages -------------------- */
 const usedTokens: (typeof tokens.$inferInsert)[] = [];
@@ -166,8 +167,8 @@ for (let i = 0; i < 124; i++) {
     createdAt: at,
   });
 }
-db.insert(tokens).values(usedTokens).run();
-db.insert(scans).values(scanRows).run();
+await db.insert(tokens).values(usedTokens);
+await db.insert(scans).values(scanRows);
 
 /* boutique ---------------------------------------------------------------- */
 const productRows = [
@@ -256,7 +257,7 @@ const productRows = [
     stock: 24,
   },
 ];
-db.insert(products).values(productRows).run();
+await db.insert(products).values(productRows);
 
 /* une commande déjà passée ------------------------------------------------ */
 const order = {
@@ -269,13 +270,13 @@ const order = {
   status: "ready",
   createdAt: hoursAgo(26),
 };
-db.insert(orders).values(order).run();
-db.insert(orderItems)
+await db.insert(orders).values(order);
+await db.insert(orderItems)
   .values([
     { id: uid(), orderId: order.id, productId: productRows[0].id, qty: 1, unitPrice: 7000 },
     { id: uid(), orderId: order.id, productId: productRows[1].id, qty: 1, unitPrice: 22000 },
   ])
-  .run();
+  ;
 
 /* événements -------------------------------------------------------------- */
 const eventRows = [
@@ -316,9 +317,9 @@ const eventRows = [
     tags: "Soirée,DJ set",
   },
 ];
-db.insert(events).values(eventRows).run();
+await db.insert(events).values(eventRows);
 
-db.insert(tickets)
+await db.insert(tickets)
   .values({
     id: uid(),
     eventId: eventRows[1].id,
@@ -327,10 +328,10 @@ db.insert(tickets)
     status: "valid",
     createdAt: hoursAgo(30),
   })
-  .run();
+  ;
 
 /* notifications ----------------------------------------------------------- */
-db.insert(notifications)
+await db.insert(notifications)
   .values([
     {
       id: uid(),
@@ -373,6 +374,17 @@ db.insert(notifications)
       createdAt: hoursAgo(30),
     },
   ])
-  .run();
+  ;
 
 console.log("base remplie : 3 salles, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages");
+}
+
+// exécution directe : `npm run db:seed`
+if (process.argv[1]?.includes("seed")) {
+  seed()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+}
