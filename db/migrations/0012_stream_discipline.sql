@@ -1,0 +1,1 @@
+ALTER TABLE "mb"."streams" ADD COLUMN "discipline" text DEFAULT '8-ball' NOT NULL;

@@ -58,6 +58,8 @@ export const users = mb.table(
     role: text("role").notNull().default("client"),
     points: integer("points").notNull().default(0),
     venueId: uuid("venue_id").references(() => venues.id),
+    /** Fin de l'abonnement Master Break : donne accès aux directs « membres ». */
+    memberUntil: timestamp("member_until", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("users_phone_idx").on(t.phone)],
@@ -356,6 +358,85 @@ export const matchEvents = mb.table(
 );
 
 /**
+ * Master Break Live — les directs vidéo.
+ *
+ * Deux axes indépendants, parce qu'ils ne décrivent pas la même chose :
+ *
+ *  · `level` — comment c'est produit. `phone` : un téléphone posé sur un
+ *    trépied, diffusé depuis le navigateur, zéro matériel. `venue` : la caméra
+ *    fixe de la salle, qui tourne toute la soirée (Venue Cast). `production` :
+ *    un tournoi multi-caméra monté sous OBS, avec habillage.
+ *  · `access` — qui a le droit de regarder. `free`, `members` (abonnés), ou
+ *    `ppv` (payant à l'unité).
+ *
+ * `path` est public : c'est le chemin MediaMTX. `stream_key` est le secret
+ * d'ingestion, qui ne quitte jamais la console du diffuseur.
+ */
+export const streams = mb.table(
+  "streams",
+  {
+    id: id(),
+    venueId: uuid("venue_id")
+      .notNull()
+      .references(() => venues.id, { onDelete: "cascade" }),
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    // phone | venue | production
+    level: text("level").notNull().default("phone"),
+    // free | members | ppv
+    access: text("access").notNull().default("free"),
+    /** Rubrique de la vitrine : 8-ball, 9-ball, snooker, killer, ambiance… */
+    discipline: text("discipline").notNull().default("8-ball"),
+    /** Vignette du direct ; à défaut, la photo de la salle. */
+    poster: text("poster"),
+    /** Prix du billet vidéo, en francs, quand l'accès est `ppv`. */
+    price: integer("price").notNull().default(0),
+    /** Chemin MediaMTX, public : /live/<path>. */
+    path: text("path").notNull().unique(),
+    /** Secret d'ingestion RTMP / WHIP. */
+    streamKey: text("stream_key").notNull().unique(),
+    // idle | live | ended
+    status: text("status").notNull().default("idle"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    viewers: integer("viewers").notNull().default(0),
+    peakViewers: integer("peak_viewers").notNull().default(0),
+    /** Rediffusion, quand l'enregistrement est activé sur le serveur média. */
+    replayUrl: text("replay_url"),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("streams_venue_idx").on(t.venueId),
+    index("streams_status_idx").on(t.status),
+    index("streams_match_idx").on(t.matchId),
+  ],
+);
+
+/** Billet vidéo : qui a payé pour voir quel direct. */
+export const streamPasses = mb.table(
+  "stream_passes",
+  {
+    id: id(),
+    streamId: uuid("stream_id")
+      .notNull()
+      .references(() => streams.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull().default(0),
+    /** Référence du paiement (mb.payments.reference). */
+    reference: text("reference").unique(),
+    // pending | paid | failed
+    status: text("status").notNull().default("pending"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("stream_passes_unique").on(t.streamId, t.userId)],
+);
+
+/**
  * Qui a le droit de tenir la feuille de match.
  *
  * Une ligne par habilitation, portée soit par un match précis, soit par un
@@ -490,6 +571,8 @@ export type Reservation = typeof reservations.$inferSelect;
 export type Match = typeof matches.$inferSelect;
 export type MatchEvent = typeof matchEvents.$inferSelect;
 export type MatchOfficial = typeof matchOfficials.$inferSelect;
+export type Stream = typeof streams.$inferSelect;
+export type StreamPass = typeof streamPasses.$inferSelect;
 export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;

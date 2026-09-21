@@ -1,0 +1,1 @@
+ALTER TABLE "mb"."streams" ADD COLUMN "poster" text;

@@ -72,13 +72,18 @@ MTN MoMo) · `/app/pass` QR + code de secours · `/app/shop` boutique ·
 `/app/reservations` · `/app/live` et `/app/live/[id]` scores en direct et mode
 plein écran.
 
+**Direct** — `/direct` la vitrine des directs · `/direct/[id]` le lecteur avec
+habillage du score.
+
 **Arbitre** — `/arbitre` les feuilles confiées · `/arbitre/[id]` la feuille de
 match · `/arbitre/invitation/[token]` acceptation d'une invitation.
 
 **Gérant** — `/gerant` scanner (QR signé, code de secours à 4 chiffres, jetons
 débités du jour, recette, derniers passages) · `/gerant/salle` plan de salle et
 cahier des réservations · `/gerant/service` recette heure par heure, occupation,
-total à verser · `/gerant/live` création des matchs et attribution des feuilles.
+total à verser · `/gerant/live` création des matchs et attribution des feuilles ·
+`/gerant/direct` ouverture des directs, coordonnées RTMP, diffusion depuis le
+téléphone.
 
 **Admin** — `/admin` tableau de bord, puis `salles`, `packs`, `produits`,
 `commandes`, `evenements`, `jetons`, `utilisateurs` (création, édition, retrait,
@@ -145,6 +150,52 @@ acomptes encaissés, le taux d'occupation et le total à verser.
 
 **La direction** ouvre et ferme les tables depuis `/admin/tables`, et change un
 acompte sans toucher au code.
+
+## Master Break Live — la vidéo
+
+Le serveur média est **MediaMTX**, posé à côté de Supabase sur le VPS : un seul
+binaire Go. Il ingère en RTMP (OBS, caméra IP), en SRT et en WHIP (le navigateur
+d'un téléphone), et diffuse en HLS et en WebRTC. La configuration prête à poser
+est dans `deploy/mediamtx.yml`, le service systemd dans `deploy/mediamtx.service`.
+
+**Il ne décide rien tout seul.** À chaque connexion — diffuseur ou spectateur —
+il demande à l'application, par son crochet HTTP, si elle autorise
+(`/api/media/auth`). Les droits vivent donc au même endroit que le reste, pas
+dupliqués dans un fichier de configuration. Deux crochets d'état
+(`/api/media/event`) préviennent quand une source arrive et quand elle s'arrête :
+sans eux, un direct resterait « en cours » après le débranchement de la caméra.
+
+### Deux axes, indépendants
+
+| `level` — comment c'est produit | |
+| --- | --- |
+| `phone` | un téléphone sur trépied, diffusé depuis le navigateur en WHIP, zéro matériel |
+| `venue` | la caméra fixe de la salle, en RTMP continu — le Venue Cast |
+| `production` | un tournoi multi-caméra monté sous OBS |
+
+| `access` — qui peut regarder | |
+| --- | --- |
+| `free` | tout le monde |
+| `members` | abonnés (`users.member_until`) |
+| `ppv` | billet vidéo à l'unité, payé par le même chemin que le reste |
+
+`canWatch` tranche, en un seul endroit : la page, le lecteur et le crochet de
+MediaMTX posent tous la même question. La lecture d'un direct payant porte un
+**billet signé et court** ; le crochet rejoue la règle au lieu de se fier au
+billet, si bien qu'un accès retiré ferme la porte tout de suite.
+
+La clé d'ingestion ne sort jamais par l'API : `mb.public_streams` est la vue qui
+l'omet, et c'est elle qui est exposée à `anon` et `authenticated`. Dans la
+console du gérant elle reste masquée jusqu'à ce qu'on demande à la voir, et se
+régénère d'un bouton.
+
+### La vitrine
+
+`/direct` est une page de chaînes : colonne des salles en direct, direct du
+moment qui se joue avec sa fiche, tuiles par discipline, puis des rayons —
+matchs, Venue Cast, productions, disciplines, salles, rediffusions. `/direct/[id]`
+regarde un direct ; quand il est rattaché à un match, le score s'incruste sur la
+vidéo depuis le flux de la feuille de match.
 
 ## Les matchs et le score en direct
 
@@ -216,6 +267,7 @@ db/             schema.ts, migrations/, seed.ts, client.ts, env.ts, reset.ts
 lib/            queries.ts (lectures), actions.ts (mutations), auth.ts, session.ts, pass.ts
 lib/payments/   pawapay.ts, simulated.ts, service.ts (états, idempotence, livraison)
 design/         maquettes d'origine (voir design/README.md)
+deploy/         mediamtx.yml et son service systemd, à poser sur le VPS
 ```
 
 ## Direction artistique
@@ -242,6 +294,8 @@ Variables (voir `.env.example`) :
 | `PAWAPAY_API_TOKEN` | jeton d'API pawaPay ; absent, l'encaisseur de démonstration prend la main |
 | `PAWAPAY_ENV` | `sandbox` (défaut) ou `production` |
 | `MB_QR_SECRET` | clé de signature des laissez-passer du Master Pass |
+| `MB_MEDIA_URL` · `MB_MEDIA_WHIP` · `MB_MEDIA_RTMP` | serveur média MediaMTX |
+| `MB_MEDIA_HOOK_SECRET` | secret partagé avec `mediamtx.service` |
 | `MB_PUBLIC_URL` | URL publique, pour les liens sortants |
 
 La base vit désormais hors du conteneur : plus de volume à monter, le
@@ -272,6 +326,10 @@ filtre sur `mb` pour que `db:generate` ignore les tables des autres apps.
 | `db/migrations/0007_live_rls.sql` | RLS des matchs (scores publics) |
 | `db/migrations/0008_officials.sql` | `mb.match_officials`, traçabilité des saisies |
 | `db/migrations/0009_officials_rls.sql` | RLS des habilitations d'arbitrage |
+| `db/migrations/0010_streams.sql` | `mb.streams`, `mb.stream_passes`, abonnement |
+| `db/migrations/0011_streams_rls.sql` | RLS des directs, vue sans la clé d'ingestion |
+| `db/migrations/0012_stream_discipline.sql` | rubrique de la vitrine |
+| `db/migrations/0013_stream_poster.sql` | vignette d'un direct |
 
 Mise à jour d'une instance existante :
 

@@ -19,6 +19,8 @@ import {
   purchases,
   reservations,
   scans,
+  streamPasses,
+  streams,
   tickets,
   tokens,
   users,
@@ -30,6 +32,14 @@ import { freshCode, notify, uid } from "@/lib/domain";
 import { INVITE_TTL, looksLikePass, passUrl, signPass, verifyPass } from "@/lib/pass";
 import { qrShape, type QrShape } from "@/lib/qr";
 import { canScore, getMatch } from "@/lib/live";
+import {
+  canWatch,
+  hlsUrl,
+  newStreamKey,
+  newStreamPath,
+  watchTicket,
+  whepUrl,
+} from "@/lib/stream";
 import { refreshPayment, startPayment, type PaymentKind } from "@/lib/payments/service";
 import {
   createSession,
@@ -1277,4 +1287,153 @@ export async function setSelfScoring(venueId: string, allowed: boolean) {
   await guardVenue(venueId);
   await db.update(venues).set({ selfScoring: allowed }).where(eq(venues.id, venueId));
   revalidatePath("/gerant/live");
+}
+
+/* --------------------------------------------- Master Break Live · la vidéo */
+
+export type StreamCreated = { ok: true; id: string } | { ok: false; error: string };
+
+/** Ouvre un direct : chemin public, clé d'ingestion, niveau et accès. */
+export async function createStream(formData: FormData): Promise<StreamCreated> {
+  const manager = await requireRole("manager", "admin");
+  const venueId = String(formData.get("venueId") ?? manager.venueId ?? "");
+  if (!venueId) return { ok: false, error: "Aucune salle" };
+  await guardVenue(venueId);
+
+  const venue = (await db.select().from(venues).where(eq(venues.id, venueId)).limit(1))[0];
+  if (!venue) return { ok: false, error: "Salle introuvable" };
+
+  const title = String(formData.get("title") ?? "").trim();
+  if (title.length < 3) return { ok: false, error: "Donne un titre au direct" };
+
+  const level = String(formData.get("level") ?? "phone");
+  const access = String(formData.get("access") ?? "free");
+  const price = access === "ppv" ? Math.max(100, Number(formData.get("price") ?? 500)) : 0;
+  if (access === "ppv" && !price) return { ok: false, error: "Prix du billet vidéo manquant" };
+
+  const id = uid();
+  await db.insert(streams).values({
+    id,
+    venueId,
+    matchId: String(formData.get("matchId") ?? "") || null,
+    title: title.slice(0, 120),
+    level,
+    access,
+    price,
+    path: newStreamPath(venue.slug),
+    streamKey: newStreamKey(),
+    status: "idle",
+    createdBy: manager.id,
+  });
+
+  revalidatePath("/gerant/direct");
+  revalidatePath("/direct");
+  return { ok: true, id };
+}
+
+/** Régénère la clé : le geste qu'on fait quand une clé a fuité. */
+export async function rotateStreamKey(streamId: string) {
+  const stream = (await db.select().from(streams).where(eq(streams.id, streamId)).limit(1))[0];
+  if (!stream) return;
+  await guardVenue(stream.venueId);
+
+  await db
+    .update(streams)
+    .set({ streamKey: newStreamKey(), updatedAt: new Date() })
+    .where(eq(streams.id, streamId));
+  revalidatePath("/gerant/direct");
+}
+
+/** Arrêt manuel, quand la source n'a pas prévenu. */
+export async function endStream(streamId: string) {
+  const stream = (await db.select().from(streams).where(eq(streams.id, streamId)).limit(1))[0];
+  if (!stream) return;
+  await guardVenue(stream.venueId);
+
+  await db
+    .update(streams)
+    .set({ status: "ended", endedAt: new Date(), viewers: 0, updatedAt: new Date() })
+    .where(eq(streams.id, streamId));
+  revalidatePath("/gerant/direct");
+  revalidatePath("/direct");
+}
+
+export async function deleteStream(streamId: string) {
+  const stream = (await db.select().from(streams).where(eq(streams.id, streamId)).limit(1))[0];
+  if (!stream) return;
+  await guardVenue(stream.venueId);
+  await db.delete(streams).where(eq(streams.id, streamId));
+  revalidatePath("/gerant/direct");
+}
+
+export type WatchTicket =
+  | { ok: true; hls: string; whep: string; access: string }
+  | { ok: false; reason: "members" | "ppv" | "gone"; price: number };
+
+/**
+ * Billet de lecture. La page le redemande quand il approche de l'expiration :
+ * c'est ce qui permet de couper un direct payant en cours de route.
+ */
+export async function requestWatchTicket(streamId: string): Promise<WatchTicket> {
+  const user = await requireUser();
+  const stream = (await db.select().from(streams).where(eq(streams.id, streamId)).limit(1))[0];
+  if (!stream) return { ok: false, reason: "gone", price: 0 };
+
+  const access = await canWatch(user, stream);
+  if (!access.ok) return { ok: false, reason: access.reason, price: access.price };
+
+  const ticket = watchTicket(stream.id, user.id);
+  return { ok: true, hls: hlsUrl(stream, ticket), whep: whepUrl(stream, ticket), access: access.as };
+}
+
+export type VideoTicketResult =
+  | { ok: true; reference: string; instruction?: string; amount: number }
+  | { ok: false; error: string };
+
+/** Achat d'un billet vidéo : même chemin de paiement que le reste. */
+export async function buyStreamPass(
+  streamId: string,
+  phone: string,
+  method: "om" | "momo" = "momo",
+): Promise<VideoTicketResult> {
+  const user = await requireUser();
+  const stream = (await db.select().from(streams).where(eq(streams.id, streamId)).limit(1))[0];
+  if (!stream) return { ok: false, error: "Direct introuvable" };
+  if (stream.access !== "ppv") return { ok: false, error: "Ce direct n'est pas payant" };
+
+  const existing = (
+    await db
+      .select()
+      .from(streamPasses)
+      .where(and(eq(streamPasses.streamId, streamId), eq(streamPasses.userId, user.id)))
+      .limit(1)
+  )[0];
+  if (existing?.status === "paid") return { ok: false, error: "Tu as déjà ton billet" };
+
+  const passId = existing?.id ?? uid();
+  if (existing) {
+    await db.update(streamPasses).set({ status: "pending", amount: stream.price }).where(eq(streamPasses.id, passId));
+  } else {
+    await db.insert(streamPasses).values({
+      id: passId,
+      streamId,
+      userId: user.id,
+      amount: stream.price,
+      status: "pending",
+    });
+  }
+
+  const started = await startPayment({
+    kind: "stream",
+    userId: user.id,
+    amount: stream.price,
+    method,
+    phone,
+    description: `Master Break direct`,
+    targetId: passId,
+  });
+  if (!started.ok) return started;
+
+  await db.update(streamPasses).set({ reference: started.reference }).where(eq(streamPasses.id, passId));
+  return { ok: true, reference: started.reference, instruction: started.instruction, amount: stream.price };
 }

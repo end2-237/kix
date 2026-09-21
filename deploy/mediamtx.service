@@ -1,0 +1,24 @@
+# /etc/systemd/system/mediamtx.service
+#
+#   sudo systemctl daemon-reload && sudo systemctl enable --now mediamtx
+#
+# Les deux variables sont lues par les crochets du fichier de configuration :
+# MB_APP_URL doit pointer sur l'application, MB_MEDIA_HOOK_SECRET être le même
+# secret que dans son environnement.
+
+[Unit]
+Description=MediaMTX — serveur média Master Break
+After=network.target
+
+[Service]
+Environment=MB_APP_URL=https://app.masterbreak.cm
+Environment=MB_MEDIA_HOOK_SECRET=change-moi
+ExecStart=/usr/local/bin/mediamtx /etc/mediamtx/mediamtx.yml
+Restart=always
+RestartSec=3
+User=mediamtx
+Group=mediamtx
+StateDirectory=mediamtx
+
+[Install]
+WantedBy=multi-user.target

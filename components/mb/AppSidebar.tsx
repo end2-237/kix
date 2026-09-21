@@ -13,6 +13,7 @@ import {
   MapIcon,
   PlusIcon,
   QrIcon,
+  TargetIcon,
   TicketIcon,
   TrophyIcon,
 } from "@/components/icons";
@@ -27,7 +28,8 @@ const primary = [
   { href: "/app/pass", label: "Master Pass", Icon: QrIcon },
   { href: "/app/salles", label: "Salles", Icon: MapIcon },
   { href: "/app/shop", label: "Shop", Icon: CartIcon, cart: true },
-  { href: "/app/live", label: "Live", Icon: BoltIcon },
+  { href: "/direct", label: "Direct", Icon: BoltIcon },
+  { href: "/app/live", label: "Scores", Icon: TargetIcon },
   { href: "/app/events", label: "Événements", Icon: TicketIcon },
   { href: "/app/rewards", label: "Rewards", Icon: TrophyIcon },
 ];

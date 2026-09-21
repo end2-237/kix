@@ -10,6 +10,8 @@ import {
   reservations,
   products,
   purchases,
+  streamPasses,
+  streams,
   tickets,
   tokens,
   venueTables,
@@ -33,7 +35,7 @@ const fcfa = (n: number) => `${n.toLocaleString("fr-FR")} F`;
  */
 const newReference = () => randomUUID();
 
-export type PaymentKind = "pack" | "order" | "ticket" | "reservation";
+export type PaymentKind = "pack" | "order" | "ticket" | "reservation" | "stream";
 
 export type StartInput = {
   kind: PaymentKind;
@@ -162,6 +164,7 @@ async function fulfil(tx: Tx, payment: Payment) {
   if (payment.kind === "order") return fulfilOrder(tx, payment);
   if (payment.kind === "ticket") return fulfilTicket(tx, payment);
   if (payment.kind === "reservation") return fulfilReservation(tx, payment);
+  if (payment.kind === "stream") return fulfilStreamPass(tx, payment);
 }
 
 async function fulfilPack(tx: Tx, payment: Payment) {
@@ -253,6 +256,26 @@ async function fulfilTicket(tx: Tx, payment: Payment) {
   );
 }
 
+/** Billet vidéo payé : l'accès au direct s'ouvre. */
+async function fulfilStreamPass(tx: Tx, payment: Payment) {
+  const pass = (
+    await tx.select().from(streamPasses).where(eq(streamPasses.id, payment.targetId!)).limit(1)
+  )[0];
+  if (!pass || pass.status === "paid") return;
+
+  await tx.update(streamPasses).set({ status: "paid" }).where(eq(streamPasses.id, pass.id));
+
+  const stream = (await tx.select().from(streams).where(eq(streams.id, pass.streamId)).limit(1))[0];
+  await notify(
+    pass.userId,
+    "Billet vidéo confirmé",
+    `${stream?.title ?? "Le direct"} · ${fcfa(pass.amount)}`,
+    "stream",
+    `/direct/${pass.streamId}`,
+    tx,
+  );
+}
+
 /** L'acompte est encaissé : la table est retenue pour de bon. */
 async function fulfilReservation(tx: Tx, payment: Payment) {
   const booking = (
@@ -318,6 +341,8 @@ async function cancelTarget(tx: Tx, payment: Payment, status: "failed" | "expire
     await tx.update(tickets).set({ status: "failed" }).where(eq(tickets.id, payment.targetId));
   } else if (payment.kind === "reservation") {
     await tx.update(reservations).set({ status: "failed" }).where(eq(reservations.id, payment.targetId));
+  } else if (payment.kind === "stream") {
+    await tx.update(streamPasses).set({ status: "failed" }).where(eq(streamPasses.id, payment.targetId));
   }
 }
 

@@ -1,0 +1,97 @@
+# MediaMTX — serveur média de Master Break
+#
+# Un seul binaire Go, à poser à côté de Supabase sur le VPS. Il ingère en RTMP
+# (OBS, caméra IP) et en WHIP (le navigateur d'un téléphone), et diffuse en HLS
+# et en WebRTC.
+#
+#   wget https://github.com/bluenviron/mediamtx/releases/latest/download/mediamtx_linux_amd64.tar.gz
+#   tar xzf mediamtx_linux_amd64.tar.gz && sudo mv mediamtx /usr/local/bin/
+#   sudo mkdir -p /etc/mediamtx && sudo cp mediamtx.yml /etc/mediamtx/
+#   sudo mediamtx /etc/mediamtx/mediamtx.yml
+#
+# Il ne décide rien tout seul : à chaque connexion, il demande à l'application
+# si elle autorise (authHTTPAddress). Les droits vivent donc au même endroit que
+# le reste de l'application, pas dupliqués ici.
+
+logLevel: info
+readTimeout: 10s
+writeTimeout: 10s
+
+###############################################
+# Authentification déléguée à Master Break
+
+authMethod: http
+# ⚠️ Remplacer par l'URL publique de l'application.
+authHTTPAddress: https://app.masterbreak.cm/api/media/auth
+# Les champs transmis au crochet. `query` porte le billet de lecture.
+authHTTPExclude:
+  - action: api
+  - action: metrics
+  - action: pprof
+
+###############################################
+# Ingestion
+
+rtmp: yes
+rtmpAddress: :1935
+
+# WHIP / WHEP : diffusion et lecture WebRTC depuis un navigateur.
+webrtc: yes
+webrtcAddress: :8889
+# ⚠️ Adresse publique du VPS, sinon la négociation ICE échoue derrière un NAT.
+webrtcAdditionalHosts: []
+webrtcICEServers2:
+  - url: stun:stun.l.google.com:19302
+
+srt: yes
+srtAddress: :8890
+
+rtsp: no
+
+###############################################
+# Diffusion
+
+hls: yes
+hlsAddress: :8888
+hlsVariant: lowLatency
+hlsAlwaysRemux: no
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsAllowOrigin: "*"
+
+###############################################
+# Enregistrement — la rediffusion
+
+record: no
+recordPath: /var/lib/mediamtx/rec/%path/%Y-%m-%d_%H-%M-%S-%f
+recordFormat: fmp4
+recordSegmentDuration: 1h
+recordDeleteAfter: 168h
+
+###############################################
+# Chemins
+#
+# `all_others` : tout chemin est accepté, c'est l'application qui dit si la
+# connexion est légitime. Les deux crochets préviennent l'application quand une
+# source arrive et quand elle s'arrête — sans eux, un direct resterait « en
+# cours » après le débranchement de la caméra.
+
+paths:
+  all_others:
+    runOnReady: >
+      curl -sS -X POST -H "x-mb-media: $MB_MEDIA_HOOK_SECRET"
+      "$MB_APP_URL/api/media/event?event=ready&path=$MTX_PATH"
+    runOnReadyRestart: no
+
+    runOnNotReady: >
+      curl -sS -X POST -H "x-mb-media: $MB_MEDIA_HOOK_SECRET"
+      "$MB_APP_URL/api/media/event?event=notready&path=$MTX_PATH"
+
+    runOnRead: >
+      curl -sS -X POST -H "x-mb-media: $MB_MEDIA_HOOK_SECRET"
+      "$MB_APP_URL/api/media/event?event=read&path=$MTX_PATH"
+
+    runOnUnread: >
+      curl -sS -X POST -H "x-mb-media: $MB_MEDIA_HOOK_SECRET"
+      "$MB_APP_URL/api/media/event?event=unread&path=$MTX_PATH"

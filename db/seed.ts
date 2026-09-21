@@ -14,6 +14,8 @@ import {
   reservations,
   scans,
   sessions,
+  streamPasses,
+  streams,
   tickets,
   tokens,
   users,
@@ -42,7 +44,7 @@ function code(taken: Set<string>) {
 
 // on vide dans l'ordre des dépendances
 export async function seed() {
-for (const table of [notifications, matchEvents, matches, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, products, packs, sessions, users, venues]) {
+for (const table of [notifications, streamPasses, streams, matchEvents, matches, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, products, packs, sessions, users, venues]) {
   await db.delete(table);
 }
 
@@ -563,8 +565,83 @@ push("break", ariel.id, "Casse gagnante", 9);
 sa++; push("rack", ariel.id, "Manche remportée", 6);
 await db.insert(matchEvents).values(frise);
 
+/* Master Break Live : la vidéo --------------------------------------------- */
+// Assez de directs pour que la page de découverte ait sa densité de vitrine.
+const kata = venueRows[2];
+let streamSeq = 0;
+// Les vignettes tournent sur les photos de tables : sans serveur média, c'est
+// ce qui donne à la vitrine des images distinctes les unes des autres.
+const posters = [
+  "/img/table-blue.jpg",
+  "/img/balls-glow.jpg",
+  "/img/hall-neon.jpg",
+  "/img/table-rack.jpg",
+  "/img/balls-dark.jpg",
+  "/img/hall-dark.jpg",
+  "/img/player-cut.jpg",
+  "/img/crowd-lights.jpg",
+];
+
+const makeStream = (v: {
+  venueId: string;
+  matchId?: string | null;
+  title: string;
+  level: string;
+  access?: string;
+  price?: number;
+  status?: string;
+  viewers?: number;
+  discipline?: string;
+  startedMinutesAgo?: number;
+}) => {
+  const seq = ++streamSeq;
+  const status = v.status ?? "live";
+  const viewers = v.viewers ?? 20 + seq * 13;
+  return {
+    id: uid(),
+    venueId: v.venueId,
+    matchId: v.matchId ?? null,
+    title: v.title,
+    level: v.level,
+    access: v.access ?? "free",
+    price: v.price ?? 0,
+    discipline: v.discipline ?? "8-ball",
+    poster: posters[seq % posters.length],
+    path: `mb-live-${seq}`,
+    streamKey: `demo-cle-${seq}`,
+    status,
+    startedAt: status === "idle" ? null : minutesAgo(v.startedMinutesAgo ?? 30 + seq * 7),
+    endedAt: status === "ended" ? minutesAgo(5) : null,
+    viewers: status === "live" ? viewers : 0,
+    peakViewers: viewers + 11,
+    createdBy: serge.id,
+  };
+};
+
+const streamRows = [
+  makeStream({ venueId: breakAkwa.id, matchId: liveMatch.id, title: "Table 1 · quart de finale", level: "production", viewers: 412, discipline: "8-ball", startedMinutesAgo: 38 }),
+  makeStream({ venueId: breakAkwa.id, title: "Venue Cast · Le Break Akwa", level: "venue", viewers: 148, discipline: "ambiance", startedMinutesAgo: 180 }),
+  makeStream({ venueId: zenith.id, title: "Zenith · table centrale", level: "venue", viewers: 96, discipline: "ambiance" }),
+  makeStream({ venueId: kata.id, title: "Kata Club · soirée 9-ball", level: "phone", viewers: 61, discipline: "9-ball" }),
+  makeStream({ venueId: breakAkwa.id, title: "Snooker · table 7", level: "phone", viewers: 34, discipline: "snooker" }),
+  makeStream({ venueId: zenith.id, title: "Killer du vendredi", level: "phone", viewers: 27, discipline: "killer" }),
+  makeStream({ venueId: breakAkwa.id, matchId: nextMatch.id, title: "Demi-finale · production", level: "production", access: "ppv", price: 500, status: "idle", discipline: "9-ball" }),
+  makeStream({ venueId: zenith.id, title: "Open Douala · table 2", level: "production", access: "members", viewers: 203, discipline: "8-ball" }),
+  makeStream({ venueId: kata.id, title: "Entraînement libre", level: "phone", viewers: 12, discipline: "8-ball" }),
+  makeStream({ venueId: breakAkwa.id, title: "Master Break Open · finale 2025", level: "production", access: "free", status: "ended", discipline: "8-ball" }),
+  makeStream({ venueId: zenith.id, title: "Nuit Néon · rediffusion", level: "production", access: "ppv", price: 300, status: "ended", discipline: "9-ball" }),
+  makeStream({ venueId: kata.id, title: "Kata Cup · demi-finales", level: "production", access: "members", status: "ended", discipline: "snooker" }),
+  makeStream({ venueId: breakAkwa.id, title: "Table 3 · défi du soir", level: "phone", viewers: 88, discipline: "8-ball" }),
+  makeStream({ venueId: zenith.id, title: "Zenith · 9-ball nocturne", level: "phone", viewers: 74, discipline: "9-ball" }),
+  makeStream({ venueId: kata.id, title: "Kata Club · Venue Cast", level: "venue", viewers: 52, discipline: "ambiance" }),
+  makeStream({ venueId: breakAkwa.id, title: "Snooker · table 8", level: "phone", viewers: 41, discipline: "snooker" }),
+  makeStream({ venueId: zenith.id, title: "Killer · table 4", level: "phone", viewers: 33, discipline: "killer" }),
+  makeStream({ venueId: kata.id, title: "9-ball · table 2", level: "phone", viewers: 29, discipline: "9-ball" }),
+];
+await db.insert(streams).values(streamRows);
+
 console.log(
-  `base remplie : 3 salles, ${tableRows.length} tables, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs`,
+  `base remplie : 3 salles, ${tableRows.length} tables, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs`,
 );
 }
 
