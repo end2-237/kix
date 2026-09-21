@@ -470,3 +470,100 @@
     }
   }
 }
+
+/* ---------------------------------------------------------- tableaux mobiles
+
+   Un tableau de sept colonnes ne se lit pas sur un téléphone : il déborde, on
+   fait défiler à l'aveugle, et la colonne qu'on cherche est toujours celle
+   qu'on ne voit pas. En dessous de la tablette, chaque ligne devient donc une
+   carte, et chaque cellule porte son en-tête à gauche.
+
+   Les libellés viennent de variables posées par le composant `Table` à partir
+   de son `head` : aucune page n'a eu à changer, et un en-tête modifié suit
+   tout seul. */
+
+@media (max-width: 767px) {
+  .tbl-cards table,
+  .tbl-cards tbody,
+  .tbl-cards tr,
+  .tbl-cards td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .tbl-cards {
+    border: 0;
+    overflow: visible;
+  }
+
+  .tbl-cards table {
+    min-width: 0;
+  }
+
+  .tbl-cards thead {
+    display: none;
+  }
+
+  .tbl-cards tbody {
+    border-top: 0;
+  }
+
+  .tbl-cards tr {
+    margin-bottom: 10px;
+    border: 1px solid var(--mb-line);
+    border-radius: 18px;
+    background: var(--mb-surface);
+    padding: 4px 2px;
+  }
+
+  .tbl-cards td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 9px 14px;
+    text-align: right;
+  }
+
+  /* L'en-tête de colonne, rappelé à gauche de la valeur. */
+  .tbl-cards td::before {
+    content: var(--tbl-c, "");
+    flex: 0 0 auto;
+    color: var(--mb-muted);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  /* Une cellule sans en-tête — la colonne d'actions — ne garde pas de vide. */
+  .tbl-cards td:empty {
+    display: none;
+  }
+
+  .tbl-cards td:nth-child(1) { --tbl-c: var(--c1); }
+  .tbl-cards td:nth-child(2) { --tbl-c: var(--c2); }
+  .tbl-cards td:nth-child(3) { --tbl-c: var(--c3); }
+  .tbl-cards td:nth-child(4) { --tbl-c: var(--c4); }
+  .tbl-cards td:nth-child(5) { --tbl-c: var(--c5); }
+  .tbl-cards td:nth-child(6) { --tbl-c: var(--c6); }
+  .tbl-cards td:nth-child(7) { --tbl-c: var(--c7); }
+  .tbl-cards td:nth-child(8) { --tbl-c: var(--c8); }
+
+  /* La première cellule fait titre de carte : son en-tête serait redondant
+     avec ce qu'elle affiche, et elle se lit mieux alignée à gauche. */
+  .tbl-cards td:nth-child(1) {
+    justify-content: flex-start;
+    border-bottom: 1px solid var(--mb-line);
+    padding-top: 12px;
+    padding-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .tbl-cards td:nth-child(1)::before {
+    display: none;
+  }
+}

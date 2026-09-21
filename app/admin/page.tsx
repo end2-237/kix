@@ -1,5 +1,16 @@
-import Link from "next/link";
-import { PageHead, Pill, Table, Td } from "@/components/admin/AdminUI";
+import { Pill, Table, Td } from "@/components/admin/AdminUI";
+import { Hero } from "@/components/dash/Hero";
+import { Section, Tile, Tiles } from "@/components/dash/Section";
+import {
+  CalendarIcon,
+  CartIcon,
+  CoinIcon,
+  MapIcon,
+  TableIcon,
+  TicketIcon,
+  TruckIcon,
+  UserIcon,
+} from "@/components/icons";
 import { StatBlock } from "@/components/ui/Card";
 import { getAdminStats, getRecentScans, getVenueBreakdown } from "@/lib/queries";
 import { f, group } from "@/lib/format";
@@ -16,54 +27,60 @@ export default async function AdminDashboard() {
 
   return (
     <>
-      <PageHead
-        title="Tableau de bord"
-        subtitle="Jetons, boutique et billetterie — toutes salles confondues."
-        action={
-          <Link
-            href="/admin/salles"
-            className="h-11 rounded-full bg-gold px-5 text-[13px] leading-11 font-semibold text-gold-ink"
-          >
-            Ajouter une salle
-          </Link>
-        }
-      />
+      {/* La recette du jour en tête, comme chez le gérant : la première chose
+          qu'on veut savoir en ouvrant l'application, et la seule qui mérite
+          d'être lisible à bout de bras. */}
+      <Hero label="Recette jetons du jour" value={group(stats.revenueToday)} suffix="FCFA">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted">
+          <span>
+            <span className="font-semibold text-ink">{group(stats.tokensSold)}</span> jetons vendus sur 30 j
+          </span>
+          <span>
+            <span className="font-semibold text-ink">{group(stats.clients)}</span> clients inscrits
+          </span>
+        </div>
+      </Hero>
 
-      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
         <StatBlock
-          label="Recette jetons du jour"
-          value={
-            <>
-              <Counter value={stats.revenueToday} format="grouped" /> F
-            </>
-          }
-          hint="parties scannées"
-          tone="gold"
-          className="rounded-none"
-        />
-        <StatBlock
-          label="Recharges sur 30 jours"
+          label="Recharges 30 j"
           value={
             <>
               <Counter value={stats.revenueMonth} format="grouped" /> F
             </>
           }
-          hint={`${stats.tokensSold} jetons vendus`}
-          className="rounded-none"
+          hint={`${stats.tokensSold} jeton${stats.tokensSold > 1 ? "s" : ""}`}
         />
         <StatBlock
-          label="Boutique sur 30 jours"
+          label="Boutique 30 j"
           value={
             <>
               <Counter value={stats.ordersTotal} format="grouped" /> F
             </>
           }
-          hint={`${stats.ordersCount} commandes`}
+          hint={`${stats.ordersCount} commande${stats.ordersCount > 1 ? "s" : ""}`}
           tone="jade"
-          className="rounded-none"
         />
-        <StatBlock label="Billets vendus" value={<Counter value={stats.ticketsSold} />} hint={`${stats.clients} clients inscrits`} className="rounded-none" />
+        <StatBlock
+          label="Billets vendus"
+          value={<Counter value={stats.ticketsSold} />}
+          hint={`${group(stats.activeTokens)} jetons actifs`}
+          className="col-span-2 lg:col-span-1"
+        />
       </div>
+
+      <Section title="Gérer">
+        <Tiles>
+          <Tile href="/admin/salles" label="Salles" icon={<MapIcon size={17} />} />
+          <Tile href="/admin/produits" label="Produits" icon={<CartIcon size={17} />} />
+          <Tile href="/admin/commandes" label="Commandes" icon={<TruckIcon size={17} />} />
+          <Tile href="/admin/packs" label="Packs" icon={<CoinIcon size={17} />} />
+          <Tile href="/admin/evenements" label="Soirées" icon={<CalendarIcon size={17} />} />
+          <Tile href="/admin/tables" label="Tables" icon={<TableIcon size={17} />} />
+          <Tile href="/admin/jetons" label="Jetons" icon={<TicketIcon size={17} />} />
+          <Tile href="/admin/utilisateurs" label="Comptes" icon={<UserIcon size={17} />} />
+        </Tiles>
+      </Section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-[17px]">Salles · 7 derniers jours</h2>

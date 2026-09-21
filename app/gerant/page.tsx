@@ -2,9 +2,11 @@ import Image from "next/image";
 import { and, eq } from "drizzle-orm";
 import { db, tokens } from "@/db";
 import { ScanConsole } from "@/components/mb/ScanConsole";
+import { Hero } from "@/components/dash/Hero";
+import { Section, Tile, Tiles } from "@/components/dash/Section";
 import { Card, StatBlock } from "@/components/ui/Card";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { MasterMark } from "@/components/icons";
+import { BoltIcon, CalendarIcon, ChartIcon, MapIcon, MasterMark, TableIcon, TargetIcon } from "@/components/icons";
 import { getRecentScans, getVenueStats } from "@/lib/queries";
 import { requireRole } from "@/lib/session";
 import { passUrl } from "@/lib/pass";
@@ -39,19 +41,20 @@ export default async function GerantPage() {
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 lg:flex-col lg:items-start lg:gap-1">
           <span className="lg:hidden">
-            <MasterMark size={28} />
+            <MasterMark size={26} />
           </span>
-          <h1 className="text-xl lg:text-[26px]">Bonsoir {manager.name.split(" ")[0]}</h1>
-          <p className="hidden text-[13px] text-muted lg:block">
-            {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })} · service
-            en cours · {venue?.name ?? "toutes salles"}
-          </p>
+          <div className="flex flex-col">
+            <h1 className="text-[17px] leading-tight lg:text-[26px]">Bonsoir {manager.name.split(" ")[0]}</h1>
+            <p className="text-[11.5px] text-muted lg:text-[13px]">
+              {venue?.name ?? "toutes salles"} · service en cours
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-2 rounded-full border border-gold/30 bg-gold/12 px-3 py-2 text-[11px] text-gold-text">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-2 rounded-full border border-gold/30 bg-gold/12 px-3 py-1.5 text-[11px] text-gold-text">
             <span className="live-dot h-1.5 w-1.5 rounded-full bg-gold" />
             En ligne
           </span>
@@ -61,38 +64,58 @@ export default async function GerantPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-        <StatBlock
-          label="Jetons débités"
-          value={<Counter value={stats?.debited ?? 0} />}
-          hint="depuis minuit"
-          className="rounded-none"
-        />
-        <StatBlock
-          label="Recette du jour"
-          value={
-            <>
-              <Counter value={stats?.revenue ?? 0} format="grouped" /> F
-            </>
-          }
-          hint="versement lundi"
-          tone="gold"
-          className="rounded-none"
-        />
-        <StatBlock
-          label="Tables occupées"
-          value={`${stats?.tablesBusy ?? 0} / ${stats?.tablesTotal ?? 0}`}
-          hint={venue ? `${venue.freeTables} libres` : "—"}
-          className="rounded-none"
-        />
-        <StatBlock
-          label="Billets scannés"
-          value={<Counter value={stats?.tickets ?? 0} />}
-          hint="entrées validées"
-          tone="jade"
-          className="rounded-none"
-        />
-      </div>
+      {/* La recette d'abord, en très gros : c'est le seul chiffre qu'un gérant
+          cherche vraiment quand il sort son téléphone du comptoir. Les autres
+          suivent, compacts, sous forme de raccourcis. */}
+      <Hero label="Recette du jour" value={group(stats?.revenue ?? 0)} suffix="FCFA">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted">
+          <span>
+            <span className="font-semibold text-ink">{stats?.debited ?? 0}</span> jetons débités
+          </span>
+          <span>
+            <span className="font-semibold text-ink">{stats?.tickets ?? 0}</span> billets scannés
+          </span>
+          <span>versement lundi</span>
+        </div>
+      </Hero>
+
+      <Section title="La salle" href="/gerant/salle" action="Gérer">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          <StatBlock
+            label="Tables occupées"
+            value={`${stats?.tablesBusy ?? 0} / ${stats?.tablesTotal ?? 0}`}
+            hint={venue ? `${venue.freeTables} libres` : "—"}
+          />
+          <StatBlock label="Jetons débités" value={<Counter value={stats?.debited ?? 0} />} hint="depuis minuit" />
+          <StatBlock
+            label="Billets scannés"
+            value={<Counter value={stats?.tickets ?? 0} />}
+            hint="entrées validées"
+            tone="jade"
+          />
+          <StatBlock
+            label="Ce mois"
+            value={
+              <>
+                <Counter value={stats?.revenue ?? 0} format="grouped" /> F
+              </>
+            }
+            hint="recette du jour"
+            tone="gold"
+          />
+        </div>
+      </Section>
+
+      <Section title="Raccourcis">
+        <Tiles>
+          <Tile href="/gerant/salle" label="Tables" icon={<TableIcon size={17} />} />
+          <Tile href="/gerant/live" label="Matchs" icon={<TargetIcon size={17} />} />
+          <Tile href="/gerant/direct" label="Direct" icon={<BoltIcon size={17} />} />
+          <Tile href="/gerant/ecrans" label="Écrans" icon={<MapIcon size={17} />} />
+          <Tile href="/gerant/evenements" label="Soirées" icon={<CalendarIcon size={17} />} />
+          <Tile href="/gerant/service" label="Service" icon={<ChartIcon size={17} />} />
+        </Tiles>
+      </Section>
 
       <div className="grid min-h-0 gap-4 lg:grow lg:grid-cols-2">
         <ScanConsole samplePass={samplePass} />

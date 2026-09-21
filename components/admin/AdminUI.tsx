@@ -24,8 +24,15 @@ export function PageHead({
 }
 
 export function Table({ head, children }: { head: string[]; children: React.ReactNode }) {
+  // Les en-têtes descendent en variables CSS : sur téléphone, chaque cellule
+  // les rappelle à gauche de sa valeur et la ligne devient une carte. Voir
+  // `.tbl-cards` dans globals.css — aucune page n'a eu à être réécrite.
+  const libelles = Object.fromEntries(
+    head.map((cell, i) => [`--c${i + 1}`, cell ? JSON.stringify(cell) : '""']),
+  ) as React.CSSProperties;
+
   return (
-    <div className="overflow-x-auto border border-line">
+    <div className="tbl-cards overflow-x-auto border border-line" style={libelles}>
       <table className="w-full min-w-160 border-collapse text-left text-[13px]">
         <thead>
           <tr className="border-b border-line bg-surface">

@@ -1,0 +1,38 @@
+"use client";
+
+import { DashNav, type NavItem } from "@/components/dash/DashNav";
+import {
+  CalendarIcon,
+  CartIcon,
+  ChartIcon,
+  CoinIcon,
+  MapIcon,
+  TableIcon,
+  TicketIcon,
+  TruckIcon,
+  UserIcon,
+} from "@/components/icons";
+
+/**
+ * Neuf pages, quatre places.
+ *
+ * L'administration les empilait toutes en pastilles au-dessus du contenu :
+ * sur un téléphone, la moitié de l'écran partait en navigation avant qu'une
+ * seule donnée n'apparaisse. Les quatre premières restent au pouce, le reste
+ * attend derrière « Plus ».
+ */
+const items: NavItem[] = [
+  { href: "/admin", label: "Tableau", Icon: ChartIcon, primary: true },
+  { href: "/admin/commandes", label: "Commandes", Icon: TruckIcon },
+  { href: "/admin/salles", label: "Salles", Icon: MapIcon },
+  { href: "/admin/produits", label: "Produits", Icon: CartIcon },
+  { href: "/admin/packs", label: "Packs", Icon: CoinIcon },
+  { href: "/admin/evenements", label: "Événements", Icon: CalendarIcon },
+  { href: "/admin/tables", label: "Tables", Icon: TableIcon },
+  { href: "/admin/jetons", label: "Jetons", Icon: TicketIcon },
+  { href: "/admin/utilisateurs", label: "Utilisateurs", Icon: UserIcon },
+];
+
+export function AdminNav({ mobile = false }: { mobile?: boolean }) {
+  return <DashNav items={items} mobile={mobile} />;
+}
