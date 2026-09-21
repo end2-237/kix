@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Master Break — feuille de match</title>
+<style>
+  :root {
+    --bg: #071a13; --surface: #0b241a; --ligne: rgba(245,241,230,.12);
+    --ink: #f5f1e6; --muted: #93998d; --or: #d9b450; --or-ink: #17120a;
+    --jade: #1fa97a; --jade-clair: #6fd8ae; --warn: #e2823a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  /* Une règle d'auteur (`.direct { display: flex }`) l'emporte sur celle du
+     navigateur pour `[hidden]` : sans ceci, rien ne se cache jamais. */
+  [hidden] { display: none !important; }
+  body { background: var(--bg); color: var(--ink); min-height: 100dvh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .marque { letter-spacing: .2em; font-size: 12px; color: var(--or); font-weight: 700; }
+  .etat { font-size: 12px; color: var(--muted); }
+
+  .tableau { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--ligne); border-radius: 18px; padding: 16px; margin-bottom: 14px; }
+  .tableau .nom { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tableau .nom.b { text-align: right; }
+  .chiffres { font-size: 38px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chiffres .a { color: var(--or); } .chiffres .b { color: var(--jade-clair); }
+  .chiffres .t { color: var(--muted); margin: 0 6px; }
+  .sous { grid-column: 1 / -1; text-align: center; font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+
+  .colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  button { font: inherit; border: none; cursor: pointer; border-radius: 999px; }
+  /* Toute la largeur de la colonne : dans une salle sombre, on vise le bouton
+     sans regarder le téléphone. */
+  .manche { width: 100%; height: 108px; border-radius: 22px; font-size: 15px; font-weight: 700;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .manche .plus { font-size: 30px; line-height: 1; }
+  .manche.a { background: var(--or); color: var(--or-ink); }
+  .manche.b { background: rgba(31,169,122,.22); color: var(--jade-clair); border: 1px solid rgba(31,169,122,.45); }
+  .retrait { height: 42px; background: transparent; border: 1px solid var(--ligne); color: var(--muted); font-size: 12px; margin-top: 8px; width: 100%; }
+
+  .faits { background: var(--surface); border: 1px solid var(--ligne); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+  .faits h2 { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+  .paire { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .paire .titre { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+  .paire button { height: 40px; background: transparent; border: 1px solid var(--ligne); color: var(--ink); font-size: 12px; }
+
+  .pied { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pied button { height: 44px; padding: 0 16px; font-size: 13px; background: transparent;
+    border: 1px solid var(--ligne); color: var(--muted); }
+  .pied .primaire { background: var(--or); color: var(--or-ink); border: none; font-weight: 700; flex: 1; }
+  .pied .danger { border-color: rgba(226,130,58,.5); color: var(--warn); }
+
+  dialog { border: 1px solid var(--ligne); background: var(--surface); color: var(--ink);
+    border-radius: 18px; padding: 18px; width: min(92vw, 380px); }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+  input { height: 46px; background: var(--bg); border: 1px solid var(--ligne); color: var(--ink);
+    border-radius: 10px; padding: 0 12px; font-size: 15px; text-transform: none; letter-spacing: 0; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="marque">FEUILLE DE MATCH</span>
+  <span class="etat" id="lien">hors ligne</span>
+</header>
+
+<div class="tableau">
+  <div class="nom" id="na">Joueur A</div>
+  <div class="chiffres"><span class="a" id="sa">0</span><span class="t">–</span><span class="b" id="sb">0</span></div>
+  <div class="nom b" id="nb">Joueur B</div>
+  <div class="sous" id="sous">course à 5 · 8-ball</div>
+</div>
+
+<div class="colonnes">
+  <div>
+    <button class="manche a" data-manche="a"><span class="plus">+</span><span id="ba">Joueur A</span></button>
+    <button class="retrait" data-retrait="a">− retirer</button>
+  </div>
+  <div>
+    <button class="manche b" data-manche="b"><span class="plus">+</span><span id="bb">Joueur B</span></button>
+    <button class="retrait" data-retrait="b">− retirer</button>
+  </div>
+</div>
+
+<div class="faits">
+  <h2>Autres faits de jeu</h2>
+  <div id="grille"></div>
+</div>
+
+<div class="pied">
+  <button class="primaire" id="lancer">Lancer le match</button>
+  <button id="reglages">Réglages</button>
+  <button class="danger" id="terminer">Terminer</button>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <label>Joueur A <input name="a" id="fa" maxlength="40"></label>
+    <label>Joueur B <input name="b" id="fb" maxlength="40"></label>
+    <div class="duo">
+      <label>Course à <input name="cible" id="fc" type="number" min="1" max="21"></label>
+      <label>Discipline <input name="discipline" id="fd" maxlength="20"></label>
+    </div>
+    <label>Intitulé <input name="titre" id="ft" maxlength="60" placeholder="Quart de finale"></label>
+    <div class="duo">
+      <button value="annuler" style="height:44px;background:transparent;border:1px solid var(--ligne);color:var(--muted)">Annuler</button>
+      <button value="ok" style="height:44px;background:var(--or);color:var(--or-ink);font-weight:700">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let etat = null;
+
+const FAITS = [
+  ["casse", "Casse gagnante"],
+  ["empochage", "Empochage"],
+  ["securite", "Sécurité"],
+  ["faute", "Faute"],
+];
+
+// La boîte est sur le même réseau : l'appel ne sort jamais de la salle.
+async function geste(corps) {
+  try {
+    const r = await fetch("/geste", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(corps),
+    });
+    peindre(await r.json());
+  } catch {
+    $("lien").textContent = "boîte injoignable";
+  }
+}
+
+function peindre(e) {
+  etat = e;
+  $("na").textContent = $("ba").textContent = e.a.nom;
+  $("nb").textContent = $("bb").textContent = e.b.nom;
+  $("sa").textContent = e.a.score;
+  $("sb").textContent = e.b.score;
+  $("sous").textContent =
+    (e.titre ? e.titre + " · " : "") + "course à " + e.cible + " · " + e.discipline +
+    (e.statut === "fini" ? " · terminé" : e.statut === "attente" ? " · pas commencé" : "");
+  $("lancer").textContent = e.statut === "attente" ? "Lancer le match" : "Nouveau match";
+  $("terminer").hidden = e.statut !== "encours";
+}
+
+// Les faits de jeu : deux boutons par ligne, un pour chaque joueur.
+$("grille").innerHTML = FAITS.map(([quoi, nom]) => `
+  <div class="paire">
+    <span class="titre">${nom}</span>
+    <button data-fait="${quoi}" data-joueur="a">A</button>
+    <button data-fait="${quoi}" data-joueur="b">B</button>
+  </div>`).join("");
+
+document.addEventListener("click", (ev) => {
+  const el = ev.target.closest("button");
+  if (!el) return;
+
+  if (el.dataset.manche) return geste({ geste: "manche", joueur: el.dataset.manche, delta: 1 });
+  if (el.dataset.retrait) return geste({ geste: "manche", joueur: el.dataset.retrait, delta: -1 });
+  if (el.dataset.fait) {
+    // Les boutons A/B portent le nom réel une fois l'état connu.
+    return geste({ geste: "fait", joueur: el.dataset.joueur, quoi: el.dataset.fait });
+  }
+
+  if (el.id === "lancer") {
+    return etat?.statut === "attente" ? geste({ geste: "lancer" }) : ouvrirReglages(true);
+  }
+  if (el.id === "terminer") {
+    if (confirm("Terminer le match sur le score actuel ?")) geste({ geste: "terminer" });
+    return;
+  }
+  if (el.id === "reglages") return ouvrirReglages(false);
+});
+
+function ouvrirReglages(nouveau) {
+  $("fa").value = etat?.a.nom ?? "";
+  $("fb").value = etat?.b.nom ?? "";
+  $("fc").value = etat?.cible ?? 5;
+  $("fd").value = etat?.discipline ?? "8-ball";
+  $("ft").value = nouveau ? "" : (etat?.titre ?? "");
+  $("dlg").returnValue = "";
+  $("dlg").dataset.nouveau = nouveau ? "1" : "";
+  $("dlg").showModal();
+}
+
+$("dlg").addEventListener("close", () => {
+  if ($("dlg").returnValue !== "ok") return;
+  geste({
+    geste: $("dlg").dataset.nouveau ? "nouveau" : "regler",
+    a: $("fa").value,
+    b: $("fb").value,
+    cible: $("fc").value,
+    discipline: $("fd").value,
+    titre: $("ft").value,
+  });
+});
+
+// L'arbitre suit le même flux que l'écran : deux téléphones restent d'accord.
+const source = new EventSource("/etat");
+source.addEventListener("etat", (e) => peindre(JSON.parse(e.data)));
+source.addEventListener("open", () => ($("lien").textContent = "relié à la boîte"));
+source.addEventListener("error", () => ($("lien").textContent = "reconnexion…"));
+</script>
+</body>
+</html>

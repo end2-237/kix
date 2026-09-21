@@ -1,0 +1,59 @@
+# Master Break — la boîte de salle, en deux conteneurs.
+#
+# À poser sur un mini-PC ou un Raspberry Pi branché au routeur de la salle.
+# Une fois lancée, la soirée entière tient sans internet : la caméra publie
+# sur le MediaMTX local, l'écran lit ce même flux, l'arbitre marque depuis
+# son téléphone. Rien ne sort du réseau de la salle.
+#
+#   docker compose up -d
+#
+#   écran    → http://<ip-de-la-boite>:7000/
+#   arbitre  → http://<ip-de-la-boite>:7000/arbitre
+#   caméra   → rtmp://<ip-de-la-boite>/table1   (OBS, Larix, encodeur HDMI)
+#   téléphone qui filme (WebRTC) → http://<ip-de-la-boite>:8889/table1/publish
+#
+# `network_mode: host` n'est pas une facilité : le WebRTC de MediaMTX annonce
+# aux navigateurs de la salle l'adresse IP qu'il voit sur ses interfaces. Dans
+# un réseau ponté Docker il annoncerait une adresse privée au conteneur, que
+# le téléviseur ne sait pas joindre — l'image resterait noire.
+
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:1-ffmpeg
+    container_name: mb-salle-media
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MTX_RTSPTRANSPORTS: tcp
+      MTX_WEBRTCADDITIONALHOSTS: ${MB_SALLE_IP:-192.168.1.50}
+      # Le seuil par défaut attend trop avant de servir la première image :
+      # sur un écran de salle, on veut voir la table tout de suite.
+      MTX_HLSVARIANT: lowLatency
+      MTX_HLSALWAYSREMUX: "yes"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+
+  boite:
+    image: node:22-alpine
+    container_name: mb-salle-boite
+    restart: unless-stopped
+    network_mode: host
+    working_dir: /salle
+    command: node salle.mjs
+    environment:
+      MB_SALLE_PORT: "7000"
+      # Adresse telle que la verra le navigateur du téléviseur, pas le conteneur.
+      MB_SALLE_MEDIA: http://${MB_SALLE_IP:-192.168.1.50}:8889
+      MB_SALLE_PATH: table1
+      MB_SALLE_JOURNAL: /journal/journal.json
+    volumes:
+      - ./salle.mjs:/salle/salle.mjs:ro
+      - ./ecran.html:/salle/ecran.html:ro
+      - ./arbitre.html:/salle/arbitre.html:ro
+      # Le score survit à `docker compose down`, pas seulement à un redémarrage.
+      - mb-journal:/journal
+    depends_on:
+      - mediamtx
+
+volumes:
+  mb-journal:

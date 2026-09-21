@@ -1,0 +1,31 @@
+# MediaMTX de salle — volontairement ouvert.
+#
+# Ce serveur n'est joignable que depuis le wifi de la salle : le seul à pouvoir
+# publier est déjà dans la pièce. Y ajouter des mots de passe coûterait une
+# soirée de dépannage à chaque changement de téléphone, sans rien protéger de
+# plus. Ne jamais exposer ce port sur internet — c'est le VPS qui fait ça, avec
+# son authentification à lui.
+
+logLevel: info
+
+rtmp: yes
+rtmpAddress: :1935
+
+hls: yes
+hlsAddress: :8888
+hlsVariant: lowLatency
+hlsAlwaysRemux: yes
+
+webrtc: yes
+webrtcAddress: :8889
+webrtcLocalUDPAddress: :8189
+
+rtsp: yes
+rtspAddress: :8554
+
+# Les chemins sont libres : `table1`, `table2`… selon ce que la salle filme.
+pathDefaults:
+  source: publisher
+
+paths:
+  all_others:
