@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartIcon, QrIcon, TableIcon } from "@/components/icons";
+import { BoltIcon, ChartIcon, QrIcon, TableIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 const items = [
   { href: "/gerant", label: "Scanner", Icon: QrIcon },
   { href: "/gerant/salle", label: "Salle", Icon: TableIcon },
+  { href: "/gerant/live", label: "Matchs", Icon: BoltIcon },
   { href: "/gerant/service", label: "Service", Icon: ChartIcon },
 ];
 

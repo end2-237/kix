@@ -3,6 +3,8 @@ import { hashPassword } from "../lib/password";
 import { createDb } from "./client";
 import {
   events,
+  matchEvents,
+  matches,
   notifications,
   orderItems,
   orders,
@@ -40,7 +42,7 @@ function code(taken: Set<string>) {
 
 // on vide dans l'ordre des dépendances
 export async function seed() {
-for (const table of [notifications, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, products, packs, sessions, users, venues]) {
+for (const table of [notifications, matchEvents, matches, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, products, packs, sessions, users, venues]) {
   await db.delete(table);
 }
 
@@ -452,8 +454,117 @@ await db.insert(reservations).values([
   },
 ]);
 
+/* Master Break Live : un match en cours, un programmé, deux joués ----------- */
+const [blaise, yannick, merline] = others;
+const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
+
+const liveMatch = {
+  id: uid(),
+  venueId: breakAkwa.id,
+  tableId: akwaTables[0].id,
+  kind: "8-ball",
+  target: 5,
+  playerAId: ariel.id,
+  playerBId: blaise.id,
+  scoreA: 3,
+  scoreB: 2,
+  turnId: blaise.id,
+  status: "live",
+  label: "Quart de finale",
+  startsAt: minutesAgo(40),
+  startedAt: minutesAgo(38),
+  createdBy: serge.id,
+  updatedAt: minutesAgo(1),
+};
+
+const nextMatch = {
+  id: uid(),
+  venueId: breakAkwa.id,
+  tableId: akwaTables[1].id,
+  kind: "9-ball",
+  target: 7,
+  playerAId: yannick.id,
+  playerBId: merline.id,
+  scoreA: 0,
+  scoreB: 0,
+  turnId: yannick.id,
+  status: "scheduled",
+  label: "Demi-finale",
+  startsAt: atHour(21, 0),
+  createdBy: serge.id,
+};
+
+const oldMatches = [
+  {
+    id: uid(),
+    venueId: breakAkwa.id,
+    kind: "8-ball",
+    target: 5,
+    playerAId: ariel.id,
+    playerBId: blaise.id,
+    scoreA: 5,
+    scoreB: 3,
+    status: "done",
+    winnerId: ariel.id,
+    label: "Amical",
+    startedAt: hoursAgo(30),
+    endedAt: hoursAgo(29),
+    createdBy: serge.id,
+  },
+  {
+    id: uid(),
+    venueId: zenith.id,
+    kind: "9-ball",
+    target: 5,
+    playerAId: blaise.id,
+    playerBId: ariel.id,
+    scoreA: 5,
+    scoreB: 4,
+    status: "done",
+    winnerId: blaise.id,
+    label: "Ligne Douala",
+    startedAt: hoursAgo(54),
+    endedAt: hoursAgo(53),
+    createdBy: serge.id,
+  },
+];
+
+await db.insert(matches).values([liveMatch, nextMatch, ...oldMatches]);
+
+// La frise du match en cours : cinq manches et quelques faits de jeu.
+const frise: (typeof matchEvents.$inferInsert)[] = [];
+let seq = 0;
+let sa = 0;
+let sb = 0;
+const push = (kind: string, playerId: string | null, detail: string, minutes: number) => {
+  frise.push({
+    id: uid(),
+    matchId: liveMatch.id,
+    playerId,
+    byId: serge.id,
+    kind,
+    seq: ++seq,
+    scoreA: sa,
+    scoreB: sb,
+    detail,
+    createdAt: minutesAgo(minutes),
+  });
+};
+
+push("start", null, "Coup d'envoi", 38);
+push("break", ariel.id, "Casse gagnante", 37);
+sa++; push("rack", ariel.id, "Manche remportée", 35);
+push("foul", blaise.id, "Bille blanche empochée", 31);
+sb++; push("rack", blaise.id, "Manche remportée", 28);
+push("safety", ariel.id, "Sécurité longue", 24);
+sa++; push("rack", ariel.id, "Manche remportée", 21);
+sb++; push("rack", blaise.id, "Manche remportée", 14);
+push("break", ariel.id, "Casse gagnante", 9);
+sa++; push("rack", ariel.id, "Manche remportée", 6);
+await db.insert(matchEvents).values(frise);
+
 console.log(
-  `base remplie : 3 salles, ${tableRows.length} tables, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations`,
+  `base remplie : 3 salles, ${tableRows.length} tables, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs`,
 );
 }
 

@@ -43,6 +43,34 @@
       "when": 1789958121223,
       "tag": "0005_venue_os_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789990818917,
+      "tag": "0006_live",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789990830160,
+      "tag": "0007_live_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789991103981,
+      "tag": "0008_officials",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789991113369,
+      "tag": "0009_officials_rls",
+      "breakpoints": true
     }
   ]
 }

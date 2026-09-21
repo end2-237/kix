@@ -37,6 +37,8 @@ export const venues = mb.table("venues", {
   tokenPrice: integer("token_price").notNull().default(400),
   distanceKm: real("distance_km").notNull().default(0),
   image: text("image").notNull().default("/img/hall-dark.jpg"),
+  /** La salle autorise les joueurs à tenir eux-mêmes la feuille de match. */
+  selfScoring: boolean("self_scoring").notNull().default(false),
   active: boolean("active").notNull().default(true),
   createdAt: createdAt(),
 });
@@ -275,6 +277,115 @@ export const reservations = mb.table(
 );
 
 /**
+ * Matchs — le cœur de Master Break Live.
+ *
+ * Un match vit sur une table d'une salle, oppose deux joueurs et se court en
+ * « race to N ». Le score porté ici est la vérité affichée partout ; le détail
+ * de la partie vit dans `match_events`, qui permet de rejouer la rencontre coup
+ * par coup et d'en tirer les statistiques sans les dupliquer.
+ */
+export const matches = mb.table(
+  "matches",
+  {
+    id: id(),
+    venueId: uuid("venue_id")
+      .notNull()
+      .references(() => venues.id, { onDelete: "cascade" }),
+    tableId: uuid("table_id").references(() => venueTables.id, { onDelete: "set null" }),
+    /** Rattachement à un tournoi, quand la rencontre en fait partie. */
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "set null" }),
+    // 8-ball | 9-ball | snooker | killer
+    kind: text("kind").notNull().default("8-ball"),
+    /** Race to N : le premier à N manches gagne. */
+    target: integer("target").notNull().default(5),
+    playerAId: uuid("player_a_id")
+      .notNull()
+      .references(() => users.id),
+    playerBId: uuid("player_b_id")
+      .notNull()
+      .references(() => users.id),
+    scoreA: integer("score_a").notNull().default(0),
+    scoreB: integer("score_b").notNull().default(0),
+    /** Joueur à la table, pour l'affichage en direct. */
+    turnId: uuid("turn_id").references(() => users.id),
+    // scheduled | live | done | cancelled
+    status: text("status").notNull().default("scheduled"),
+    winnerId: uuid("winner_id").references(() => users.id),
+    /** Mise du défi, en francs — 0 pour un match amical. */
+    stake: integer("stake").notNull().default(0),
+    label: text("label").notNull().default("Amical"),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id),
+    /** Change à chaque écriture : c'est ce que le flux en direct surveille. */
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("matches_venue_idx").on(t.venueId),
+    index("matches_status_idx").on(t.status),
+    index("matches_players_idx").on(t.playerAId, t.playerBId),
+  ],
+);
+
+/**
+ * Le déroulé d'un match, coup par coup : c'est à la fois la frise affichée en
+ * direct et la source des statistiques. On y garde le score après chaque
+ * événement pour pouvoir rejouer la rencontre sans tout recalculer.
+ */
+export const matchEvents = mb.table(
+  "match_events",
+  {
+    id: id(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id").references(() => users.id),
+    /** Qui a saisi : gérant, arbitre ou joueur. La frise doit rester opposable. */
+    byId: uuid("by_id").references(() => users.id),
+    // start | rack | foul | break | safety | pot | note | end
+    kind: text("kind").notNull(),
+    seq: integer("seq").notNull().default(0),
+    scoreA: integer("score_a").notNull().default(0),
+    scoreB: integer("score_b").notNull().default(0),
+    detail: text("detail").notNull().default(""),
+    createdAt: createdAt(),
+  },
+  (t) => [index("match_events_match_idx").on(t.matchId, t.seq)],
+);
+
+/**
+ * Qui a le droit de tenir la feuille de match.
+ *
+ * Une ligne par habilitation, portée soit par un match précis, soit par un
+ * tournoi entier — un arbitre de tournoi marque toutes ses rencontres sans
+ * qu'on lui en assigne chacune. Le gérant et l'arbitre de salle n'ont pas
+ * besoin de ligne : leur rattachement à la salle suffit.
+ */
+export const matchOfficials = mb.table(
+  "match_officials",
+  {
+    id: id(),
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // referee | scorer
+    role: text("role").notNull().default("referee"),
+    /** Qui a délivré l'habilitation. */
+    createdBy: uuid("created_by").references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("match_officials_match_idx").on(t.matchId),
+    index("match_officials_event_idx").on(t.eventId),
+    index("match_officials_user_idx").on(t.userId),
+  ],
+);
+
+/**
  * Paiements Mobile Money.
  *
  * Une ligne par tentative, quelle que soit la chose payée : `kind` + `targetId`
@@ -376,6 +487,9 @@ export type Purchase = typeof purchases.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type VenueTable = typeof venueTables.$inferSelect;
 export type Reservation = typeof reservations.$inferSelect;
+export type Match = typeof matches.$inferSelect;
+export type MatchEvent = typeof matchEvents.$inferSelect;
+export type MatchOfficial = typeof matchOfficials.$inferSelect;
 export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;

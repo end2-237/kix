@@ -4,10 +4,14 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, inArray, lt, sql } from "drizzle-orm";
+import type { Match, User } from "@/db";
 import {
   db,
   events,
   notifications,
+  matchEvents,
+  matchOfficials,
+  matches,
   orderItems,
   orders,
   packs,
@@ -23,8 +27,9 @@ import {
 } from "@/db";
 import { POINTS_PER_FREE_TOKEN, XP_PER_TOKEN } from "@/lib/constants";
 import { freshCode, notify, uid } from "@/lib/domain";
-import { looksLikePass, passUrl, verifyPass } from "@/lib/pass";
+import { INVITE_TTL, looksLikePass, passUrl, signPass, verifyPass } from "@/lib/pass";
 import { qrShape, type QrShape } from "@/lib/qr";
+import { canScore, getMatch } from "@/lib/live";
 import { refreshPayment, startPayment, type PaymentKind } from "@/lib/payments/service";
 import {
   createSession,
@@ -860,4 +865,416 @@ export async function deleteTable(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (id) await db.update(venueTables).set({ active: false }).where(eq(venueTables.id, id));
   revalidatePath("/admin/tables");
+}
+
+/* ------------------------------------------------------ Master Break Live */
+
+const XP_MATCH_WIN = 120;
+const XP_MATCH_PLAY = 30;
+
+/**
+ * Garde unique de la feuille de match : gérant ou arbitre de la salle, arbitre
+ * habilité pour ce match ou son tournoi, joueur quand la salle ouvre
+ * l'auto-arbitrage, direction partout. Voir `canScore` dans lib/live.ts.
+ */
+async function requireScorer(matchId: string): Promise<{ match: Match; by: User } | null> {
+  const user = await requireUser();
+  const match = (await db.select().from(matches).where(eq(matches.id, matchId)).limit(1))[0];
+  if (!match) return null;
+
+  const right = await canScore(user, match);
+  if (!right.ok) return null;
+  return { match, by: user };
+}
+
+/** Numéro d'ordre suivant dans la frise du match. */
+async function nextSeq(matchId: string): Promise<number> {
+  const row = (
+    await db
+      .select({ max: sql<number>`coalesce(max(${matchEvents.seq}), 0)` })
+      .from(matchEvents)
+      .where(eq(matchEvents.matchId, matchId))
+  )[0];
+  return Number(row?.max ?? 0) + 1;
+}
+
+export type MatchResult = { ok: true; id: string } | { ok: false; error: string };
+
+/** Création d'une rencontre depuis la console du gérant. */
+export async function createMatch(formData: FormData): Promise<MatchResult> {
+  const manager = await requireRole("manager", "admin");
+  const venueId = String(formData.get("venueId") ?? manager.venueId ?? "");
+  if (!venueId) return { ok: false, error: "Aucune salle" };
+  await guardVenue(venueId);
+
+  const playerAId = String(formData.get("playerAId") ?? "");
+  const playerBId = String(formData.get("playerBId") ?? "");
+  if (!playerAId || !playerBId) return { ok: false, error: "Il faut deux joueurs" };
+  if (playerAId === playerBId) return { ok: false, error: "Un joueur ne peut pas s'affronter lui-même" };
+
+  const target = Math.min(21, Math.max(1, Number(formData.get("target") ?? 5)));
+  const id = uid();
+
+  await db.insert(matches).values({
+    id,
+    venueId,
+    tableId: String(formData.get("tableId") ?? "") || null,
+    kind: String(formData.get("kind") ?? "8-ball"),
+    target,
+    playerAId,
+    playerBId,
+    turnId: playerAId,
+    label: String(formData.get("label") ?? "Amical").slice(0, 60) || "Amical",
+    status: "scheduled",
+    startsAt: new Date(),
+    createdBy: manager.id,
+  });
+
+  revalidatePath("/gerant/live");
+  revalidatePath("/app/live");
+  return { ok: true, id };
+}
+
+/** Coup d'envoi. */
+export async function startMatch(matchId: string) {
+  const scorer = await requireScorer(matchId);
+  if (!scorer || scorer.match.status !== "scheduled") return;
+  const { match, by } = scorer;
+
+  const now = new Date();
+  await db
+    .update(matches)
+    .set({ status: "live", startedAt: now, updatedAt: now })
+    .where(eq(matches.id, matchId));
+  await db.insert(matchEvents).values({
+    id: uid(),
+    matchId,
+    byId: by.id,
+    kind: "start",
+    seq: await nextSeq(matchId),
+    scoreA: match.scoreA,
+    scoreB: match.scoreB,
+    detail: "Coup d'envoi",
+  });
+
+  revalidatePath("/gerant/live");
+  revalidatePath("/app/live");
+}
+
+/**
+ * Une manche marquée. C'est le geste central de la console : il met à jour le
+ * score, pousse la frise et termine le match dès que la cible est atteinte.
+ */
+export async function scoreRack(matchId: string, playerId: string, delta: 1 | -1 = 1) {
+  const scorer = await requireScorer(matchId);
+  if (!scorer || scorer.match.status !== "live") return;
+  const { match, by } = scorer;
+
+  const isA = playerId === match.playerAId;
+  if (!isA && playerId !== match.playerBId) return;
+
+  const scoreA = Math.max(0, match.scoreA + (isA ? delta : 0));
+  const scoreB = Math.max(0, match.scoreB + (isA ? 0 : delta));
+  const now = new Date();
+  const reached = scoreA >= match.target || scoreB >= match.target;
+
+  await db
+    .update(matches)
+    .set({
+      scoreA,
+      scoreB,
+      // La main passe à l'adversaire de celui qui vient de marquer.
+      turnId: isA ? match.playerBId : match.playerAId,
+      updatedAt: now,
+    })
+    .where(eq(matches.id, matchId));
+
+  await db.insert(matchEvents).values({
+    id: uid(),
+    matchId,
+    playerId,
+    byId: by.id,
+    kind: delta > 0 ? "rack" : "note",
+    seq: await nextSeq(matchId),
+    scoreA,
+    scoreB,
+    detail: delta > 0 ? "Manche remportée" : "Manche retirée",
+  });
+
+  if (reached && delta > 0) {
+    await finishMatch(matchId, scoreA >= match.target ? match.playerAId : match.playerBId);
+    return;
+  }
+
+  revalidatePath(`/app/live/${matchId}`);
+  revalidatePath("/gerant/live");
+  revalidatePath("/app/live");
+}
+
+/** Faute, casse gagnante, sécurité, empochage : la matière des statistiques. */
+export async function logMatchEvent(matchId: string, playerId: string, kind: string, detail = "") {
+  const scorer = await requireScorer(matchId);
+  if (!scorer || scorer.match.status !== "live") return;
+  const { match, by } = scorer;
+  if (!["foul", "break", "safety", "pot", "note"].includes(kind)) return;
+  if (playerId !== match.playerAId && playerId !== match.playerBId) return;
+
+  await db.insert(matchEvents).values({
+    id: uid(),
+    matchId,
+    playerId,
+    byId: by.id,
+    kind,
+    seq: await nextSeq(matchId),
+    scoreA: match.scoreA,
+    scoreB: match.scoreB,
+    detail: detail.slice(0, 120),
+  });
+
+  // La main change sur une faute ou une sécurité.
+  const passes = kind === "foul" || kind === "safety";
+  await db
+    .update(matches)
+    .set({
+      updatedAt: new Date(),
+      ...(passes ? { turnId: playerId === match.playerAId ? match.playerBId : match.playerAId } : {}),
+    })
+    .where(eq(matches.id, matchId));
+
+  revalidatePath(`/app/live/${matchId}`);
+  revalidatePath("/gerant/live");
+}
+
+/** Fin de match : vainqueur, points Master et notifications aux deux joueurs. */
+export async function finishMatch(matchId: string, winnerId?: string) {
+  const scorer = await requireScorer(matchId);
+  if (!scorer || scorer.match.status === "done") return;
+  const { match, by } = scorer;
+
+  const winner =
+    winnerId ?? (match.scoreA === match.scoreB ? null : match.scoreA > match.scoreB ? match.playerAId : match.playerBId);
+  const now = new Date();
+
+  await db
+    .update(matches)
+    .set({ status: "done", winnerId: winner, endedAt: now, updatedAt: now, turnId: null })
+    .where(eq(matches.id, matchId));
+
+  await db.insert(matchEvents).values({
+    id: uid(),
+    matchId,
+    byId: by.id,
+    kind: "end",
+    seq: await nextSeq(matchId),
+    scoreA: match.scoreA,
+    scoreB: match.scoreB,
+    detail: "Fin de match",
+  });
+
+  for (const playerId of [match.playerAId, match.playerBId]) {
+    const won = playerId === winner;
+    await db
+      .update(users)
+      .set({ points: sql`${users.points} + ${won ? XP_MATCH_WIN : XP_MATCH_PLAY}` })
+      .where(eq(users.id, playerId));
+    await notify(
+      playerId,
+      won ? "Match gagné" : "Match terminé",
+      `${match.scoreA} – ${match.scoreB} · +${won ? XP_MATCH_WIN : XP_MATCH_PLAY} points Master`,
+      "match",
+      `/app/live/${matchId}`,
+    );
+  }
+
+  revalidatePath(`/app/live/${matchId}`);
+  revalidatePath("/gerant/live");
+  revalidatePath("/app/live");
+  revalidatePath("/app/rewards");
+}
+
+export async function cancelMatch(matchId: string) {
+  const scorer = await requireScorer(matchId);
+  if (!scorer || scorer.match.status === "done") return;
+  const { match } = scorer;
+
+  await db
+    .update(matches)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(eq(matches.id, match.id));
+
+  revalidatePath("/gerant/live");
+  revalidatePath("/app/live");
+}
+
+/* -------------------------------------------------- Arbitrage : qui marque */
+
+/**
+ * Habilite quelqu'un à tenir la feuille : sur un match précis, ou sur tout un
+ * tournoi. Réservé au gérant de la salle et à la direction.
+ */
+export async function assignOfficial(matchId: string, userId: string, scope: "match" | "event" = "match") {
+  const match = (await db.select().from(matches).where(eq(matches.id, matchId)).limit(1))[0];
+  if (!match) return;
+  await guardVenue(match.venueId);
+  const by = await requireRole("manager", "admin");
+
+  if (scope === "event" && !match.eventId) return;
+
+  const already = (
+    await db
+      .select({ id: matchOfficials.id })
+      .from(matchOfficials)
+      .where(
+        and(
+          eq(matchOfficials.userId, userId),
+          scope === "event" ? eq(matchOfficials.eventId, match.eventId!) : eq(matchOfficials.matchId, matchId),
+        ),
+      )
+      .limit(1)
+  )[0];
+  if (already) return;
+
+  await db.insert(matchOfficials).values({
+    id: uid(),
+    matchId: scope === "match" ? matchId : null,
+    eventId: scope === "event" ? match.eventId : null,
+    userId,
+    role: "referee",
+    createdBy: by.id,
+  });
+
+  await notify(
+    userId,
+    "Feuille de match confiée",
+    scope === "event" ? "Tu arbitres ce tournoi." : "Tu arbitres cette rencontre.",
+    "match",
+    `/arbitre/${matchId}`,
+  );
+
+  revalidatePath(`/gerant/live`);
+  revalidatePath(`/arbitre/${matchId}`);
+}
+
+export async function removeOfficial(officialId: string) {
+  const row = (await db.select().from(matchOfficials).where(eq(matchOfficials.id, officialId)).limit(1))[0];
+  if (!row) return;
+
+  const match = row.matchId
+    ? (await db.select().from(matches).where(eq(matches.id, row.matchId)).limit(1))[0]
+    : (await db.select().from(matches).where(eq(matches.eventId, row.eventId!)).limit(1))[0];
+  if (!match) return;
+
+  await guardVenue(match.venueId);
+  await db.delete(matchOfficials).where(eq(matchOfficials.id, officialId));
+  revalidatePath("/gerant/live");
+}
+
+/**
+ * Invitation d'arbitrage : un lien signé, valable deux heures, que le gérant
+ * envoie à un bénévole. Le lien n'est pas une autorisation en soi — il inscrit
+ * celui qui l'ouvre comme arbitre, ce qui laisse une trace révocable, au lieu
+ * d'un droit anonyme qui circulerait de téléphone en téléphone.
+ */
+export async function createScoringInvite(matchId: string, scope: "match" | "event" = "match"): Promise<string> {
+  const match = (await db.select().from(matches).where(eq(matches.id, matchId)).limit(1))[0];
+  if (!match) return "";
+  await guardVenue(match.venueId);
+
+  return signPass(
+    { k: "score", i: matchId, c: scope, u: match.venueId },
+    INVITE_TTL,
+  );
+}
+
+export type InviteCheck =
+  | { ok: true; matchId: string; scope: "match" | "event"; a: string; b: string; venue: string; label: string }
+  | { ok: false; error: string };
+
+/**
+ * Lecture seule : ce que vaut une invitation, sans rien inscrire. La page peut
+ * donc l'appeler pendant son rendu — accepter reste un geste explicite.
+ */
+export async function inspectScoringInvite(token: string): Promise<InviteCheck> {
+  const check = verifyPass(token);
+  if (!check.ok) {
+    return {
+      ok: false,
+      error: check.reason === "expired" ? "Cette invitation a expiré." : "Invitation invalide.",
+    };
+  }
+  if (check.claims.k !== "score") return { ok: false, error: "Invitation invalide." };
+
+  const card = await getMatch(check.claims.i);
+  if (!card) return { ok: false, error: "Match introuvable." };
+  if (card.match.status === "done") return { ok: false, error: "Ce match est déjà terminé." };
+
+  return {
+    ok: true,
+    matchId: card.match.id,
+    scope: check.claims.c === "event" && card.match.eventId ? "event" : "match",
+    a: card.a.name,
+    b: card.b.name,
+    venue: card.venue.name,
+    label: card.match.label,
+  };
+}
+
+export type InviteResult = { ok: true; matchId: string } | { ok: false; error: string };
+
+/**
+ * Acceptation de l'invitation : c'est ici qu'on inscrit l'arbitre. Appelée
+ * depuis un formulaire, jamais pendant un rendu — une mutation ne doit pas
+ * partir d'un simple chargement de page, ne serait-ce que pour qu'un
+ * préchargement de lien n'enrôle personne au passage.
+ */
+export async function acceptScoringInvite(token: string): Promise<InviteResult> {
+  const user = await requireUser();
+  const check = verifyPass(token);
+  if (!check.ok) {
+    return {
+      ok: false,
+      error: check.reason === "expired" ? "Cette invitation a expiré." : "Invitation invalide.",
+    };
+  }
+  if (check.claims.k !== "score") return { ok: false, error: "Invitation invalide." };
+
+  const matchId = check.claims.i;
+  const match = (await db.select().from(matches).where(eq(matches.id, matchId)).limit(1))[0];
+  if (!match) return { ok: false, error: "Match introuvable." };
+  if (match.status === "done") return { ok: false, error: "Ce match est déjà terminé." };
+
+  const scope = check.claims.c === "event" && match.eventId ? "event" : "match";
+  const already = (
+    await db
+      .select({ id: matchOfficials.id })
+      .from(matchOfficials)
+      .where(
+        and(
+          eq(matchOfficials.userId, user.id),
+          scope === "event" ? eq(matchOfficials.eventId, match.eventId!) : eq(matchOfficials.matchId, matchId),
+        ),
+      )
+      .limit(1)
+  )[0];
+
+  if (!already) {
+    await db.insert(matchOfficials).values({
+      id: uid(),
+      matchId: scope === "match" ? matchId : null,
+      eventId: scope === "event" ? match.eventId : null,
+      userId: user.id,
+      role: "referee",
+      createdBy: match.createdBy,
+    });
+  }
+
+  revalidatePath("/arbitre");
+  return { ok: true, matchId };
+}
+
+/** La salle ouvre ou ferme l'auto-arbitrage par les joueurs. */
+export async function setSelfScoring(venueId: string, allowed: boolean) {
+  await guardVenue(venueId);
+  await db.update(venues).set({ selfScoring: allowed }).where(eq(venues.id, venueId));
+  revalidatePath("/gerant/live");
 }

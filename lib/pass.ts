@@ -20,6 +20,9 @@ export const PASS_TTL = 90;
  */
 export const TICKET_TTL = 12 * 3600;
 
+/** Une invitation d'arbitrage couvre une rencontre, pas une soirée entière. */
+export const INVITE_TTL = 2 * 3600;
+
 /**
  * Sans `MB_QR_SECRET`, on tire une clé au démarrage : les laissez-passer ne
  * survivent pas à un redémarrage, ce qui est sans conséquence vu leur durée de
@@ -39,8 +42,8 @@ function secret(): Buffer {
 }
 
 export type PassClaims = {
-  /** token | ticket */
-  k: "token" | "ticket";
+  /** token | ticket | score (invitation d'arbitrage) */
+  k: "token" | "ticket" | "score";
   /** identifiant de la ligne */
   i: string;
   /** code de secours, pour les journaux et l'affichage au comptoir */

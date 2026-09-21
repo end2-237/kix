@@ -69,12 +69,16 @@ MTN MoMo) · `/app/pass` QR + code de secours · `/app/shop` boutique ·
 `/app/commandes` · `/app/events` et `/app/events/[slug]` billetterie ·
 `/app/billets` · `/app/notifications` · `/app/rewards` · `/app/salles` et
 `/app/salles/[slug]` plan de salle en direct et réservation ·
-`/app/reservations`.
+`/app/reservations` · `/app/live` et `/app/live/[id]` scores en direct et mode
+plein écran.
+
+**Arbitre** — `/arbitre` les feuilles confiées · `/arbitre/[id]` la feuille de
+match · `/arbitre/invitation/[token]` acceptation d'une invitation.
 
 **Gérant** — `/gerant` scanner (QR signé, code de secours à 4 chiffres, jetons
 débités du jour, recette, derniers passages) · `/gerant/salle` plan de salle et
 cahier des réservations · `/gerant/service` recette heure par heure, occupation,
-total à verser.
+total à verser · `/gerant/live` création des matchs et attribution des feuilles.
 
 **Admin** — `/admin` tableau de bord, puis `salles`, `packs`, `produits`,
 `commandes`, `evenements`, `jetons`, `utilisateurs` (création, édition, retrait,
@@ -141,6 +145,45 @@ acomptes encaissés, le taux d'occupation et le total à verser.
 
 **La direction** ouvre et ferme les tables depuis `/admin/tables`, et change un
 acompte sans toucher au code.
+
+## Les matchs et le score en direct
+
+`mb.matches` porte le score qui fait foi, `mb.match_events` le déroulé coup par
+coup — manches, casses gagnantes, fautes, sécurités. Les statistiques ne sont
+jamais stockées en double : elles se dérivent de la frise, donc corriger un
+événement corrige les chiffres.
+
+Le score part en direct par **SSE** (`/api/live`, `/api/live/[id]`). Le serveur
+ne pousse que si la signature de l'état a changé : un score figé ne consomme
+rien. `EventSource` se reconnaît tout seul après une coupure — ce qui compte
+dans une salle.
+
+Côté joueur, `/app/live` liste ce qui se joue, `/app/live/[id]` donne le
+tableau d'affichage, les statistiques comparées, la frise et le face-à-face.
+Un **mode plein écran** bascule la même page en affichage de salle, lisible de
+loin, pour le téléviseur au-dessus des tables.
+
+### Qui tient la feuille de match
+
+Une seule fonction décide, `canScore`, avec quatre portes d'entrée :
+
+| Porte | Pour qui | Portée |
+| --- | --- | --- |
+| Rattachement à la salle | gérant, arbitre de salle | tous les matchs de la salle, tous les soirs |
+| Habilitation sur un match | arbitre désigné par le gérant | cette rencontre |
+| Habilitation sur un tournoi | arbitre de compétition | toutes les rencontres du tournoi |
+| Auto-arbitrage | les deux joueurs | si la salle l'a ouvert (`venues.self_scoring`) |
+
+La direction passe partout ; un match terminé ne se marque plus, quel que soit
+le titre.
+
+Le gérant confie une feuille de deux façons : en désignant un compte, ou en
+envoyant un **lien d'invitation signé** valable deux heures. Le lien n'est pas
+un droit anonyme qui circulerait de téléphone en téléphone : il propose au
+compte connecté de prendre la feuille, et c'est son geste qui l'inscrit — le
+gérant voit alors qui arbitre et peut le retirer. Chaque point saisi est
+horodaté au nom de celui qui l'a saisi (`match_events.by_id`), pour que la
+feuille reste opposable.
 
 ## Master Pass — le QR est signé
 
@@ -225,6 +268,10 @@ filtre sur `mb` pour que `db:generate` ignore les tables des autres apps.
 | `db/migrations/0003_payments_rls.sql` | RLS de `mb.payments` |
 | `db/migrations/0004_venue_os.sql` | `mb.venue_tables` et `mb.reservations` |
 | `db/migrations/0005_venue_os_rls.sql` | RLS de Venue OS |
+| `db/migrations/0006_live.sql` | `mb.matches` et `mb.match_events` |
+| `db/migrations/0007_live_rls.sql` | RLS des matchs (scores publics) |
+| `db/migrations/0008_officials.sql` | `mb.match_officials`, traçabilité des saisies |
+| `db/migrations/0009_officials_rls.sql` | RLS des habilitations d'arbitrage |
 
 Mise à jour d'une instance existante :
 

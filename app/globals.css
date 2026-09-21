@@ -26,6 +26,9 @@
   --mb-jade-text: #6fd8ae;
   --mb-jade-soft: rgba(31, 169, 122, 0.16);
   --mb-warn: #e2823a;
+  /* Le vert « antenne » des scores en direct : plus vif que le jade, il ne
+     sert qu'à ça, pour que l'œil le reconnaisse immédiatement. */
+  --mb-live: #3ddc84;
   --mb-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
 }
 
@@ -49,6 +52,7 @@
   --mb-jade-text: #0e6b4d;
   --mb-jade-soft: rgba(18, 128, 92, 0.12);
   --mb-warn: #b4551f;
+  --mb-live: #0f9b57;
   --mb-shadow: 0 24px 50px rgba(8, 32, 26, 0.14);
 }
 
@@ -70,6 +74,7 @@
   --color-jade: var(--mb-jade);
   --color-jade-text: var(--mb-jade-text);
   --color-warn: var(--mb-warn);
+  --color-live: var(--mb-live);
 
   --font-sans: var(--font-geist), "Helvetica Neue", Arial, sans-serif;
   --font-display: var(--font-geist), "Helvetica Neue", Arial, sans-serif;
@@ -255,12 +260,14 @@
     position: relative;
   }
 
+  /* L'anneau reprend la couleur du point, quelle qu'elle soit. */
   .live-dot::after {
     content: "";
     position: absolute;
     inset: -4px;
     border-radius: 9999px;
-    border: 1px solid color-mix(in srgb, var(--mb-gold) 60%, transparent);
+    border: 1px solid currentColor;
+    opacity: 0.6;
     animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
   }
 
