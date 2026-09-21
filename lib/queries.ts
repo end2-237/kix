@@ -7,6 +7,7 @@ import {
   orderItems,
   orders,
   packs,
+  payments,
   products,
   purchases,
   reservations,
@@ -349,6 +350,60 @@ export async function getAllEvents() {
     // Postgres refuse la requête (42803). SQLite, lui, l'acceptait.
     .groupBy(events.id, venues.id)
     .orderBy(desc(events.createdAt));
+}
+
+/* ---------------------------------------------------- événements d'une salle */
+
+/**
+ * Les événements d'une salle, avec ce qu'ils ont rapporté.
+ *
+ * Les compteurs sont des sous-requêtes plutôt que des jointures : trois
+ * jointures sur la même table multiplieraient les lignes entre elles, et la
+ * recette afficherait le double ou le triple de la réalité.
+ *
+ * La recette vient des paiements encaissés, pas du prix affiché multiplié par
+ * le nombre de billets : un tarif changé en cours de route ne doit pas
+ * réécrire ce qui a été payé — c'est exactement l'erreur qu'on a faite sur les
+ * jetons.
+ */
+export async function getVenueEvents(venueId: string) {
+  return db
+    .select({
+      event: events,
+      // `mb.events.id` est écrit en toutes lettres : interpolé par Drizzle, il
+      // sort en `"id"` nu, et `mb.tickets` en a un aussi — Postgres refuse la
+      // référence ambiguë (42702).
+      vendus: sql<number>`(select count(*) from mb.tickets t
+                            where t.event_id = mb.events.id and t.status in ('valid','used'))`,
+      entres: sql<number>`(select count(*) from mb.tickets t
+                            where t.event_id = mb.events.id and t.status = 'used')`,
+      attente: sql<number>`(select count(*) from mb.tickets t
+                             where t.event_id = mb.events.id and t.status = 'pending')`,
+      recette: sql<number>`(select coalesce(sum(p.amount), 0)
+                              from mb.tickets t
+                              join mb.payments p on p.reference = t.reference
+                             where t.event_id = mb.events.id
+                               and t.status in ('valid','used')
+                               and p.status = 'paid')`,
+    })
+    .from(events)
+    .where(eq(events.venueId, venueId))
+    .orderBy(desc(events.createdAt));
+}
+
+/** La liste des participants d'un événement, et ce que chacun a payé. */
+export async function getEventAttendees(eventId: string) {
+  return db
+    .select({
+      ticket: tickets,
+      user: users,
+      paye: payments.amount,
+    })
+    .from(tickets)
+    .innerJoin(users, eq(tickets.userId, users.id))
+    .leftJoin(payments, and(eq(payments.reference, tickets.reference), eq(payments.status, "paid")))
+    .where(eq(tickets.eventId, eventId))
+    .orderBy(desc(tickets.createdAt));
 }
 
 export async function getManagers() {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BoltIcon, ChartIcon, MapIcon, QrIcon, TableIcon, TargetIcon } from "@/components/icons";
+import { BoltIcon, CalendarIcon, ChartIcon, MapIcon, QrIcon, TableIcon, TargetIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 const items = [
@@ -11,6 +11,7 @@ const items = [
   { href: "/gerant/live", label: "Matchs", Icon: TargetIcon },
   { href: "/gerant/direct", label: "Direct", Icon: BoltIcon },
   { href: "/gerant/ecrans", label: "Écrans", Icon: MapIcon },
+  { href: "/gerant/evenements", label: "Soirées", Icon: CalendarIcon },
   { href: "/gerant/service", label: "Service", Icon: ChartIcon },
 ];
 

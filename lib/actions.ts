@@ -619,8 +619,20 @@ export async function deletePack(formData: FormData) {
 }
 
 export async function saveEvent(formData: FormData) {
-  await requireRole("admin");
+  // Un gérant tient l'agenda de sa salle : c'est lui qui sait quel soir la
+  // finale se joue. Il n'écrit que chez lui — la salle est imposée plus bas,
+  // et une modification ne prend que si l'événement est déjà le sien.
+  const auteur = await requireRole("admin", "manager");
   const id = str(formData, "id");
+
+  if (auteur.role === "manager") {
+    if (!auteur.venueId) redirect("/gerant?refus=1");
+    if (id) {
+      const actuel = (await db.select().from(events).where(eq(events.id, id)).limit(1))[0];
+      if (!actuel || actuel.venueId !== auteur.venueId) redirect("/gerant/evenements?refus=1");
+    }
+  }
+
   const values = {
     slug: str(formData, "slug") || str(formData, "title").toLowerCase().replace(/\s+/g, "-"),
     title: str(formData, "title"),
@@ -628,7 +640,8 @@ export async function saveEvent(formData: FormData) {
     day: str(formData, "day"),
     hours: str(formData, "hours"),
     checkin: str(formData, "checkin"),
-    venueId: str(formData, "venueId") || null,
+    // Un gérant ne choisit pas la salle : c'est la sienne.
+    venueId: auteur.role === "manager" ? auteur.venueId : str(formData, "venueId") || null,
     address: str(formData, "address"),
     price: num(formData, "price"),
     image: str(formData, "image") || "/img/crowd-lights.jpg",
@@ -642,6 +655,7 @@ export async function saveEvent(formData: FormData) {
   else await db.insert(events).values({ id: uid(), ...values, attendees: 0 });
 
   revalidatePath("/admin/evenements");
+  revalidatePath("/gerant/evenements");
   revalidatePath("/app/events");
   revalidatePath("/");
 }
