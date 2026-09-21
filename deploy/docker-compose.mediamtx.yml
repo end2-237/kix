@@ -7,9 +7,9 @@
 #   · fais pointer media.vps.buyticle.com et whip.vps.buyticle.com sur le VPS ;
 #   · ouvre au pare-feu 1935/tcp, 8189/udp et 8890/udp.
 #
-# L'image `-ffmpeg` est volontaire : elle embarque un userland (shell, wget),
-# dont les crochets `runOnReady` ont besoin pour prévenir l'application. L'image
-# nue est minimale et ne pourrait rien exécuter.
+# L'image `-ffmpeg` est volontaire : elle repose sur Alpine et fournit donc un
+# shell et `wget`, dont les crochets ont besoin pour prévenir l'application.
+# L'image nue part de `scratch` et ne pourrait rien exécuter.
 
 services:
   mediamtx:
@@ -105,16 +105,20 @@ configs:
       hlsSegmentCount: 7
       hlsSegmentDuration: 1s
       hlsPartDuration: 200ms
-      hlsAllowOrigin: "*"
+      hlsAllowOrigins: ["*"]
 
       ###############################################
-      # Enregistrement — la rediffusion. Mettre `record: yes` pour l'activer.
+      # Réglages communs à tous les chemins
+      #
+      # L'enregistrement — la rediffusion — se pose ici : les clés `record*`
+      # globales sont dépréciées. Mettre `record: yes` pour l'activer.
 
-      record: no
-      recordPath: /rec/%path/%Y-%m-%d_%H-%M-%S-%f
-      recordFormat: fmp4
-      recordSegmentDuration: 1h
-      recordDeleteAfter: 168h
+      pathDefaults:
+        record: no
+        recordPath: /rec/%path/%Y-%m-%d_%H-%M-%S-%f
+        recordFormat: fmp4
+        recordSegmentDuration: 1h
+        recordDeleteAfter: 168h
 
       ###############################################
       # Chemins
@@ -131,10 +135,10 @@ configs:
 
       paths:
         all_others:
-          runOnReady: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=ready&path=$$MTX_PATH
-          runOnReadyRestart: no
+          runOnAvailable: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=ready&path=$$MTX_PATH
+          runOnAvailableRestart: no
 
-          runOnNotReady: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=notready&path=$$MTX_PATH
+          runOnUnavailable: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=notready&path=$$MTX_PATH
 
           runOnRead: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=read&path=$$MTX_PATH
 
