@@ -18,6 +18,8 @@ export const dynamic = "force-dynamic";
 type Hook = {
   user?: string;
   password?: string;
+  /** `Authorization: Bearer <clé>` arrive ici, pas dans `password`. */
+  token?: string;
   ip?: string;
   action?: string;
   path?: string;
@@ -57,9 +59,20 @@ export async function POST(request: Request) {
 
   /* ------------------------------------------------------------- diffusion */
   if (hook.action === "publish") {
-    // OBS met les identifiants dans la clé de flux, d'où les trois endroits
-    // possibles ; on est permissif sur le transport, strict sur la valeur.
-    const given = hook.password || query.get("key") || query.get("pass") || hook.user || "";
+    // Chaque transport apporte la clé à sa façon, et MediaMTX nous la relaie
+    // dans un champ différent selon les cas :
+    //
+    //   · WHIP navigateur → `Authorization: Bearer <clé>` → champ `token` ;
+    //   · OBS / RTMP      → identifiants d'URL           → `user` / `password` ;
+    //   · lien simple     → `?key=` ou `?pass=`          → `query`.
+    //
+    // `token` manquait. Comme nos clés sont en base64url, elles ne contiennent
+    // jamais de deux-points — or MediaMTX ne coupe un Bearer en user:pass que
+    // s'il en trouve un. Toute diffusion depuis le navigateur arrivait donc
+    // avec une clé vide, et repartait en « clé refusée ».
+    //
+    // Permissif sur le transport, strict sur la valeur.
+    const given = hook.token || hook.password || query.get("key") || query.get("pass") || hook.user || "";
     if (!sameSecret(given, stream.streamKey)) return deny("clé de diffusion invalide");
 
     await db
