@@ -1,16 +1,18 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, ne, sql } from "drizzle-orm";
 import {
   db,
   events,
   orderItems,
   orders,
   payments,
+  reservations,
   products,
   purchases,
   tickets,
   tokens,
+  venueTables,
   type Payment,
 } from "@/db";
 import { freshCode, notify, uid, type Executor } from "@/lib/domain";
@@ -31,7 +33,7 @@ const fcfa = (n: number) => `${n.toLocaleString("fr-FR")} F`;
  */
 const newReference = () => randomUUID();
 
-export type PaymentKind = "pack" | "order" | "ticket";
+export type PaymentKind = "pack" | "order" | "ticket" | "reservation";
 
 export type StartInput = {
   kind: PaymentKind;
@@ -159,6 +161,7 @@ async function fulfil(tx: Tx, payment: Payment) {
   if (payment.kind === "pack") return fulfilPack(tx, payment);
   if (payment.kind === "order") return fulfilOrder(tx, payment);
   if (payment.kind === "ticket") return fulfilTicket(tx, payment);
+  if (payment.kind === "reservation") return fulfilReservation(tx, payment);
 }
 
 async function fulfilPack(tx: Tx, payment: Payment) {
@@ -250,6 +253,61 @@ async function fulfilTicket(tx: Tx, payment: Payment) {
   );
 }
 
+/** L'acompte est encaissé : la table est retenue pour de bon. */
+async function fulfilReservation(tx: Tx, payment: Payment) {
+  const booking = (
+    await tx.select().from(reservations).where(eq(reservations.id, payment.targetId!)).limit(1)
+  )[0];
+  if (!booking || booking.status !== "pending") return;
+
+  // La table a pu être prise pendant que le client validait sur son téléphone.
+  const clash = booking.tableId
+    ? (
+        await tx
+          .select({ id: reservations.id })
+          .from(reservations)
+          .where(
+            and(
+              eq(reservations.tableId, booking.tableId),
+              ne(reservations.id, booking.id),
+              inArray(reservations.status, ["confirmed", "seated"]),
+              lt(reservations.startsAt, new Date(booking.startsAt.getTime() + booking.minutes * 60_000)),
+              // Dans un fragment brut, une `Date` JS part telle quelle : ISO + cast.
+              sql`${reservations.startsAt} + make_interval(mins => ${reservations.minutes}) > ${booking.startsAt.toISOString()}::timestamptz`,
+            ),
+          )
+          .limit(1)
+      )[0]
+    : null;
+
+  if (clash) {
+    await tx.update(reservations).set({ status: "cancelled" }).where(eq(reservations.id, booking.id));
+    await notify(
+      booking.userId,
+      "Table déjà prise",
+      "Le créneau est parti pendant le paiement. Aucun acompte n'a été retenu.",
+      "reservation",
+      "/app/reservations",
+      tx,
+    );
+    return;
+  }
+
+  await tx.update(reservations).set({ status: "confirmed" }).where(eq(reservations.id, booking.id));
+  if (booking.tableId) {
+    await tx.update(venueTables).set({ status: "reserved" }).where(eq(venueTables.id, booking.tableId));
+  }
+
+  await notify(
+    booking.userId,
+    "Table réservée",
+    `${booking.minutes} minutes · acompte de ${fcfa(booking.deposit)} déduit de ta note.`,
+    "reservation",
+    "/app/reservations",
+    tx,
+  );
+}
+
 async function cancelTarget(tx: Tx, payment: Payment, status: "failed" | "expired") {
   if (!payment.targetId) return;
   if (payment.kind === "pack") {
@@ -258,6 +316,8 @@ async function cancelTarget(tx: Tx, payment: Payment, status: "failed" | "expire
     await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, payment.targetId));
   } else if (payment.kind === "ticket") {
     await tx.update(tickets).set({ status: "failed" }).where(eq(tickets.id, payment.targetId));
+  } else if (payment.kind === "reservation") {
+    await tx.update(reservations).set({ status: "failed" }).where(eq(reservations.id, payment.targetId));
   }
 }
 

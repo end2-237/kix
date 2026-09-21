@@ -205,6 +205,76 @@ export const tickets = mb.table(
 );
 
 /**
+ * Tables de billard, une ligne par table réelle.
+ *
+ * Le compteur `free_tables` de `venues` restait déclaratif : ici chaque table a
+ * son état, sa réservation en cours et son tarif horaire, ce qui permet au
+ * gérant de tenir son service et au joueur de voir ce qui est libre.
+ */
+export const venueTables = mb.table(
+  "venue_tables",
+  {
+    id: id(),
+    venueId: uuid("venue_id")
+      .notNull()
+      .references(() => venues.id, { onDelete: "cascade" }),
+    /** Numéro affiché sur la table, tel que la salle l'appelle. */
+    label: text("label").notNull(),
+    // pool | snooker | billard francais
+    kind: text("kind").notNull().default("pool"),
+    /** Tarif horaire en francs, 0 quand la table se joue au jeton. */
+    hourlyRate: integer("hourly_rate").notNull().default(0),
+    /** Acompte demandé pour retenir la table. */
+    deposit: integer("deposit").notNull().default(1000),
+    // free | occupied | reserved | closed
+    status: text("status").notNull().default("free"),
+    seats: integer("seats").notNull().default(4),
+    sort: integer("sort").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [index("venue_tables_venue_idx").on(t.venueId)],
+);
+
+/**
+ * Réservations de table.
+ *
+ * L'acompte suit exactement le chemin des autres paiements : la réservation
+ * naît en attente, la table n'est retenue qu'une fois l'acompte confirmé.
+ */
+export const reservations = mb.table(
+  "reservations",
+  {
+    id: id(),
+    venueId: uuid("venue_id")
+      .notNull()
+      .references(() => venues.id, { onDelete: "cascade" }),
+    tableId: uuid("table_id").references(() => venueTables.id, { onDelete: "set null" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    /** Durée réservée, en minutes. */
+    minutes: integer("minutes").notNull().default(60),
+    players: integer("players").notNull().default(2),
+    deposit: integer("deposit").notNull().default(0),
+    // pending | confirmed | seated | done | cancelled | no_show | failed
+    status: text("status").notNull().default("pending"),
+    note: text("note").notNull().default(""),
+    /** Référence du paiement de l'acompte (mb.payments.reference). */
+    reference: text("reference").unique(),
+    seatedAt: timestamp("seated_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("reservations_venue_idx").on(t.venueId),
+    index("reservations_user_idx").on(t.userId),
+    index("reservations_starts_idx").on(t.startsAt),
+  ],
+);
+
+/**
  * Paiements Mobile Money.
  *
  * Une ligne par tentative, quelle que soit la chose payée : `kind` + `targetId`
@@ -304,6 +374,8 @@ export type User = typeof users.$inferSelect;
 export type Pack = typeof packs.$inferSelect;
 export type Purchase = typeof purchases.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type VenueTable = typeof venueTables.$inferSelect;
+export type Reservation = typeof reservations.$inferSelect;
 export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;

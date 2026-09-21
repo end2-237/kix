@@ -67,10 +67,14 @@ empreinte factice pour que les deux prennent le même temps.
 MTN MoMo) · `/app/pass` QR + code de secours · `/app/shop` boutique ·
 `/app/shop/[slug]` fiche produit · `/app/panier` panier et paiement ·
 `/app/commandes` · `/app/events` et `/app/events/[slug]` billetterie ·
-`/app/billets` · `/app/notifications` · `/app/rewards` · `/app/salles`.
+`/app/billets` · `/app/notifications` · `/app/rewards` · `/app/salles` et
+`/app/salles/[slug]` plan de salle en direct et réservation ·
+`/app/reservations`.
 
-**Gérant** — `/gerant` : scanner, code de secours à 4 chiffres, jetons débités du
-jour, recette, derniers passages, commission Master Break.
+**Gérant** — `/gerant` scanner (QR signé, code de secours à 4 chiffres, jetons
+débités du jour, recette, derniers passages) · `/gerant/salle` plan de salle et
+cahier des réservations · `/gerant/service` recette heure par heure, occupation,
+total à verser.
 
 **Admin** — `/admin` tableau de bord, puis `salles`, `packs`, `produits`,
 `commandes`, `evenements`, `jetons`, `utilisateurs` (création, édition, retrait,
@@ -115,6 +119,28 @@ numéros de test s'y comportent différemment — `…000` échoue (solde insuff
 Reste à faire côté pawaPay : renseigner l'URL de callback dans leur tableau de
 bord et vérifier les codes opérateurs camerounais (`ORANGE_CMR`,
 `MTN_MOMO_CMR`), tous deux pilotés par l'environnement.
+
+## Venue OS — la salle
+
+Chaque table de billard est une ligne en base : type, places, tarif horaire et
+acompte. Le compteur « tables libres » n'est plus déclaratif, il se recalcule à
+chaque geste du comptoir.
+
+**Le joueur** ouvre `/app/salles/<salle>`, voit l'état des tables en direct et en
+retient une : heure, durée, nombre de joueurs, mot pour la salle. L'acompte passe
+par le même chemin de paiement que le reste — la table n'est bloquée qu'une fois
+l'acompte confirmé, sinon il suffirait d'ouvrir l'écran de paiement pour geler la
+salle un soir de match. Deux personnes qui visent le même créneau : la seconde
+est refusée, à la réservation comme à la confirmation.
+
+**Le gérant** tient son service sur `/gerant/salle` : plan de salle, cahier du
+soir, et les trois gestes qui comptent — installer, terminer, noter une absence.
+Les clients arrivent en avance, donc la réservation attendue s'installe sans
+attendre l'heure dite. `/gerant/service` donne la recette heure par heure, les
+acomptes encaissés, le taux d'occupation et le total à verser.
+
+**La direction** ouvre et ferme les tables depuis `/admin/tables`, et change un
+acompte sans toucher au code.
 
 ## Master Pass — le QR est signé
 
@@ -197,6 +223,8 @@ filtre sur `mb` pour que `db:generate` ignore les tables des autres apps.
 | `db/migrations/0001_rls.sql` | Row Level Security, politiques et droits |
 | `db/migrations/0002_payments.sql` | table `mb.payments`, références et statuts en attente |
 | `db/migrations/0003_payments_rls.sql` | RLS de `mb.payments` |
+| `db/migrations/0004_venue_os.sql` | `mb.venue_tables` et `mb.reservations` |
+| `db/migrations/0005_venue_os_rls.sql` | RLS de Venue OS |
 
 Mise à jour d'une instance existante :
 
@@ -219,6 +247,8 @@ commande ne réapplique rien. `0001_rls.sql` est écrit pour être réexécutabl
 - **`users`** : chacun lit et modifie son profil, mais le `WITH CHECK` verrouille
   `role`, `points` et `venue_id` — impossible de se promouvoir ou de se créditer ;
 - **`scans` et `tokens`** : le gérant voit ceux de sa salle, pour valider un QR ;
+- **`venue_tables`** : le plan de salle est public, un joueur doit voir ce qui
+  est libre ; **`reservations`** : l'auteur et le gérant de la salle ;
 - **`sessions`** : aucune politique, aucun droit — invisible depuis l'API.
 
 L'identité vient du JWT (`mb.jwt_sub()`, équivalent d'`auth.uid()` sans dépendre

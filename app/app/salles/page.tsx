@@ -27,7 +27,7 @@ export default async function SallesPage() {
       {venues.map((venue) => (
         <Link
           key={venue.id}
-          href="/app/recharge"
+          href={`/app/salles/${venue.slug}`}
           className="glass lift zoom flex gap-3 overflow-hidden rounded-card p-3"
         >
           <Image

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, sql } from "drizzle-orm";
 import {
   db,
   events,
@@ -13,17 +13,19 @@ import {
   packs,
   products,
   purchases,
+  reservations,
   scans,
   tickets,
   tokens,
   users,
   venues,
+  venueTables,
 } from "@/db";
 import { POINTS_PER_FREE_TOKEN, XP_PER_TOKEN } from "@/lib/constants";
 import { freshCode, notify, uid } from "@/lib/domain";
 import { looksLikePass, passUrl, verifyPass } from "@/lib/pass";
 import { qrShape, type QrShape } from "@/lib/qr";
-import { refreshPayment, startPayment } from "@/lib/payments/service";
+import { refreshPayment, startPayment, type PaymentKind } from "@/lib/payments/service";
 import {
   createSession,
   destroySession,
@@ -171,7 +173,7 @@ export async function startPackPurchase(
 export type PaymentState = {
   status: "pending" | "paid" | "failed" | "expired";
   failureReason: string | null;
-  kind: "pack" | "order" | "ticket";
+  kind: PaymentKind;
   targetId: string | null;
 };
 
@@ -189,8 +191,10 @@ export async function pollPayment(reference: string): Promise<PaymentState | nul
     revalidatePath("/app/pass");
     revalidatePath("/app/commandes");
     revalidatePath("/app/billets");
+    revalidatePath("/app/reservations");
     revalidatePath("/app/notifications");
     revalidatePath("/admin/commandes");
+    revalidatePath("/gerant/salle");
   }
 
   return {
@@ -647,4 +651,213 @@ export async function setOrderStatus(formData: FormData) {
     .where(eq(orders.id, str(formData, "id")));
   revalidatePath("/admin/commandes");
   revalidatePath("/app/commandes");
+}
+
+/* ----------------------------------------------------------------- Venue OS */
+
+/**
+ * Réservations qui mordent sur [début, fin[ et tiennent encore la table.
+ *
+ * La borne de fin se calcule en SQL (`starts_at + minutes`). Les dates sont
+ * passées en ISO avec un cast explicite : dans un fragment brut, une `Date` JS
+ * part telle quelle et Postgres refuse « Mon Sep 21 2026 … ».
+ */
+function overlaps(startsAt: Date, endsAt: Date) {
+  return and(
+    inArray(reservations.status, ["confirmed", "seated"]),
+    lt(reservations.startsAt, endsAt),
+    sql`${reservations.startsAt} + make_interval(mins => ${reservations.minutes}) > ${startsAt.toISOString()}::timestamptz`,
+  );
+}
+
+export type ReservationResult =
+  | { ok: true; reference: string; instruction?: string; deposit: number }
+  | { ok: false; error: string };
+
+/**
+ * Retenue d'une table. La réservation naît en attente et la table n'est bloquée
+ * qu'une fois l'acompte confirmé : sinon, il suffirait d'ouvrir l'écran de
+ * paiement pour geler la salle un soir de match.
+ */
+export async function reserveTable(
+  tableId: string,
+  startsAtIso: string,
+  minutes: number,
+  players: number,
+  phone: string,
+  method: "om" | "momo",
+  note = "",
+): Promise<ReservationResult> {
+  const user = await requireUser();
+
+  const table = (await db.select().from(venueTables).where(eq(venueTables.id, tableId)).limit(1))[0];
+  if (!table || !table.active) return { ok: false, error: "Table introuvable" };
+  if (table.status === "closed") return { ok: false, error: "Cette table est fermée ce soir" };
+
+  const startsAt = new Date(startsAtIso);
+  if (Number.isNaN(startsAt.getTime())) return { ok: false, error: "Créneau invalide" };
+  if (startsAt.getTime() < Date.now() - 60_000) return { ok: false, error: "Ce créneau est déjà passé" };
+  if (minutes < 30 || minutes > 360) return { ok: false, error: "Durée entre 30 minutes et 6 heures" };
+
+  const endsAt = new Date(startsAt.getTime() + minutes * 60_000);
+  const clash = await db
+    .select({ id: reservations.id })
+    .from(reservations)
+    .where(and(eq(reservations.tableId, tableId), overlaps(startsAt, endsAt)))
+    .limit(1);
+  if (clash[0]) return { ok: false, error: "Ce créneau vient d'être pris" };
+
+  const id = uid();
+  await db.insert(reservations).values({
+    id,
+    venueId: table.venueId,
+    tableId,
+    userId: user.id,
+    startsAt,
+    minutes,
+    players,
+    deposit: table.deposit,
+    note: note.slice(0, 200),
+    status: "pending",
+  });
+
+  const started = await startPayment({
+    kind: "reservation",
+    userId: user.id,
+    amount: table.deposit,
+    method,
+    phone,
+    description: `Master Break table ${table.label}`,
+    targetId: id,
+  });
+  if (!started.ok) return started;
+
+  await db.update(reservations).set({ reference: started.reference }).where(eq(reservations.id, id));
+  revalidatePath("/app/reservations");
+  return { ok: true, reference: started.reference, instruction: started.instruction, deposit: table.deposit };
+}
+
+/** Annulation par le joueur. L'acompte reste acquis à la salle, comme annoncé. */
+export async function cancelReservation(id: string) {
+  const user = await requireUser();
+  const booking = (await db.select().from(reservations).where(eq(reservations.id, id)).limit(1))[0];
+  if (!booking || booking.userId !== user.id) return;
+  if (!["pending", "confirmed"].includes(booking.status)) return;
+
+  await db.update(reservations).set({ status: "cancelled" }).where(eq(reservations.id, id));
+  if (booking.tableId) {
+    await db.update(venueTables).set({ status: "free" }).where(eq(venueTables.id, booking.tableId));
+  }
+  revalidatePath("/app/reservations");
+  revalidatePath("/gerant/salle");
+}
+
+/* ------------------------------------------------------- Venue OS · comptoir */
+
+async function guardVenue(venueId: string) {
+  const manager = await requireRole("manager", "admin");
+  if (manager.role === "manager" && manager.venueId !== venueId) redirect("/gerant?refus=1");
+  return manager;
+}
+
+/** Le client est arrivé : la table passe en service. */
+export async function seatReservation(id: string) {
+  const booking = (await db.select().from(reservations).where(eq(reservations.id, id)).limit(1))[0];
+  if (!booking) return;
+  await guardVenue(booking.venueId);
+
+  await db
+    .update(reservations)
+    .set({ status: "seated", seatedAt: new Date() })
+    .where(eq(reservations.id, id));
+
+  const table = booking.tableId
+    ? (await db.select().from(venueTables).where(eq(venueTables.id, booking.tableId)).limit(1))[0]
+    : null;
+  if (table) {
+    await db.update(venueTables).set({ status: "occupied" }).where(eq(venueTables.id, table.id));
+  }
+
+  await notify(
+    booking.userId,
+    "Bonne partie",
+    `${table ? `Table ${table.label}` : "Ta table"} est installée — l'acompte est déduit de ta note.`,
+    "reservation",
+    "/app/reservations",
+  );
+
+  revalidatePath("/gerant/salle");
+  revalidatePath("/app/reservations");
+}
+
+/** Fin de partie : la table se libère. */
+export async function closeReservation(id: string, outcome: "done" | "no_show" = "done") {
+  const booking = (await db.select().from(reservations).where(eq(reservations.id, id)).limit(1))[0];
+  if (!booking) return;
+  await guardVenue(booking.venueId);
+
+  await db
+    .update(reservations)
+    .set({ status: outcome, closedAt: new Date() })
+    .where(eq(reservations.id, id));
+  if (booking.tableId) {
+    await db.update(venueTables).set({ status: "free" }).where(eq(venueTables.id, booking.tableId));
+  }
+
+  revalidatePath("/gerant/salle");
+  revalidatePath("/gerant/service");
+  revalidatePath("/app/reservations");
+}
+
+/** Ouverture, fermeture ou occupation directe d'une table depuis le comptoir. */
+export async function setTableStatus(tableId: string, status: "free" | "occupied" | "closed") {
+  const table = (await db.select().from(venueTables).where(eq(venueTables.id, tableId)).limit(1))[0];
+  if (!table) return;
+  await guardVenue(table.venueId);
+
+  await db.update(venueTables).set({ status }).where(eq(venueTables.id, tableId));
+
+  // `venues.free_tables` reste la valeur lue par l'app et l'accueil web.
+  const free = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(venueTables)
+    .where(and(eq(venueTables.venueId, table.venueId), eq(venueTables.status, "free"), eq(venueTables.active, true)));
+  await db
+    .update(venues)
+    .set({ freeTables: Number(free[0]?.n ?? 0) })
+    .where(eq(venues.id, table.venueId));
+
+  revalidatePath("/gerant/salle");
+  revalidatePath("/app/salles");
+}
+
+/* ---------------------------------------------------------- Venue OS · admin */
+
+export async function saveTable(formData: FormData) {
+  await requireRole("admin");
+  const id = String(formData.get("id") ?? "");
+  const values = {
+    venueId: String(formData.get("venueId") ?? ""),
+    label: String(formData.get("label") ?? "").trim(),
+    kind: String(formData.get("kind") ?? "pool"),
+    hourlyRate: Number(formData.get("hourlyRate") ?? 0),
+    deposit: Number(formData.get("deposit") ?? 1000),
+    seats: Number(formData.get("seats") ?? 4),
+    sort: Number(formData.get("sort") ?? 0),
+    active: formData.get("active") === "on",
+  };
+  if (!values.venueId || !values.label) return;
+
+  if (id) await db.update(venueTables).set(values).where(eq(venueTables.id, id));
+  else await db.insert(venueTables).values({ id: uid(), ...values });
+
+  revalidatePath("/admin/tables");
+  revalidatePath("/gerant/salle");
+}
+
+export async function deleteTable(formData: FormData) {
+  await requireRole("admin");
+  const id = String(formData.get("id") ?? "");
+  if (id) await db.update(venueTables).set({ active: false }).where(eq(venueTables.id, id));
+  revalidatePath("/admin/tables");
 }

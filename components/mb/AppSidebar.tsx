@@ -31,6 +31,7 @@ const primary = [
 ];
 
 const secondary = [
+  { href: "/app/reservations", label: "Mes réservations" },
   { href: "/app/commandes", label: "Mes commandes" },
   { href: "/app/billets", label: "Mes billets" },
   { href: "/app/notifications", label: "Notifications" },

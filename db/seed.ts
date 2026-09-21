@@ -9,12 +9,14 @@ import {
   packs,
   products,
   purchases,
+  reservations,
   scans,
   sessions,
   tickets,
   tokens,
   users,
   venues,
+  venueTables,
 } from "./schema";
 
 const db = createDb();
@@ -38,7 +40,7 @@ function code(taken: Set<string>) {
 
 // on vide dans l'ordre des dépendances
 export async function seed() {
-for (const table of [notifications, scans, tickets, orderItems, orders, tokens, purchases, events, products, packs, sessions, users, venues]) {
+for (const table of [notifications, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, products, packs, sessions, users, venues]) {
   await db.delete(table);
 }
 
@@ -383,7 +385,76 @@ await db.insert(notifications)
   ])
   ;
 
-console.log("base remplie : 3 salles, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages");
+/* Venue OS : plan de salle et cahier de réservations ---------------------- */
+const tableRows: (typeof venueTables.$inferInsert)[] = [];
+for (const venue of venueRows) {
+  for (let i = 1; i <= venue.tables; i++) {
+    tableRows.push({
+      id: uid(),
+      venueId: venue.id,
+      label: `T${String(i).padStart(2, "0")}`,
+      kind: i === 1 ? "snooker" : "pool",
+      hourlyRate: i === 1 ? 3000 : 2000,
+      deposit: i === 1 ? 2000 : 1000,
+      // Les premières tables sont prises, le reste est libre : une salle vivante.
+      status: i <= venue.tables - venue.freeTables ? "occupied" : "free",
+      seats: i === 1 ? 6 : 4,
+      sort: i,
+    });
+  }
+}
+await db.insert(venueTables).values(tableRows);
+
+const akwaTables = tableRows.filter((t) => t.venueId === breakAkwa.id);
+const atHour = (h: number, m = 0) => {
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+};
+
+await db.insert(reservations).values([
+  {
+    id: uid(),
+    venueId: breakAkwa.id,
+    tableId: akwaTables[1].id,
+    userId: ariel.id,
+    startsAt: atHour(20, 30),
+    minutes: 90,
+    players: 4,
+    deposit: 1000,
+    status: "confirmed",
+    note: "Table près du bar si possible",
+  },
+  {
+    id: uid(),
+    venueId: breakAkwa.id,
+    tableId: akwaTables[0].id,
+    userId: others[0].id,
+    startsAt: atHour(19, 0),
+    minutes: 120,
+    players: 2,
+    deposit: 2000,
+    status: "seated",
+    seatedAt: atHour(19, 5),
+  },
+  {
+    id: uid(),
+    venueId: breakAkwa.id,
+    tableId: akwaTables[2].id,
+    userId: others[1].id,
+    startsAt: atHour(17, 0),
+    minutes: 60,
+    players: 2,
+    deposit: 1000,
+    status: "done",
+    seatedAt: atHour(17, 2),
+    closedAt: atHour(18, 5),
+  },
+]);
+
+console.log(
+  `base remplie : 3 salles, ${tableRows.length} tables, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations`,
+);
 }
 
 // En ligne de commande, l'entrée est `db/seed-cli.ts` : ce module-ci est importé

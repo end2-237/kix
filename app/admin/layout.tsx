@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/session";
 const links = [
   { href: "/admin", label: "Tableau de bord" },
   { href: "/admin/salles", label: "Salles" },
+  { href: "/admin/tables", label: "Tables" },
   { href: "/admin/packs", label: "Packs de jetons" },
   { href: "/admin/produits", label: "Produits" },
   { href: "/admin/commandes", label: "Commandes" },
