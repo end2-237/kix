@@ -29,6 +29,18 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export async function bootstrapDatabase() {
   const attempts = Number(process.env.MB_DB_RETRIES ?? 10);
 
+  // Drizzle applique ce qu'il trouve et se tait s'il ne trouve rien : un
+  // dossier absent de l'image donnerait un démarrage silencieux et une base
+  // vide. On le dit avant, pendant qu'on peut encore le relier à une cause.
+  const { availableMigrations, MIGRATIONS_DIR } = await import("@/lib/migrations");
+  const available = availableMigrations();
+  if (available === 0) {
+    console.error(
+      `[mb] aucune migration trouvée dans ${MIGRATIONS_DIR} — le dossier db/migrations ` +
+        "n'est pas dans l'image de déploiement. Rien ne sera créé en base.",
+    );
+  }
+
   for (let attempt = 1; attempt <= attempts; attempt++) {
     const client = createSql();
     const db = createDb(client);
@@ -43,6 +55,7 @@ export async function bootstrapDatabase() {
       await finish(db);
       await client.end();
       if (attempt > 1) console.log(`[mb] base prête après ${attempt} tentatives`);
+      else if (available > 0) console.log(`[mb] base prête — ${available} migrations au catalogue`);
       return;
     } catch (error) {
       await client.end().catch(() => {});

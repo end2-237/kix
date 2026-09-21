@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db, venues } from "@/db";
+import { availableMigrations } from "@/lib/migrations";
 import { media } from "@/lib/stream";
 import { paymentProvider } from "@/lib/payments";
 
@@ -53,10 +54,23 @@ export async function GET() {
     );
     const rows = await db.select({ n: sql<number>`count(*)::int` }).from(venues);
 
+    // Appliquées contre disponibles : l'écart dit tout de suite si les
+    // migrations n'ont pas tourné ou si l'image ne les embarque pas.
+    const done = Number((applied as unknown as { n: number }[])[0]?.n ?? 0);
+    const available = availableMigrations();
+
     report.db = "ok";
-    report.migrations = Number((applied as unknown as { n: number }[])[0]?.n ?? 0);
+    report.migrations = `${done}/${available}`;
     report.venues = Number(rows[0]?.n ?? 0);
-    report.ok = true;
+    report.ok = done > 0 && done >= available;
+
+    if (available === 0) {
+      report.reason = "le dossier db/migrations n'est pas dans l'image de déploiement";
+    } else if (done === 0) {
+      report.reason = "aucune migration appliquée — lance « npm run db:migrate »";
+    } else if (done < available) {
+      report.reason = `${available - done} migration(s) en retard — lance « npm run db:migrate »`;
+    }
   } catch (error) {
     // Drizzle enveloppe l'erreur du driver : le code Postgres est dans `cause`.
     const e = error as { code?: string; message?: string; cause?: { code?: string; message?: string } };
