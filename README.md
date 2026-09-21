@@ -156,7 +156,13 @@ acompte sans toucher au code.
 Le serveur média est **MediaMTX**, posé à côté de Supabase sur le VPS : un seul
 binaire Go. Il ingère en RTMP (OBS, caméra IP), en SRT et en WHIP (le navigateur
 d'un téléphone), et diffuse en HLS et en WebRTC. La configuration prête à poser
-est dans `deploy/mediamtx.yml`, le service systemd dans `deploy/mediamtx.service`.
+est dans `deploy/docker-compose.mediamtx.yml` — un seul fichier à coller dans
+Coolify, sans rien à créer sur la machine. Les variantes « binaire sur le VPS »
+sont dans `deploy/mediamtx.yml` et `deploy/mediamtx.service`.
+
+Deux sous-domaines : le HLS (port 8888) et le WebRTC (8889) sont deux serveurs
+distincts, qu'un même domaine ne peut pas départager — d'où `MB_MEDIA_URL` et
+`MB_MEDIA_WHIP` séparés depuis le début.
 
 **Il ne décide rien tout seul.** À chaque connexion — diffuseur ou spectateur —
 il demande à l'application, par son crochet HTTP, si elle autorise
@@ -267,7 +273,7 @@ db/             schema.ts, migrations/, seed.ts, client.ts, env.ts, reset.ts
 lib/            queries.ts (lectures), actions.ts (mutations), auth.ts, session.ts, pass.ts
 lib/payments/   pawapay.ts, simulated.ts, service.ts (états, idempotence, livraison)
 design/         maquettes d'origine (voir design/README.md)
-deploy/         mediamtx.yml et son service systemd, à poser sur le VPS
+deploy/         docker-compose.mediamtx.yml (Coolify) et la variante systemd
 ```
 
 ## Direction artistique

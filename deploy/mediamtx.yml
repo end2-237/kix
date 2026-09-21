@@ -4,6 +4,9 @@
 # (OBS, caméra IP) et en WHIP (le navigateur d'un téléphone), et diffuse en HLS
 # et en WebRTC.
 #
+# Variante « binaire sur la machine ». Pour un déploiement Coolify, préférer
+# deploy/docker-compose.mediamtx.yml : tout y est, sans fichier à créer.
+#
 #   wget https://github.com/bluenviron/mediamtx/releases/latest/download/mediamtx_linux_amd64.tar.gz
 #   tar xzf mediamtx_linux_amd64.tar.gz && sudo mv mediamtx /usr/local/bin/
 #   sudo mkdir -p /etc/mediamtx && sudo cp mediamtx.yml /etc/mediamtx/
@@ -40,7 +43,7 @@ webrtc: yes
 webrtcAddress: :8889
 # ⚠️ Le domaine (ou l'IP publique) du VPS. Sans lui, la négociation ICE échoue
 # derrière le NAT et la caméra ne part jamais.
-webrtcAdditionalHosts: [media.vps.buyticle.com]
+webrtcAdditionalHosts: [whip.vps.buyticle.com]
 # Le média WebRTC passe en UDP : ce port doit être ouvert au pare-feu.
 webrtcLocalUDPAddress: :8189
 webrtcICEServers2:

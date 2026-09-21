@@ -1,0 +1,141 @@
+# MediaMTX — serveur média de Master Break, pour Coolify
+#
+# À coller tel quel dans Coolify : Nouvelle ressource → Docker Compose.
+# Tout est dedans, il n'y a aucun fichier à créer sur le VPS.
+#
+# Avant de déployer, deux choses :
+#   · fais pointer media.vps.buyticle.com et whip.vps.buyticle.com sur le VPS ;
+#   · ouvre au pare-feu 1935/tcp, 8189/udp et 8890/udp.
+#
+# L'image `-ffmpeg` est volontaire : elle embarque un userland (shell, wget),
+# dont les crochets `runOnReady` ont besoin pour prévenir l'application. L'image
+# nue est minimale et ne pourrait rien exécuter.
+
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:1-ffmpeg
+    restart: unless-stopped
+
+    environment:
+      # Coolify attribue les domaines et branche son proxy TLS dessus.
+      # La valeur est imposée ici pour garder des noms stables.
+      - SERVICE_FQDN_MEDIAMTX_8888=media.vps.buyticle.com
+      - SERVICE_FQDN_MEDIAMTX_8889=whip.vps.buyticle.com
+
+    ports:
+      # Ingestion OBS / caméra IP. Un flux RTMP ne passe pas par le proxy HTTP.
+      - "1935:1935/tcp"
+      # Le média WebRTC lui-même, en UDP : sans ce port, la caméra d'un
+      # téléphone négocie puis reste muette.
+      - "8189:8189/udp"
+      # SRT, pour les liaisons instables (4G de salle). Facultatif.
+      - "8890:8890/udp"
+
+    expose:
+      - "8888" # HLS   → proxy Coolify
+      - "8889" # WHIP/WHEP → proxy Coolify
+
+    configs:
+      - source: mediamtx_conf
+        target: /mediamtx.yml
+
+    volumes:
+      - mediamtx_rec:/rec
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9997/v3/config/global/get"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mediamtx_rec:
+
+configs:
+  mediamtx_conf:
+    content: |
+      logLevel: info
+
+      ###############################################
+      # Authentification déléguée à Master Break
+      #
+      # MediaMTX ne décide rien : à chaque connexion — diffuseur ou spectateur —
+      # il demande à l'application si elle autorise, et attend un 200.
+
+      authMethod: http
+      authHTTPAddress: https://mb.vps.buyticle.com/api/media/auth
+      authHTTPExclude:
+        - action: api
+        - action: metrics
+        - action: pprof
+
+      ###############################################
+      # API de contrôle — réseau interne uniquement, jamais publiée.
+
+      api: yes
+      apiAddress: :9997
+
+      ###############################################
+      # Ingestion
+
+      rtmp: yes
+      rtmpAddress: :1935
+
+      webrtc: yes
+      webrtcAddress: :8889
+      # Le domaine public : sans lui, les candidats ICE annoncent l'adresse
+      # interne du conteneur et rien ne passe.
+      webrtcAdditionalHosts: [whip.vps.buyticle.com]
+      webrtcLocalUDPAddress: :8189
+      webrtcICEServers2:
+        - url: stun:stun.l.google.com:19302
+
+      srt: yes
+      srtAddress: :8890
+
+      rtsp: no
+
+      ###############################################
+      # Diffusion
+
+      hls: yes
+      hlsAddress: :8888
+      hlsVariant: lowLatency
+      hlsSegmentCount: 7
+      hlsSegmentDuration: 1s
+      hlsPartDuration: 200ms
+      hlsAllowOrigin: "*"
+
+      ###############################################
+      # Enregistrement — la rediffusion. Mettre `record: yes` pour l'activer.
+
+      record: no
+      recordPath: /rec/%path/%Y-%m-%d_%H-%M-%S-%f
+      recordFormat: fmp4
+      recordSegmentDuration: 1h
+      recordDeleteAfter: 168h
+
+      ###############################################
+      # Chemins
+      #
+      # Tout chemin est accepté : c'est l'application qui dit si la connexion
+      # est légitime. Les crochets la préviennent quand une source arrive et
+      # quand elle s'arrête — sans eux, un direct resterait « en cours » après
+      # le débranchement de la caméra.
+      #
+      # Deux détails qui comptent :
+      #   · `wget` plutôt que `curl` : BusyBox le fournit toujours, curl non ;
+      #   · `$$MTX_PATH` s'écrit avec deux dollars, sinon Docker Compose
+      #     l'interpole lui-même et MediaMTX reçoit un chemin vide.
+
+      paths:
+        all_others:
+          runOnReady: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=ready&path=$$MTX_PATH
+          runOnReadyRestart: no
+
+          runOnNotReady: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=notready&path=$$MTX_PATH
+
+          runOnRead: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=read&path=$$MTX_PATH
+
+          runOnUnread: wget -q -O /dev/null --post-data= --header=x-mb-media:3c06a7f363ab76e13fc8f6ebdec6b2d84003d22c2451e0215b60e22e9e066ee5 https://mb.vps.buyticle.com/api/media/event?event=unread&path=$$MTX_PATH
