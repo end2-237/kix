@@ -21,8 +21,8 @@ writeTimeout: 10s
 # Authentification déléguée à Master Break
 
 authMethod: http
-# ⚠️ Remplacer par l'URL publique de l'application.
-authHTTPAddress: https://app.masterbreak.cm/api/media/auth
+# L'application décide de chaque connexion.
+authHTTPAddress: https://mb.vps.buyticle.com/api/media/auth
 # Les champs transmis au crochet. `query` porte le billet de lecture.
 authHTTPExclude:
   - action: api
@@ -38,8 +38,11 @@ rtmpAddress: :1935
 # WHIP / WHEP : diffusion et lecture WebRTC depuis un navigateur.
 webrtc: yes
 webrtcAddress: :8889
-# ⚠️ Adresse publique du VPS, sinon la négociation ICE échoue derrière un NAT.
-webrtcAdditionalHosts: []
+# ⚠️ Le domaine (ou l'IP publique) du VPS. Sans lui, la négociation ICE échoue
+# derrière le NAT et la caméra ne part jamais.
+webrtcAdditionalHosts: [media.vps.buyticle.com]
+# Le média WebRTC passe en UDP : ce port doit être ouvert au pare-feu.
+webrtcLocalUDPAddress: :8189
 webrtcICEServers2:
   - url: stun:stun.l.google.com:19302
 
