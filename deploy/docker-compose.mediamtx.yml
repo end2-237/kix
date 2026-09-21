@@ -7,6 +7,11 @@
 #   · fais pointer media.vps.buyticle.com et whip.vps.buyticle.com sur le VPS ;
 #   · ouvre au pare-feu 1935/tcp, 8189/udp et 8890/udp.
 #
+# Ne renseigne aucun domaine dans l'interface Coolify pour cette ressource :
+# les routes sont déjà décrites plus bas, en labels. Un domaine ajouté par
+# l'interface créerait un second router sur le même nom d'hôte, et Traefik
+# n'aurait plus de raison de préférer l'un à l'autre.
+#
 # L'image `-ffmpeg` est volontaire : elle repose sur Alpine et fournit donc un
 # shell et `wget`, dont les crochets ont besoin pour prévenir l'application.
 # L'image nue part de `scratch` et ne pourrait rien exécuter.
@@ -16,11 +21,43 @@ services:
     image: bluenviron/mediamtx:1-ffmpeg
     restart: unless-stopped
 
-    environment:
-      # Coolify attribue les domaines et branche son proxy TLS dessus.
-      # La valeur est imposée ici pour garder des noms stables.
-      - SERVICE_FQDN_MEDIAMTX_8888=media.vps.buyticle.com
-      - SERVICE_FQDN_MEDIAMTX_8889=whip.vps.buyticle.com
+    # Les routes du proxy, écrites à la main.
+    #
+    # `SERVICE_FQDN_MEDIAMTX_8888` / `_8889` semblaient faits pour ça, mais
+    # Coolify n'en a tiré qu'un seul couple de routers — pour whip — et sans
+    # jamais poser de `loadbalancer.server.port`. Résultat : media n'existait
+    # pour personne (404 puis 503), et whip pointait vers un service dont
+    # Traefik ne pouvait pas deviner le port entre les deux exposés (502).
+    #
+    # Un seul conteneur doit servir les deux noms : HLS et WebRTC sont deux
+    # ports du même processus, sur les mêmes flux. D'où un service Docker,
+    # deux services Traefik, un port chacun.
+    labels:
+      - traefik.enable=true
+
+      # ─ media.vps.buyticle.com → HLS (8888)
+      - traefik.http.routers.mb-hls.rule=Host(`media.vps.buyticle.com`)
+      - traefik.http.routers.mb-hls.entryPoints=https
+      - traefik.http.routers.mb-hls.tls=true
+      - traefik.http.routers.mb-hls.tls.certresolver=letsencrypt
+      - traefik.http.routers.mb-hls.service=mb-hls
+      - traefik.http.services.mb-hls.loadbalancer.server.port=8888
+      - traefik.http.routers.mb-hls-http.rule=Host(`media.vps.buyticle.com`)
+      - traefik.http.routers.mb-hls-http.entryPoints=http
+      - traefik.http.routers.mb-hls-http.middlewares=redirect-to-https
+      - traefik.http.routers.mb-hls-http.service=mb-hls
+
+      # ─ whip.vps.buyticle.com → WHIP/WHEP (8889)
+      - traefik.http.routers.mb-whip.rule=Host(`whip.vps.buyticle.com`)
+      - traefik.http.routers.mb-whip.entryPoints=https
+      - traefik.http.routers.mb-whip.tls=true
+      - traefik.http.routers.mb-whip.tls.certresolver=letsencrypt
+      - traefik.http.routers.mb-whip.service=mb-whip
+      - traefik.http.services.mb-whip.loadbalancer.server.port=8889
+      - traefik.http.routers.mb-whip-http.rule=Host(`whip.vps.buyticle.com`)
+      - traefik.http.routers.mb-whip-http.entryPoints=http
+      - traefik.http.routers.mb-whip-http.middlewares=redirect-to-https
+      - traefik.http.routers.mb-whip-http.service=mb-whip
 
     ports:
       # Ingestion OBS / caméra IP. Un flux RTMP ne passe pas par le proxy HTTP.
