@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { BrandDefs } from "@/components/icons";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import "./globals.css";
 
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="bg-bg text-ink antialiased">
+        <BrandDefs />
         <SnackbarProvider>{children}</SnackbarProvider>
       </body>
     </html>

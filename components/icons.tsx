@@ -228,8 +228,16 @@ export const GearIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const MasterMark = ({ size = 30, className }: { size?: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true" className={className}>
+/**
+ * Dégradé du monogramme, défini une seule fois pour tout le document.
+ *
+ * Un `<defs>` par instance donnerait plusieurs `id="mbGold"` : le navigateur ne
+ * retient que le premier, et quand celui-ci se trouve dans une branche
+ * `display:none` (la colonne vitrine cachée sur mobile), le monogramme visible
+ * se peint dans le vide. Ce bloc vit dans le layout racine, toujours rendu.
+ */
+export const BrandDefs = () => (
+  <svg width="0" height="0" aria-hidden="true" focusable="false" className="absolute">
     <defs>
       <linearGradient id="mbGold" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
         <stop offset="0" stopColor="#F4DE9A" />
@@ -237,6 +245,11 @@ export const MasterMark = ({ size = 30, className }: { size?: number; className?
         <stop offset="1" stopColor="#9A7519" />
       </linearGradient>
     </defs>
+  </svg>
+);
+
+export const MasterMark = ({ size = 30, className }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true" className={className}>
     <path d="M32 6 58 57H6z" stroke="url(#mbGold)" strokeWidth="3.4" strokeLinejoin="round" />
     <path d="M14 57 32 28l18 29" stroke="url(#mbGold)" strokeWidth="3" strokeLinejoin="round" />
     <circle cx="32" cy="19" r="2.6" fill="url(#mbGold)" />

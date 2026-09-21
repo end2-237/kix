@@ -116,7 +116,7 @@ export default async function GerantPage() {
           </div>
           <form action={signOut}>
             <button className="w-full rounded-full border border-dashed border-line px-4 py-2.5 text-[11px] text-muted hover:text-dim">
-              Changer de compte
+              Se déconnecter
             </button>
           </form>
         </div>

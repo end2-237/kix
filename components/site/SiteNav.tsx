@@ -9,7 +9,12 @@ const links = [
   { href: "/app/recharge", label: "Tarifs" },
 ];
 
-export function SiteNav() {
+/** `user` vient de la session : le bouton mène au Pass, ou à la connexion. */
+export function SiteNav({ user }: { user?: { name: string; role: string } | null }) {
+  const cta = user
+    ? { href: user.role === "admin" ? "/admin" : user.role === "manager" ? "/gerant" : "/app", label: "Mon Pass" }
+    : { href: "/connexion", label: "Se connecter" };
+
   return (
     <header className="relative z-20 flex items-center justify-between gap-4 border-b border-line px-5 py-4 lg:px-10">
       <nav className="hidden items-center gap-7 text-[13px] text-dim lg:flex">
@@ -33,10 +38,10 @@ export function SiteNav() {
         <span className="hidden text-[13px] text-muted lg:inline">+237 6 77 45 12 08</span>
         <ThemeToggle />
         <Link
-          href="/app"
+          href={cta.href}
           className="press flex h-11 items-center rounded-full bg-gold px-5 text-[13px] font-semibold text-gold-ink transition hover:brightness-105"
         >
-          Ouvrir l&apos;app
+          {cta.label}
         </Link>
       </div>
     </header>

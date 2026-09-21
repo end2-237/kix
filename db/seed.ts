@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hashPassword } from "../lib/password";
 import { createDb } from "./client";
 import {
   events,
@@ -9,6 +10,7 @@ import {
   products,
   purchases,
   scans,
+  sessions,
   tickets,
   tokens,
   users,
@@ -36,7 +38,7 @@ function code(taken: Set<string>) {
 
 // on vide dans l'ordre des dépendances
 export async function seed() {
-for (const table of [notifications, scans, tickets, orderItems, orders, tokens, purchases, events, products, packs, users, venues]) {
+for (const table of [notifications, scans, tickets, orderItems, orders, tokens, purchases, events, products, packs, sessions, users, venues]) {
   await db.delete(table);
 }
 
@@ -94,14 +96,19 @@ const packRows = [
 await db.insert(packs).values(packRows);
 
 /* comptes ----------------------------------------------------------------- */
-const ariel = { id: uid(), name: "Ariel N.", phone: "677451208", avatar: "/img/p-ariel.jpg", role: "client", points: 1240, venueId: null };
-const serge = { id: uid(), name: "Serge M.", phone: "699120345", avatar: "/img/p-gerant.jpg", role: "manager", points: 0, venueId: breakAkwa.id };
-const admin = { id: uid(), name: "Direction MASTER BREAK", phone: "690000000", avatar: null, role: "admin", points: 0, venueId: null };
+// Tous les comptes de démonstration partagent ce mot de passe, affiché sur la
+// page de connexion. En production, chacun choisit le sien à l'inscription.
+const DEMO_PASSWORD = process.env.MB_DEMO_PASSWORD ?? "masterbreak";
+const passwordHash = await hashPassword(DEMO_PASSWORD);
+
+const ariel = { id: uid(), passwordHash, name: "Ariel N.", phone: "677451208", avatar: "/img/p-ariel.jpg", role: "client", points: 1240, venueId: null };
+const serge = { id: uid(), passwordHash, name: "Serge M.", phone: "699120345", avatar: "/img/p-gerant.jpg", role: "manager", points: 0, venueId: breakAkwa.id };
+const admin = { id: uid(), passwordHash, name: "Direction MASTER BREAK", phone: "690000000", avatar: null, role: "admin", points: 0, venueId: null };
 const others = [
-  { id: uid(), name: "Blaise K.", phone: "670000001", avatar: "/img/p-champion.jpg", role: "client", points: 4020, venueId: null },
-  { id: uid(), name: "Yannick T.", phone: "670000002", avatar: "/img/p-yannick.jpg", role: "client", points: 3180, venueId: null },
-  { id: uid(), name: "Merline K.", phone: "670000003", avatar: null, role: "client", points: 2610, venueId: null },
-  { id: uid(), name: "Duval N.", phone: "670000004", avatar: null, role: "client", points: 2280, venueId: null },
+  { id: uid(), passwordHash, name: "Blaise K.", phone: "670000001", avatar: "/img/p-champion.jpg", role: "client", points: 4020, venueId: null },
+  { id: uid(), passwordHash, name: "Yannick T.", phone: "670000002", avatar: "/img/p-yannick.jpg", role: "client", points: 3180, venueId: null },
+  { id: uid(), passwordHash, name: "Merline K.", phone: "670000003", avatar: null, role: "client", points: 2610, venueId: null },
+  { id: uid(), passwordHash, name: "Duval N.", phone: "670000004", avatar: null, role: "client", points: 2280, venueId: null },
 ];
 await db.insert(users).values([ariel, serge, admin, ...others]);
 const clients = [ariel, ...others];
@@ -379,12 +386,5 @@ await db.insert(notifications)
 console.log("base remplie : 3 salles, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages");
 }
 
-// exécution directe : `npm run db:seed`
-if (process.argv[1]?.includes("seed")) {
-  seed()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-}
+// En ligne de commande, l'entrée est `db/seed-cli.ts` : ce module-ci est importé
+// aussi par le serveur (db/bootstrap.ts) et ne doit donc rien lire sur le disque.

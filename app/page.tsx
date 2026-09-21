@@ -6,6 +6,7 @@ import { SiteNav } from "@/components/site/SiteNav";
 import { ArrowRightIcon, ClockIcon, UserIcon } from "@/components/icons";
 import { Reveal } from "@/components/ui/Reveal";
 import { getEvents, getVenues } from "@/lib/queries";
+import { getCurrentUser } from "@/lib/session";
 import { f } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +31,12 @@ const coaches = [
 ];
 
 export default async function LandingPage() {
-  const [venues, events] = await Promise.all([getVenues(), getEvents()]);
+  const [venues, events, user] = await Promise.all([getVenues(), getEvents(), getCurrentUser()]);
   const featured = events[0];
 
   return (
     <div className="min-h-dvh bg-bg">
-      <SiteNav />
+      <SiteNav user={user} />
 
       {/* ---------------------------------------------------------------- héros */}
       <section className="relative overflow-hidden border-b border-line">
@@ -148,7 +149,7 @@ export default async function LandingPage() {
             c&apos;est ton break.
           </p>
           <Link
-            href="/app"
+            href={user ? "/app/salles" : "/inscription"}
             className="press go flex h-13 items-center gap-3 rounded-full bg-gold px-7 text-[13px] font-semibold tracking-[0.16em] text-gold-ink uppercase transition hover:brightness-105"
           >
             Réserver une table

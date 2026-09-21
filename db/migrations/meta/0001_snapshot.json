@@ -1,6 +1,6 @@
 {
-  "id": "5b6dc3e7-5710-4c78-be59-0d572cfc3aa9",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "cd9cd57d-cad1-42e2-a882-a163e6cfdb35",
+  "prevId": "5b6dc3e7-5710-4c78-be59-0d572cfc3aa9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -128,26 +128,26 @@
         "events_venue_id_venues_id_fk": {
           "name": "events_venue_id_venues_id_fk",
           "tableFrom": "events",
-          "tableTo": "venues",
-          "schemaTo": "mb",
           "columnsFrom": [
             "venue_id"
           ],
+          "tableTo": "venues",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "events_slug_unique": {
           "name": "events_slug_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -224,25 +224,25 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "notifications_user_id_users_id_fk": {
           "name": "notifications_user_id_users_id_fk",
           "tableFrom": "notifications",
-          "tableTo": "users",
-          "schemaTo": "mb",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -293,30 +293,30 @@
         "order_items_order_id_orders_id_fk": {
           "name": "order_items_order_id_orders_id_fk",
           "tableFrom": "order_items",
-          "tableTo": "orders",
-          "schemaTo": "mb",
           "columnsFrom": [
             "order_id"
           ],
+          "tableTo": "orders",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "order_items_product_id_products_id_fk": {
           "name": "order_items_product_id_products_id_fk",
           "tableFrom": "order_items",
-          "tableTo": "products",
-          "schemaTo": "mb",
           "columnsFrom": [
             "product_id"
           ],
+          "tableTo": "products",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -395,39 +395,39 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "orders_user_id_users_id_fk": {
           "name": "orders_user_id_users_id_fk",
           "tableFrom": "orders",
-          "tableTo": "users",
-          "schemaTo": "mb",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "orders_venue_id_venues_id_fk": {
           "name": "orders_venue_id_venues_id_fk",
           "tableFrom": "orders",
-          "tableTo": "venues",
-          "schemaTo": "mb",
           "columnsFrom": [
             "venue_id"
           ],
+          "tableTo": "venues",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -598,10 +598,10 @@
       "uniqueConstraints": {
         "products_slug_unique": {
           "name": "products_slug_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -688,63 +688,63 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "purchases_user_id_users_id_fk": {
           "name": "purchases_user_id_users_id_fk",
           "tableFrom": "purchases",
-          "tableTo": "users",
-          "schemaTo": "mb",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "purchases_pack_id_packs_id_fk": {
           "name": "purchases_pack_id_packs_id_fk",
           "tableFrom": "purchases",
-          "tableTo": "packs",
-          "schemaTo": "mb",
           "columnsFrom": [
             "pack_id"
           ],
+          "tableTo": "packs",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "purchases_venue_id_venues_id_fk": {
           "name": "purchases_venue_id_venues_id_fk",
           "tableFrom": "purchases",
-          "tableTo": "venues",
-          "schemaTo": "mb",
           "columnsFrom": [
             "venue_id"
           ],
+          "tableTo": "venues",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "purchases_reference_unique": {
           "name": "purchases_reference_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "reference"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -832,9 +832,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "scans_created_idx": {
           "name": "scans_created_idx",
@@ -847,53 +847,53 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "scans_user_id_users_id_fk": {
           "name": "scans_user_id_users_id_fk",
           "tableFrom": "scans",
-          "tableTo": "users",
-          "schemaTo": "mb",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "scans_venue_id_venues_id_fk": {
           "name": "scans_venue_id_venues_id_fk",
           "tableFrom": "scans",
-          "tableTo": "venues",
-          "schemaTo": "mb",
           "columnsFrom": [
             "venue_id"
           ],
+          "tableTo": "venues",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "scans_manager_id_users_id_fk": {
           "name": "scans_manager_id_users_id_fk",
           "tableFrom": "scans",
-          "tableTo": "users",
-          "schemaTo": "mb",
           "columnsFrom": [
             "manager_id"
           ],
+          "tableTo": "users",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -957,35 +957,35 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "sessions_user_id_users_id_fk": {
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
-          "tableTo": "users",
-          "schemaTo": "mb",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sessions_token_hash_unique": {
           "name": "sessions_token_hash_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "token_hash"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1054,39 +1054,39 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "tickets_event_id_events_id_fk": {
           "name": "tickets_event_id_events_id_fk",
           "tableFrom": "tickets",
-          "tableTo": "events",
-          "schemaTo": "mb",
           "columnsFrom": [
             "event_id"
           ],
+          "tableTo": "events",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "tickets_user_id_users_id_fk": {
           "name": "tickets_user_id_users_id_fk",
           "tableFrom": "tickets",
-          "tableTo": "users",
-          "schemaTo": "mb",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1169,9 +1169,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "tokens_code_idx": {
           "name": "tokens_code_idx",
@@ -1184,53 +1184,53 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "tokens_user_id_users_id_fk": {
           "name": "tokens_user_id_users_id_fk",
           "tableFrom": "tokens",
-          "tableTo": "users",
-          "schemaTo": "mb",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "tokens_venue_id_venues_id_fk": {
           "name": "tokens_venue_id_venues_id_fk",
           "tableFrom": "tokens",
-          "tableTo": "venues",
-          "schemaTo": "mb",
           "columnsFrom": [
             "venue_id"
           ],
+          "tableTo": "venues",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "tokens_purchase_id_purchases_id_fk": {
           "name": "tokens_purchase_id_purchases_id_fk",
           "tableFrom": "tokens",
-          "tableTo": "purchases",
-          "schemaTo": "mb",
           "columnsFrom": [
             "purchase_id"
           ],
+          "tableTo": "purchases",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1320,35 +1320,35 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "users_venue_id_venues_id_fk": {
           "name": "users_venue_id_venues_id_fk",
           "tableFrom": "users",
-          "tableTo": "venues",
-          "schemaTo": "mb",
           "columnsFrom": [
             "venue_id"
           ],
+          "tableTo": "venues",
+          "schemaTo": "mb",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "users_auth_id_unique": {
           "name": "users_auth_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "auth_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1453,10 +1453,10 @@
       "uniqueConstraints": {
         "venues_slug_unique": {
           "name": "venues_slug_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1468,10 +1468,10 @@
   "schemas": {
     "mb": "mb"
   },
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

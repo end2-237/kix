@@ -1,27 +1,15 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { db, users, type User } from "@/db";
+import { resolveSession } from "@/lib/auth";
+import type { User } from "@/db";
 
 export const SESSION_COOKIE = "mb_session";
 
-/**
- * Session de démonstration : un cookie porte l'id de l'utilisateur, sans mot de
- * passe. À remplacer par Supabase Auth (OTP par SMS) lors de la migration.
- */
+/** L'utilisateur du cookie de session, ou `null` si personne n'est connecté. */
 export async function getCurrentUser(): Promise<User | null> {
   const jar = await cookies();
-  const id = jar.get(SESSION_COOKIE)?.value;
-
-  if (id) {
-    const found = await db.select().from(users).where(eq(users.id, id)).limit(1);
-    if (found[0]) return found[0];
-  }
-
-  // Sans cookie, on ouvre l'app sur le compte client de démo.
-  const fallback = await db.select().from(users).where(eq(users.role, "client")).limit(1);
-  return fallback[0] ?? null;
+  return resolveSession(jar.get(SESSION_COOKIE)?.value);
 }
 
 export async function requireUser(): Promise<User> {
@@ -32,11 +20,13 @@ export async function requireUser(): Promise<User> {
 
 /** Garde de rôle pour /gerant et /admin. */
 export async function requireRole(...roles: User["role"][]): Promise<User> {
-  const user = await requireUser();
+  const user = await getCurrentUser();
+  if (!user) redirect("/connexion");
   if (!roles.includes(user.role)) redirect("/connexion?refus=1");
   return user;
 }
 
-export async function listAccounts(): Promise<User[]> {
-  return db.select().from(users).orderBy(users.role, users.name);
+/** Page d'accueil selon le rôle, après connexion. */
+export function homeFor(role: string): string {
+  return role === "admin" ? "/admin" : role === "manager" ? "/gerant" : "/app";
 }

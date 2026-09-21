@@ -174,7 +174,7 @@ export default async function RewardsPage() {
 
       <form action={signOut}>
         <button className="w-full rounded-full border border-dashed border-line px-4 py-3 text-xs text-muted transition hover:text-dim lg:w-auto lg:px-6">
-          Changer de compte · {user.name}
+          Se déconnecter · {user.name}
         </button>
       </form>
     </>

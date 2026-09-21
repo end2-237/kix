@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import {
@@ -21,7 +21,16 @@ import {
   venues,
 } from "@/db";
 import { POINTS_PER_FREE_TOKEN, XP_PER_TOKEN } from "@/lib/constants";
-import { getCurrentUser, requireRole, requireUser, SESSION_COOKIE } from "@/lib/session";
+import {
+  createSession,
+  destroySession,
+  hashPassword,
+  isValidPhone,
+  normalizePhone,
+  SESSION_MAX_AGE,
+  verifyPassword,
+} from "@/lib/auth";
+import { getCurrentUser, homeFor, requireRole, requireUser, SESSION_COOKIE } from "@/lib/session";
 
 const uid = () => randomUUID();
 
@@ -44,18 +53,82 @@ async function notify(userId: string, title: string, body: string, kind: string,
 
 /* ------------------------------------------------------------------ session */
 
-export async function signIn(formData: FormData) {
-  const userId = String(formData.get("userId") ?? "");
-  const jar = await cookies();
-  jar.set(SESSION_COOKIE, userId, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+/**
+ * React réinitialise les champs d'un formulaire après une action : on renvoie
+ * donc ce qui a été saisi (jamais le mot de passe) pour le réafficher.
+ */
+export type AuthState = {
+  error: string;
+  field?: "phone" | "password" | "name";
+  values?: { name?: string; phone?: string };
+} | null;
 
-  const found = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  const role = found[0]?.role ?? "client";
-  redirect(role === "admin" ? "/admin" : role === "manager" ? "/gerant" : "/app");
+/** Empreinte factice : on la vérifie quand le numéro est inconnu, pour que la
+ * réponse prenne le même temps qu'un mot de passe erroné (pas d'énumération). */
+const DECOY_HASH =
+  "scrypt$0000000000000000000000000000000000000000000000000000000000000000$" + "0".repeat(128);
+
+async function openSession(userId: string, role: string) {
+  const token = await createSession(userId, (await headers()).get("user-agent"));
+  const jar = await cookies();
+  jar.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_MAX_AGE,
+  });
+  redirect(homeFor(role));
+}
+
+export async function signIn(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const typed = String(formData.get("phone") ?? "");
+  const phone = normalizePhone(typed);
+  const password = String(formData.get("password") ?? "");
+  const values = { phone: typed };
+
+  if (!isValidPhone(phone)) return { error: "Numéro camerounais attendu, par exemple 6 77 45 12 08.", field: "phone", values };
+  if (!password) return { error: "Entre ton mot de passe.", field: "password", values };
+
+  const found = (await db.select().from(users).where(eq(users.phone, phone)).limit(1))[0];
+  const ok = await verifyPassword(password, found?.passwordHash ?? DECOY_HASH);
+  if (!found || !ok) return { error: "Numéro ou mot de passe incorrect.", field: "password", values };
+
+  await openSession(found.id, found.role);
+  return null;
+}
+
+export async function signUp(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const typed = String(formData.get("phone") ?? "");
+  const phone = normalizePhone(typed);
+  const password = String(formData.get("password") ?? "");
+  const values = { name, phone: typed };
+
+  if (name.length < 2) return { error: "Dis-nous comment t'appeler.", field: "name", values };
+  if (!isValidPhone(phone)) return { error: "Numéro camerounais attendu, par exemple 6 77 45 12 08.", field: "phone", values };
+  if (password.length < 6) return { error: "Six caractères au minimum pour le mot de passe.", field: "password", values };
+
+  const taken = (await db.select({ id: users.id }).from(users).where(eq(users.phone, phone)).limit(1))[0];
+  if (taken) return { error: "Ce numéro a déjà un compte. Connecte-toi.", field: "phone", values };
+
+  const id = uid();
+  await db.insert(users).values({ id, name, phone, passwordHash: await hashPassword(password), role: "client" });
+  await notify(
+    id,
+    "Bienvenue chez MASTER BREAK",
+    "Recharge ton Pass et présente ton QR au comptoir pour lancer ta première partie.",
+    "compte",
+    "/app/recharge",
+  );
+
+  await openSession(id, "client");
+  return null;
 }
 
 export async function signOut() {
   const jar = await cookies();
+  await destroySession(jar.get(SESSION_COOKIE)?.value);
   jar.delete(SESSION_COOKIE);
   redirect("/connexion");
 }
@@ -262,7 +335,7 @@ export async function checkout(
   for (const line of lines) {
     await db
       .update(products)
-      .set({ stock: sql`max(0, ${products.stock} - ${line.qty})` })
+      .set({ stock: sql`greatest(0, ${products.stock} - ${line.qty})` })
       .where(eq(products.id, line.productId));
   }
 

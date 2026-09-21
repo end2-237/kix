@@ -1,19 +1,30 @@
 import { sql } from "drizzle-orm";
-import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  boolean,
+  index,
+  integer,
+  pgSchema,
+  real,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 /**
- * Schéma MASTER BREAK. SQLite pour le développement ; les types sont volontairement
- * portables (texte, entiers, timestamps) pour la migration vers Postgres /
- * Supabase : seul le driver et le dialecte changeront.
+ * Schéma `mb` — Master Break.
+ *
+ * Le Supabase du VPS héberge plusieurs applications : chacune vit dans son
+ * propre schéma, jamais dans `public`. Toutes les tables ci-dessous sont donc
+ * préfixées `mb.` et les politiques RLS sont définies dans la migration
+ * dédiée (db/migrations/*_rls.sql).
  */
+export const mb = pgSchema("mb");
 
-const id = () => text("id").primaryKey();
-const createdAt = () =>
-  integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`);
+const id = () => uuid("id").primaryKey().default(sql`gen_random_uuid()`);
+const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
-export const venues = sqliteTable("venues", {
+export const venues = mb.table("venues", {
   id: id(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
@@ -25,27 +36,31 @@ export const venues = sqliteTable("venues", {
   tokenPrice: integer("token_price").notNull().default(400),
   distanceKm: real("distance_km").notNull().default(0),
   image: text("image").notNull().default("/img/hall-dark.jpg"),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  active: boolean("active").notNull().default(true),
   createdAt: createdAt(),
 });
 
-export const users = sqliteTable(
+export const users = mb.table(
   "users",
   {
     id: id(),
+    /** Compte GoTrue correspondant (auth.users.id) quand Supabase Auth gère la connexion. */
+    authId: uuid("auth_id").unique(),
     name: text("name").notNull(),
     phone: text("phone").notNull(),
+    /** scrypt, format `scrypt$<sel>$<empreinte>` — nul si la connexion passe par GoTrue. */
+    passwordHash: text("password_hash"),
     avatar: text("avatar"),
     // client | manager | admin
     role: text("role").notNull().default("client"),
     points: integer("points").notNull().default(0),
-    venueId: text("venue_id").references(() => venues.id),
+    venueId: uuid("venue_id").references(() => venues.id),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("users_phone_idx").on(t.phone)],
 );
 
-export const packs = sqliteTable("packs", {
+export const packs = mb.table("packs", {
   id: id(),
   tokens: integer("tokens").notNull(),
   price: integer("price").notNull(),
@@ -53,49 +68,51 @@ export const packs = sqliteTable("packs", {
   hint: text("hint").notNull().default(""),
   badge: text("badge"),
   sort: integer("sort").notNull().default(0),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  active: boolean("active").notNull().default(true),
 });
 
-export const purchases = sqliteTable(
+export const purchases = mb.table(
   "purchases",
   {
     id: id(),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
-    packId: text("pack_id").references(() => packs.id),
-    venueId: text("venue_id").references(() => venues.id),
+    packId: uuid("pack_id").references(() => packs.id),
+    venueId: uuid("venue_id").references(() => venues.id),
     tokens: integer("tokens").notNull(),
     amount: integer("amount").notNull(),
     // om | momo
     method: text("method").notNull(),
     // pending | paid | failed
     status: text("status").notNull().default("paid"),
+    /** Référence du paiement chez l'opérateur (PowerPay) — unique pour l'idempotence. */
+    reference: text("reference").unique(),
     createdAt: createdAt(),
   },
   (t) => [index("purchases_user_idx").on(t.userId)],
 );
 
-export const tokens = sqliteTable(
+export const tokens = mb.table(
   "tokens",
   {
     id: id(),
     code: text("code").notNull(),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
-    venueId: text("venue_id").references(() => venues.id),
-    purchaseId: text("purchase_id").references(() => purchases.id),
+    venueId: uuid("venue_id").references(() => venues.id),
+    purchaseId: uuid("purchase_id").references(() => purchases.id),
     // active | used
     status: text("status").notNull().default("active"),
     tableNumber: integer("table_number"),
-    usedAt: integer("used_at", { mode: "timestamp" }),
+    usedAt: timestamp("used_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [index("tokens_user_idx").on(t.userId), index("tokens_code_idx").on(t.code)],
 );
 
-export const products = sqliteTable("products", {
+export const products = mb.table("products", {
   id: id(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
@@ -108,20 +125,19 @@ export const products = sqliteTable("products", {
   badgeLabel: text("badge_label"),
   badgeTone: text("badge_tone"),
   stock: integer("stock").notNull().default(0),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  active: boolean("active").notNull().default(true),
   createdAt: createdAt(),
 });
 
-export const orders = sqliteTable(
+export const orders = mb.table(
   "orders",
   {
     id: id(),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
-    venueId: text("venue_id").references(() => venues.id),
+    venueId: uuid("venue_id").references(() => venues.id),
     total: integer("total").notNull(),
-    // om | momo
     method: text("method").notNull().default("momo"),
     // pickup | delivery
     fulfillment: text("fulfillment").notNull().default("pickup"),
@@ -132,19 +148,19 @@ export const orders = sqliteTable(
   (t) => [index("orders_user_idx").on(t.userId)],
 );
 
-export const orderItems = sqliteTable("order_items", {
+export const orderItems = mb.table("order_items", {
   id: id(),
-  orderId: text("order_id")
+  orderId: uuid("order_id")
     .notNull()
     .references(() => orders.id, { onDelete: "cascade" }),
-  productId: text("product_id")
+  productId: uuid("product_id")
     .notNull()
     .references(() => products.id),
   qty: integer("qty").notNull().default(1),
   unitPrice: integer("unit_price").notNull(),
 });
 
-export const events = sqliteTable("events", {
+export const events = mb.table("events", {
   id: id(),
   slug: text("slug").notNull().unique(),
   title: text("title").notNull(),
@@ -152,62 +168,61 @@ export const events = sqliteTable("events", {
   day: text("day").notNull(),
   hours: text("hours").notNull().default(""),
   checkin: text("checkin").notNull().default(""),
-  venueId: text("venue_id").references(() => venues.id),
+  venueId: uuid("venue_id").references(() => venues.id),
   address: text("address").notNull().default(""),
   price: integer("price").notNull().default(0),
   image: text("image").notNull(),
   capacity: integer("capacity").notNull().default(100),
   attendees: integer("attendees").notNull().default(0),
   description: text("description").notNull().default(""),
-  // liste séparée par des virgules
   tags: text("tags").notNull().default(""),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  active: boolean("active").notNull().default(true),
   createdAt: createdAt(),
 });
 
-export const tickets = sqliteTable(
+export const tickets = mb.table(
   "tickets",
   {
     id: id(),
-    eventId: text("event_id")
+    eventId: uuid("event_id")
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
     code: text("code").notNull(),
     // valid | used
     status: text("status").notNull().default("valid"),
-    usedAt: integer("used_at", { mode: "timestamp" }),
+    usedAt: timestamp("used_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [index("tickets_user_idx").on(t.userId)],
 );
 
-export const scans = sqliteTable(
+export const scans = mb.table(
   "scans",
   {
     id: id(),
     // token | ticket
     kind: text("kind").notNull(),
-    refId: text("ref_id").notNull(),
+    refId: uuid("ref_id").notNull(),
     code: text("code").notNull(),
-    userId: text("user_id").references(() => users.id),
-    venueId: text("venue_id").references(() => venues.id),
-    managerId: text("manager_id").references(() => users.id),
+    userId: uuid("user_id").references(() => users.id),
+    venueId: uuid("venue_id").references(() => venues.id),
+    managerId: uuid("manager_id").references(() => users.id),
     // qr | code
     method: text("method").notNull().default("qr"),
     amount: integer("amount").notNull().default(0),
     createdAt: createdAt(),
   },
-  (t) => [index("scans_venue_idx").on(t.venueId)],
+  (t) => [index("scans_venue_idx").on(t.venueId), index("scans_created_idx").on(t.createdAt)],
 );
 
-export const notifications = sqliteTable(
+export const notifications = mb.table(
   "notifications",
   {
     id: id(),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
     title: text("title").notNull(),
@@ -215,10 +230,27 @@ export const notifications = sqliteTable(
     // token | order | event | reward | system
     kind: text("kind").notNull().default("system"),
     href: text("href"),
-    read: integer("read", { mode: "boolean" }).notNull().default(false),
+    read: boolean("read").notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [index("notifications_user_idx").on(t.userId)],
+);
+
+/** Sessions de l'authentification maison (remplacées par GoTrue si Supabase Auth prend la main). */
+export const sessions = mb.table(
+  "sessions",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Empreinte SHA-256 du jeton de session : le jeton clair ne vit que dans le cookie. */
+    tokenHash: text("token_hash").notNull().unique(),
+    userAgent: text("user_agent"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
 export type Venue = typeof venues.$inferSelect;
@@ -233,3 +265,4 @@ export type EventRow = typeof events.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
 export type Scan = typeof scans.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type Session = typeof sessions.$inferSelect;

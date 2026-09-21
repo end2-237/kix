@@ -1,28 +1,31 @@
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
-import fs from "node:fs";
-import path from "node:path";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
 
 /**
- * SQLite via libsql : binaires précompilés (aucune compilation à l'installation)
- * et driver asynchrone, donc le même code tournera sur Postgres / Supabase.
- * DATABASE_URL accepte un chemin de fichier ou une URL libsql:// (Turso).
+ * Postgres (Supabase auto-hébergé). Toutes les tables vivent dans le schéma
+ * `mb` : `search_path` le rend prioritaire, `public` reste accessible pour les
+ * extensions.
  */
 export function getDbUrl(): string {
-  // Chemin relatif au dossier de travail du serveur : SQLite le résout lui-même,
-  // et le build n'a pas à tracer un chemin absolu calculé.
-  const raw = process.env.DATABASE_URL ?? "data/masterbreak.db";
-  return raw.includes("://") ? raw : `file:${raw}`;
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL manquant — voir .env.example");
+  return url;
 }
 
-export function createDb() {
-  const url = getDbUrl();
-  if (url.startsWith("file:")) {
-    const dir = path.dirname(url.slice("file:".length));
-    if (dir && dir !== ".") fs.mkdirSync(dir, { recursive: true });
-  }
-  return drizzle(createClient({ url }), { schema });
+export function createSql() {
+  return postgres(getDbUrl(), {
+    max: Number(process.env.DATABASE_POOL ?? 10),
+    prepare: false, // compatible avec le pooler Supabase en mode transaction
+    connection: { search_path: "mb, public" },
+    // Les migrations utilisent `if not exists` : leurs NOTICE ne sont pas des
+    // avertissements. MB_DB_NOTICES=1 les réaffiche au besoin.
+    onnotice: process.env.MB_DB_NOTICES === "1" ? undefined : () => {},
+  });
+}
+
+export function createDb(client = createSql()) {
+  return drizzle(client, { schema });
 }
 
 export type Db = ReturnType<typeof createDb>;
