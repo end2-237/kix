@@ -1,3 +1,4 @@
+import { repartirPrix } from "@/lib/tokens";
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "../lib/password";
 import { createDb } from "./client";
@@ -126,8 +127,8 @@ const purchase = {
   userId: ariel.id,
   packId: packRows[1].id,
   venueId: breakAkwa.id,
-  tokens: 3,
-  amount: 1000,
+  tokens: 7,
+  amount: 2100,
   method: "momo",
   status: "paid",
   createdAt: hoursAgo(20),
@@ -136,12 +137,15 @@ await db.insert(purchases).values(purchase);
 
 await db.insert(tokens)
   .values(
-    Array.from({ length: 7 }, () => ({
+    // La longueur suit l'achat : un jeu de démonstration où les deux divergent
+    // fait mentir la recette du gérant avant même la première vraie vente.
+    repartirPrix(purchase.amount, purchase.tokens).map((unitPrice) => ({
       id: uid(),
       code: code(taken),
       userId: ariel.id,
       venueId: breakAkwa.id,
       purchaseId: purchase.id,
+      unitPrice,
       status: "active",
       createdAt: hoursAgo(20),
     })),

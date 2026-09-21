@@ -173,6 +173,12 @@ async function fulfilPack(tx: Tx, payment: Payment) {
 
   await tx.update(purchases).set({ status: "paid" }).where(eq(purchases.id, purchase.id));
 
+  // Chaque jeton porte ce qu'il a coûté. Le scan lira cette valeur plutôt que
+  // le tarif unitaire de la salle : un pack à 1000 F pour trois jetons ne fait
+  // pas entrer 1500 F en caisse.
+  const { repartirPrix } = await import("@/lib/tokens");
+  const valeurs = repartirPrix(purchase.amount, purchase.tokens);
+
   for (let i = 0; i < purchase.tokens; i++) {
     await tx.insert(tokens).values({
       id: uid(),
@@ -180,6 +186,7 @@ async function fulfilPack(tx: Tx, payment: Payment) {
       userId: purchase.userId,
       venueId: purchase.venueId,
       purchaseId: purchase.id,
+      unitPrice: valeurs[i],
       status: "active",
     });
   }

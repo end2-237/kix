@@ -17,7 +17,7 @@ export default async function AdminPacks() {
 
       <Drawer summary="+ Nouveau pack">
         <form action={savePack} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Jetons" name="tokens" type="number" defaultValue={3} />
+          <Field label="Jetons" name="tokens" type="number" min={3} defaultValue={3} hint="Trois au minimum : on ne vend que des packs." />
           <Field label="Prix (F)" name="price" type="number" defaultValue={1000} />
           <Field label="Jetons offerts" name="bonus" type="number" defaultValue={0} />
           <Field label="Ordre" name="sort" type="number" defaultValue={1} />
@@ -55,7 +55,7 @@ export default async function AdminPacks() {
                   >
                     <input type="hidden" name="id" value={pack.id} />
                     <div className="grid grid-cols-2 gap-3">
-                      <Field label="Jetons" name="tokens" type="number" defaultValue={pack.tokens} />
+                      <Field label="Jetons" name="tokens" type="number" min={3} defaultValue={pack.tokens} />
                       <Field label="Prix (F)" name="price" type="number" defaultValue={pack.price} />
                       <Field label="Offerts" name="bonus" type="number" defaultValue={pack.bonus} />
                       <Field label="Ordre" name="sort" type="number" defaultValue={pack.sort} />

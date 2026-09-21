@@ -53,6 +53,8 @@ export function Field({
   type = "text",
   placeholder,
   required,
+  min,
+  hint,
   className,
 }: {
   label: string;
@@ -61,6 +63,10 @@ export function Field({
   type?: string;
   placeholder?: string;
   required?: boolean;
+  /** Borne basse d'un champ numérique : le navigateur la fait respecter aussi. */
+  min?: number;
+  /** Une ligne sous le champ, pour la règle qu'on ne devine pas. */
+  hint?: string;
   className?: string;
 }) {
   return (
@@ -72,8 +78,10 @@ export function Field({
         defaultValue={defaultValue ?? ""}
         placeholder={placeholder}
         required={required}
+        min={min}
         className="h-11 rounded-none border border-line bg-surface px-3 text-[13px] text-ink outline-none focus:border-gold"
       />
+      {hint ? <span className="text-[11px] text-muted">{hint}</span> : null}
     </label>
   );
 }

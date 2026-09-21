@@ -18,6 +18,42 @@ type Phase = "idle" | "asking" | "ready" | "connecting" | "live" | "error";
  * nativement : une offre SDP en POST, une réponse SDP, et le flux part. La clé
  * de diffusion voyage en jeton porteur, jamais dans l'URL.
  */
+/**
+ * Écarter VP8 de la tête de liste.
+ *
+ * Chrome propose VP8 en premier et MediaMTX l'accepte : le direct arrive donc
+ * bien au serveur. Mais son muxeur HLS ne sait pas porter VP8 — il gère H264,
+ * H265, VP9 et AV1, pas celui-là. La playlist était servie sans piste vidéo,
+ * et les spectateurs restaient devant une vignette immobile pendant que le
+ * gérant croyait diffuser.
+ *
+ * On classe donc les codecs que le HLS sait porter devant, H264 en tête parce
+ * qu'il est le plus largement décodé, et VP8 en dernier plutôt qu'exclu : un
+ * navigateur qui n'aurait que lui doit pouvoir diffuser quand même, quitte à
+ * n'être regardable qu'en WebRTC.
+ */
+const RANG_HLS = [/h264/i, /h265|hevc/i, /vp9/i, /av1/i];
+
+function prefererCodecHls(pc: RTCPeerConnection) {
+  try {
+    const dispo = RTCRtpSender.getCapabilities("video")?.codecs ?? [];
+    if (dispo.length === 0) return;
+
+    const rang = (mime: string) => {
+      const i = RANG_HLS.findIndex((r) => r.test(mime));
+      if (i >= 0) return i;
+      return /vp8/i.test(mime) ? RANG_HLS.length + 1 : RANG_HLS.length;
+    };
+    const classe = [...dispo].sort((a, b) => rang(a.mimeType) - rang(b.mimeType));
+
+    for (const t of pc.getTransceivers()) {
+      if (t.sender.track?.kind === "video") t.setCodecPreferences(classe);
+    }
+  } catch {
+    /* navigateur qui ne sait pas réordonner : on diffuse avec ce qu'il propose */
+  }
+}
+
 export function GoLive({ whip, streamKey, title }: { whip: string; streamKey: string; title: string }) {
   const { notify } = useSnackbar();
   const preview = useRef<HTMLVideoElement>(null);
@@ -73,6 +109,7 @@ export function GoLive({ whip, streamKey, title }: { whip: string; streamKey: st
       const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
       peer.current = pc;
       stream.current.getTracks().forEach((track) => pc.addTrack(track, stream.current!));
+      prefererCodecHls(pc);
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);

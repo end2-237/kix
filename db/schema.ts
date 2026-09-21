@@ -108,6 +108,19 @@ export const tokens = mb.table(
       .references(() => users.id),
     venueId: uuid("venue_id").references(() => venues.id),
     purchaseId: uuid("purchase_id").references(() => purchases.id),
+    /**
+     * Ce que ce jeton a réellement coûté, en francs, figé à l'achat.
+     *
+     * Un pack à 1000 F pour trois jetons en vaut 333, pas le tarif unitaire
+     * affiché par la salle. Le scan enregistrait ce dernier : la recette du
+     * gérant gonflait d'un tiers à chaque partie. On fige la valeur ici plutôt
+     * que de la recalculer au scan — un pack dont le prix change demain ne doit
+     * pas réécrire les recettes d'hier.
+     *
+     * Nul pour les jetons d'avant cette colonne : le scan retombe alors sur le
+     * tarif de la salle, faute de mieux.
+     */
+    unitPrice: integer("unit_price"),
     // active | used
     status: text("status").notNull().default("active"),
     tableNumber: integer("table_number"),

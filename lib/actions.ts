@@ -278,7 +278,10 @@ export async function scanCode(raw: string, method: "qr" | "code" = "code"): Pro
       venueId,
       managerId: manager.id,
       method,
-      amount: venue?.tokenPrice ?? 400,
+      // Ce que le client a réellement payé pour CE jeton, figé à l'achat. Le
+      // tarif de la salle ne sert plus que de repli pour les jetons d'avant
+      // cette colonne — et pour ceux offerts à la main, qui n'ont pas de prix.
+      amount: token.unitPrice ?? venue?.tokenPrice ?? 0,
     });
     await db
       .update(users)
@@ -589,8 +592,11 @@ export async function deleteProduct(formData: FormData) {
 export async function savePack(formData: FormData) {
   await requireRole("admin");
   const id = str(formData, "id");
+  const { JETONS_MIN_PACK } = await import("@/lib/tokens");
   const values = {
-    tokens: num(formData, "tokens"),
+    // On ne vend que des packs : en dessous de trois jetons, il n'y a pas de
+    // pack, il y a une partie à l'unité — et le modèle n'en veut pas.
+    tokens: Math.max(JETONS_MIN_PACK, num(formData, "tokens")),
     price: num(formData, "price"),
     bonus: num(formData, "bonus"),
     hint: str(formData, "hint"),
