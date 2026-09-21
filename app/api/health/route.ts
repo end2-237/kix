@@ -19,7 +19,10 @@ function explain(code: string | undefined): string | null {
     case "ECONNREFUSED":
       return "base injoignable — rien n'écoute à cette adresse ; vérifie l'hôte et le port de DATABASE_URL";
     case "ENOTFOUND":
-      return "hôte introuvable — si DATABASE_URL pointe sur « db », l'app doit être sur le même réseau Docker que Supabase";
+    case "EAI_AGAIN":
+      // Le cas le plus fréquent en conteneur : le nom court d'un service voisin
+      // ne se résout que depuis le réseau Docker de ce service.
+      return "nom d'hôte non résolu — si DATABASE_URL pointe sur un nom court comme « db », l'app doit être sur le même réseau Docker que Supabase ; sinon, utilise l'adresse et le port exposés";
     case "ETIMEDOUT":
       return "délai dépassé — un pare-feu bloque probablement le port Postgres";
     case "28P01":
