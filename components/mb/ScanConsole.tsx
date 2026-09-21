@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import Image from "next/image";
+import { CAMERA_LABEL, QrCamera, type CameraState } from "@/components/mb/QrCamera";
 import { Card } from "@/components/ui/Card";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { CheckIcon, QrIcon } from "@/components/icons";
@@ -11,6 +11,17 @@ import { scanCode } from "@/lib/actions";
 import { cn } from "@/lib/cn";
 
 type Feedback = { ok: boolean; title: string; detail: string; seq: number } | null;
+
+/**
+ * Les laissez-passer déjà relayés, pour cet onglet.
+ *
+ * Hors de React à dessein : après un débit, `router.refresh()` remonte la
+ * console et une mémoire tenue par `useRef` repartait vide. Le client n'ayant
+ * pas encore rangé son téléphone, le même QR était relu et « Refusé — code
+ * déjà utilisé » s'affichait par-dessus le succès. Un laissez-passer ne sert
+ * qu'une fois : l'oublier n'a aucun intérêt.
+ */
+const dejaLus = new Set<string>();
 
 /** Console de scan : QR au-dessus, code de secours à 4 chiffres en dessous. */
 /**
@@ -24,6 +35,7 @@ export function ScanConsole({ samplePass }: { samplePass?: string }) {
   const [pending, startTransition] = useTransition();
   const [code, setCode] = useState("");
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [camera, setCamera] = useState<CameraState>("demarrage");
   const seq = useRef(0);
 
   function validate(raw: string, method: "qr" | "code") {
@@ -55,9 +67,23 @@ export function ScanConsole({ samplePass }: { samplePass?: string }) {
     <Card shape="panel" className="flex min-h-0 flex-col gap-4 p-5">
       <div className="flex items-center justify-between">
         <h2 className="text-[17px]">Scanner un QR</h2>
-        <span className="flex items-center gap-2 rounded-full border border-gold/30 bg-gold/12 px-3 py-1.5 text-[11px] text-gold-text">
-          <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-          Caméra active
+        <span
+          className={cn(
+            "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px]",
+            camera === "active"
+              ? "border-gold/30 bg-gold/12 text-gold-text"
+              : camera === "demarrage"
+                ? "border-line bg-surface-2 text-muted"
+                : "border-warn/40 bg-warn/12 text-warn",
+          )}
+        >
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              camera === "active" ? "bg-gold" : camera === "demarrage" ? "bg-muted" : "bg-warn",
+            )}
+          />
+          {CAMERA_LABEL[camera]}
         </span>
       </div>
 
@@ -68,31 +94,38 @@ export function ScanConsole({ samplePass }: { samplePass?: string }) {
           feedback?.ok ? "flash border-gold/60" : feedback ? "shake border-warn/60" : "border-line",
         )}
       >
-        <Image
-          src="/img/table-blue.jpg"
-          alt="Aperçu caméra"
-          fill
-          sizes="(max-width: 1024px) 100vw, 520px"
-          className="object-cover opacity-25 saturate-50"
+        {/* `paused` tient la caméra muette tant qu'une validation est en vol. */}
+        <QrCamera
+          onCode={(valeur) => {
+            if (dejaLus.has(valeur)) return;
+            dejaLus.add(valeur);
+            validate(valeur, "qr");
+          }}
+          paused={pending}
+          onState={setCamera}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(217,180,80,0.10),rgba(8,8,10,0.92)_70%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(217,180,80,0.10),rgba(8,8,10,0.55)_75%)]" />
         <svg
           width="188"
           height="188"
           viewBox="0 0 176 176"
           fill="none"
           aria-hidden="true"
-          className="absolute top-1/2 left-1/2 -mt-24 -ml-24"
+          className="pointer-events-none absolute top-1/2 left-1/2 -mt-24 -ml-24"
         >
           <path d="M4 46V16a12 12 0 0 1 12-12h30" stroke="#D9B450" strokeWidth="4" strokeLinecap="round" />
           <path d="M130 4h30a12 12 0 0 1 12 12v30" stroke="#D9B450" strokeWidth="4" strokeLinecap="round" />
           <path d="M172 130v30a12 12 0 0 1-12 12h-30" stroke="#D9B450" strokeWidth="4" strokeLinecap="round" />
           <path d="M46 172H16a12 12 0 0 1-12-12v-30" stroke="#D9B450" strokeWidth="4" strokeLinecap="round" />
         </svg>
-        <div className="scan-line absolute top-1/2 left-1/2 -ml-22 h-0.5 w-44 bg-linear-to-r from-transparent via-gold to-transparent shadow-[0_0_16px_rgba(217,180,80,0.8)]" />
-        <p className="absolute inset-x-0 bottom-4 text-center text-[13px] text-white/75">
-          Le jeton est débité dès que le code est lu
-        </p>
+        {camera === "active" ? (
+          <div className="scan-line pointer-events-none absolute top-1/2 left-1/2 -ml-22 h-0.5 w-44 bg-linear-to-r from-transparent via-gold to-transparent shadow-[0_0_16px_rgba(217,180,80,0.8)]" />
+        ) : null}
+        {camera === "active" ? (
+          <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-[13px] text-white/75">
+            Le jeton est débité dès que le code est lu
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

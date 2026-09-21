@@ -85,9 +85,18 @@ export function StreamPlayer({
     hls.on(Hls.Events.ERROR, (_e, data) => {
       if (!data.fatal) return;
       // Une source pas encore arrivée n'est pas une panne : on réessaiera.
+      // Mais un 502 ou un refus de connexion, si : c'est le serveur vidéo qui
+      // manque, pas la caméra. Annoncer « la caméra n'a pas commencé » dans ce
+      // cas fait attendre une salle entière devant une panne d'infrastructure.
       if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        const code = data.response?.code ?? 0;
+        const absent = code === 0 || code >= 500;
         setPhase("waiting");
-        setMessage("La caméra n'a pas encore commencé à émettre.");
+        setMessage(
+          absent
+            ? "Le serveur vidéo est injoignable. Si ça dure, préviens la salle."
+            : "La caméra n'a pas encore commencé à émettre.",
+        );
         window.setTimeout(() => hls.startLoad(), 4000);
         return;
       }

@@ -343,7 +343,11 @@ export async function getAllEvents() {
     .from(events)
     .leftJoin(venues, eq(events.venueId, venues.id))
     .leftJoin(tickets, eq(tickets.eventId, events.id))
-    .groupBy(events.id)
+    // Grouper par `events.id` suffit pour les colonnes d'`events` — Postgres
+    // suit la dépendance fonctionnelle depuis une clé primaire. Elle ne
+    // traverse pas la jointure : `venues` a besoin de sa propre clé, sans quoi
+    // Postgres refuse la requête (42803). SQLite, lui, l'acceptait.
+    .groupBy(events.id, venues.id)
     .orderBy(desc(events.createdAt));
 }
 
