@@ -19,6 +19,7 @@ import {
   purchases,
   reservations,
   scans,
+  screens,
   streamPasses,
   streams,
   tickets,
@@ -1436,4 +1437,77 @@ export async function buyStreamPass(
 
   await db.update(streamPasses).set({ reference: started.reference }).where(eq(streamPasses.id, passId));
   return { ok: true, reference: started.reference, instruction: started.instruction, amount: stream.price };
+}
+
+/* --------------------------------------------------------- écrans de salle */
+
+/**
+ * Le gérant adopte un écran.
+ *
+ * Le code vient d'un QR scanné ou d'une saisie à la main : `codeDepuisQr`
+ * accepte les deux, y compris l'URL entière que porte le QR.
+ */
+export async function adoptScreen(_prev: unknown, formData: FormData) {
+  const manager = await requireRole("manager", "admin");
+  if (!manager.venueId) return { ok: false as const, error: "Aucune salle rattachée à ce compte." };
+
+  const { adopterEcran, codeDepuisQr } = await import("@/lib/screens");
+  const code = codeDepuisQr(str(formData, "code"));
+  const nom = str(formData, "name");
+
+  const adopte = await adopterEcran(code, manager.venueId, nom);
+  if (!adopte.ok) return { ok: false as const, error: adopte.error };
+
+  revalidatePath("/gerant/ecrans");
+  return { ok: true as const, name: adopte.screen.name };
+}
+
+/** Ce qu'un écran doit montrer. `streamId` vide le met en veille. */
+export async function setScreenStream(screenId: string, streamId: string | null) {
+  const manager = await requireRole("manager", "admin");
+  if (!manager.venueId) redirect("/gerant?refus=1");
+
+  // La salle est vérifiée des deux côtés : on ne pilote pas l'écran d'autrui,
+  // et on n'y envoie pas le direct d'une autre salle.
+  if (streamId) {
+    const stream = (await db.select().from(streams).where(eq(streams.id, streamId)).limit(1))[0];
+    if (!stream || stream.venueId !== manager.venueId) redirect("/gerant/ecrans?refus=1");
+  }
+
+  await db
+    .update(screens)
+    .set({ streamId })
+    .where(and(eq(screens.id, screenId), eq(screens.venueId, manager.venueId)));
+
+  revalidatePath("/gerant/ecrans");
+  return { ok: true as const };
+}
+
+export async function renameScreen(screenId: string, name: string) {
+  const manager = await requireRole("manager", "admin");
+  if (!manager.venueId) redirect("/gerant?refus=1");
+
+  await db
+    .update(screens)
+    .set({ name: name.trim().slice(0, 40) || "Écran" })
+    .where(and(eq(screens.id, screenId), eq(screens.venueId, manager.venueId)));
+
+  revalidatePath("/gerant/ecrans");
+  return { ok: true as const };
+}
+
+/**
+ * Retirer un écran.
+ *
+ * On supprime la ligne plutôt que de la détacher : son jeton meurt avec elle,
+ * et un téléviseur revendu ne revient pas dans la salle par surprise. Il
+ * redemandera un code s'il est rebranché.
+ */
+export async function removeScreen(screenId: string) {
+  const manager = await requireRole("manager", "admin");
+  if (!manager.venueId) redirect("/gerant?refus=1");
+
+  await db.delete(screens).where(and(eq(screens.id, screenId), eq(screens.venueId, manager.venueId)));
+  revalidatePath("/gerant/ecrans");
+  return { ok: true as const };
 }

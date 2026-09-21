@@ -561,6 +561,45 @@ export const sessions = mb.table(
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
+/**
+ * Les écrans d'une salle.
+ *
+ * Un navigateur ne peut pas parcourir le réseau local — c'est un interdit
+ * volontaire, sans quoi n'importe quel site cartographierait le wifi de qui le
+ * visite. Le dashboard ne peut donc pas « découvrir » les téléviseurs : ce sont
+ * eux qui s'annoncent. Un écran ouvre /ecran, affiche un code, et le gérant
+ * l'adopte depuis son tableau de bord.
+ *
+ * Tant qu'il n'est pas adopté, `venue_id` est nul : la ligne n'appartient à
+ * personne et ne montre rien.
+ */
+export const screens = mb.table(
+  "screens",
+  {
+    id: id(),
+    /** Nul tant que l'écran n'a pas été adopté par une salle. */
+    venueId: uuid("venue_id").references(() => venues.id, { onDelete: "cascade" }),
+    /** Le nom que lui donne le gérant : « Bar gauche », « Fond de salle ». */
+    name: text("name").notNull().default(""),
+    /** Ce que l'écran doit montrer ; nul = veille. */
+    streamId: uuid("stream_id").references(() => streams.id, { onDelete: "set null" }),
+    /**
+     * Code d'appairage affiché sur le téléviseur, à recopier dans le dashboard.
+     * Effacé une fois l'écran adopté : il ne sert qu'une fois.
+     */
+    pairingCode: text("pairing_code").unique(),
+    /** Le code expire : un téléviseur oublié allumé ne reste pas adoptable. */
+    pairingExpiresAt: timestamp("pairing_expires_at", { withTimezone: true }),
+    /** Empreinte SHA-256 du jeton que l'écran garde ; le jeton clair ne vit que sur l'écran. */
+    tokenHash: text("token_hash").notNull().unique(),
+    /** Dernier signe de vie : c'est lui qui décide de « en ligne », pas un ping. */
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("screens_venue_idx").on(t.venueId)],
+);
+
+export type Screen = typeof screens.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Pack = typeof packs.$inferSelect;

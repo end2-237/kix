@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
-import { db, streams, users } from "@/db";
+import { db, screens, streams, users } from "@/db";
 import { eq } from "drizzle-orm";
+import { lireBilletEcran } from "@/lib/screens";
 import { canWatch, getStreamByPath, readTicket } from "@/lib/stream";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,18 @@ export async function POST(request: Request) {
 
   const ticket = query.get("mb");
   if (!ticket) return deny("billet requis");
+
+  // Un téléviseur de la salle porte son propre billet : il n'a pas de compte.
+  // Il n'ouvre que les directs de la salle qui l'a adopté — sans quoi un écran
+  // servirait à regarder gratuitement le direct payant d'une autre salle.
+  const ecran = lireBilletEcran(ticket);
+  if (ecran.ok) {
+    if (ecran.streamId !== stream.id) return deny("billet émis pour un autre direct");
+    const ligne = (await db.select().from(screens).where(eq(screens.id, ecran.screenId)).limit(1))[0];
+    if (!ligne) return deny("écran inconnu");
+    if (ligne.venueId !== stream.venueId) return deny("écran d'une autre salle");
+    return allow();
+  }
 
   const check = readTicket(ticket);
   if (!check.ok) return deny(check.reason);
