@@ -18,7 +18,15 @@ export default function ErrorScreen({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[mb] rendu interrompu :", error);
+    // En production, React remplace le message d'une erreur de composant
+    // serveur par un code (#441) pour ne rien divulguer au navigateur : le
+    // journaliser tel quel n'apprend rien. Ce qui sert, c'est l'empreinte, la
+    // même des deux côtés — on la donne avec l'endroit où chercher.
+    console.error(
+      `[mb] rendu interrompu. Empreinte : ${error.digest ?? "absente"} — ` +
+        "cherche-la dans les journaux du serveur, c'est là qu'est le vrai message.",
+      error,
+    );
   }, [error]);
 
   return (
