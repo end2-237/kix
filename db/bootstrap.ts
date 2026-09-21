@@ -82,6 +82,37 @@ export async function bootstrapDatabase() {
   }
 }
 
+/**
+ * Le premier administrateur.
+ *
+ * Sur une base neuve, personne n'a les droits : il fallait jusqu'ici ouvrir
+ * psql après s'être inscrit. `MB_ADMIN_PHONE` règle ça — le compte portant ce
+ * numéro passe administrateur au démarrage, dès qu'il existe. On le journalise
+ * toujours : une élévation de droits ne doit jamais être silencieuse.
+ */
+async function promoteAdmin(db: ReturnType<typeof createDb>) {
+  const raw = process.env.MB_ADMIN_PHONE?.trim();
+  if (!raw) return;
+
+  const { normalizePhone, isValidPhone } = await import("@/lib/phone");
+  const phone = normalizePhone(raw);
+  if (!isValidPhone(phone)) {
+    console.warn(`[mb] MB_ADMIN_PHONE « ${raw} » n'est pas un numéro camerounais valide`);
+    return;
+  }
+
+  const { users } = await import("./schema");
+  const { and, eq, ne } = await import("drizzle-orm");
+  const changed = await db
+    .update(users)
+    .set({ role: "admin" })
+    .where(and(eq(users.phone, phone), ne(users.role, "admin")))
+    .returning({ name: users.name });
+
+  if (changed[0]) console.log(`[mb] ${changed[0].name} (${phone}) est désormais administrateur`);
+  else console.log(`[mb] MB_ADMIN_PHONE=${phone} : aucun compte à promouvoir (inscris-toi, puis redémarre)`);
+}
+
 /** Ce qui suit les migrations : jeu de démonstration, ménage. */
 async function finish(db: ReturnType<typeof createDb>) {
   if (process.env.MB_SKIP_SEED !== "1") {
@@ -92,6 +123,8 @@ async function finish(db: ReturnType<typeof createDb>) {
       await seed();
     }
   }
+
+  await promoteAdmin(db);
 
   // Les sessions expirées ne servent plus qu'à grossir la table.
   const { purgeExpiredSessions } = await import("@/lib/auth");
