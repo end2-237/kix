@@ -24,7 +24,7 @@ export function AddToCartButton({ slug, name, price, qty = 1, full = false, clas
       <button
         onClick={add}
         className={cn(
-          "press flex h-14 grow items-center justify-center gap-2.5 rounded-full bg-green px-6 text-[15px] font-semibold text-green-ink transition hover:brightness-105",
+          "press flex h-14 grow items-center justify-center gap-2.5 rounded-full bg-gold px-6 text-[15px] font-semibold text-gold-ink transition hover:brightness-105",
           className,
         )}
       >
@@ -41,8 +41,8 @@ export function AddToCartButton({ slug, name, price, qty = 1, full = false, clas
       className={cn(
         "press grid h-9 w-11 place-items-center rounded-full border transition",
         inCart > 0
-          ? "border-green bg-green text-green-ink"
-          : "border-green/40 bg-green/15 text-green-text hover:bg-green/25",
+          ? "border-gold bg-gold text-gold-ink"
+          : "border-gold/40 bg-gold/15 text-gold-text hover:bg-gold/25",
         className,
       )}
     >

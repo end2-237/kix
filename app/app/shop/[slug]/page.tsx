@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ScreenHeader } from "@/components/kix/AppHeader";
+import { ScreenHeader } from "@/components/mb/AppHeader";
 import { AddToCartButton } from "@/components/shop/AddToCartButton";
 import { CartBar } from "@/components/shop/CartBar";
 import { Card } from "@/components/ui/Card";
@@ -29,7 +29,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     <>
       <ScreenHeader
         title={product.category === "vapes" ? "Vapes & puffs" : "Billard"}
-        subtitle="KIX Shop · Douala"
+        subtitle="Master Shop · Douala"
         back="/app/shop"
       />
 
@@ -40,7 +40,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <span
             className={cn(
               "absolute top-3 left-3 rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.06em] uppercase",
-              product.badgeTone === "green" ? "bg-green text-green-ink" : "bg-violet text-white",
+              product.badgeTone === "gold" ? "bg-gold text-gold-ink" : "bg-jade text-white",
             )}
           >
             {product.badgeLabel}
@@ -52,13 +52,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <div className="flex flex-col gap-2">
         <div className="flex items-start justify-between gap-4">
           <h1 className="text-[26px] leading-7 lg:text-[34px] lg:leading-9">{product.name}</h1>
-          <span className="shrink-0 text-[22px] font-bold tracking-[-0.03em] text-green-text lg:text-[28px]">{f(product.price)}</span>
+          <span className="shrink-0 text-[22px] font-bold tracking-[-0.03em] text-gold-text lg:text-[28px]">{f(product.price)}</span>
         </div>
         <p className="text-[13px] text-muted">{product.detail}</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Chip tone={product.stock > 0 ? "green" : "amber"}>
+        <Chip tone={product.stock > 0 ? "gold" : "warn"}>
           {product.stock > 0 ? `${product.stock} en stock` : "Rupture"}
         </Chip>
         <Chip tone="neutral">Retrait gratuit en salle</Chip>
@@ -114,7 +114,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 function Row({ icon, title, detail }: { icon: React.ReactNode; title: string; detail: string }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3.5">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-green-text">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-gold-text">
         {icon}
       </span>
       <span className="flex flex-col gap-0.5">

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ScreenHeader } from "@/components/kix/AppHeader";
-import { PassWallet, type WalletToken } from "@/components/kix/PassWallet";
+import { ScreenHeader } from "@/components/mb/AppHeader";
+import { PassWallet, type WalletToken } from "@/components/mb/PassWallet";
 import { Card } from "@/components/ui/Card";
 import { ArrowRightIcon, ClockIcon, CoinIcon, QrIcon, TrophyIcon } from "@/components/icons";
 import { getActiveTokens, getActivity, getVenues } from "@/lib/queries";
@@ -9,7 +9,7 @@ import { qrShape } from "@/lib/qr";
 import { cn } from "@/lib/cn";
 import { pad2 } from "@/lib/format";
 
-export const metadata = { title: "KIX Pass" };
+export const metadata = { title: "Master Pass" };
 
 export default async function PassPage() {
   const user = await requireUser();
@@ -23,7 +23,7 @@ export default async function PassPage() {
     id: token.id,
     code: token.code,
     venue: venues.find((v) => v.id === token.venueId)?.name ?? "Toutes les salles partenaires",
-    shape: qrShape(`kix://jeton/${token.code}`),
+    shape: qrShape(`mb://jeton/${token.code}`),
   }));
   const current = tokens[0];
   const currentVenue = venues.find((v) => v.id === current?.venueId);
@@ -31,7 +31,7 @@ export default async function PassPage() {
   return (
     <>
       <ScreenHeader
-        title="KIX Pass"
+        title="Master Pass"
         subtitle="Un QR par partie, un code de secours quand le réseau lâche."
         action={
           <Link href="/app/notifications" className="glass grid h-11 w-11 place-items-center rounded-full text-muted">
@@ -40,11 +40,11 @@ export default async function PassPage() {
         }
       />
 
-      <Card tone="green" className="flex items-center gap-3.5 px-4 py-3.5">
+      <Card tone="gold" className="flex items-center gap-3.5 px-4 py-3.5">
         <div className="flex grow flex-col gap-0.5">
           <span className="label-caps">Portefeuille de jetons</span>
           <span className="flex items-baseline gap-1.5">
-            <span className="text-[30px] leading-[30px] font-bold tracking-[-0.03em] text-green-text">
+            <span className="text-[30px] leading-[30px] font-bold tracking-[-0.03em] text-gold-text">
                   {pad2(tokens.length)}
                 </span>
             <span className="text-xs text-muted">jetons actifs</span>
@@ -52,10 +52,10 @@ export default async function PassPage() {
             </div>
         <div className="flex flex-col items-end gap-1">
           <span className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1.5 text-[11px]">
-            <span className="h-1.5 w-1.5 rounded-full bg-green" />
+            <span className="h-1.5 w-1.5 rounded-full bg-gold" />
                 {currentVenue?.name ?? "Toutes salles"}
               </span>
-          <span className="text-[11px] text-muted">{user.points} points KIX</span>
+          <span className="text-[11px] text-muted">{user.points} points Master</span>
             </div>
       </Card>
 
@@ -75,7 +75,7 @@ export default async function PassPage() {
               </div>
               <Link
                 href="/app/recharge"
-                className="flex h-12 items-center gap-2 rounded-full bg-green px-5 text-sm font-semibold text-green-ink"
+                className="flex h-12 items-center gap-2 rounded-full bg-gold px-5 text-sm font-semibold text-gold-ink"
               >
                 Recharger
                 <ArrowRightIcon size={16} />
@@ -86,16 +86,16 @@ export default async function PassPage() {
 
         <div className="flex flex-col gap-3.5 lg:gap-5">
           {current ? (
-            <Card tone="violet" className="flex items-center gap-3.5 px-4 py-3.5">
+            <Card tone="jade" className="flex items-center gap-3.5 px-4 py-3.5">
               <div className="flex grow flex-col gap-1">
-                <span className="text-[13px] font-semibold text-violet-text">Réseau faible ?</span>
+                <span className="text-[13px] font-semibold text-jade-text">Réseau faible ?</span>
                 <span className="text-[11px] text-muted">Donne ce code au gérant</span>
               </div>
               <div className="flex gap-1.5">
                 {current.code.split("").map((digit, i) => (
                   <span
                     key={i}
-                    className="grid h-11 w-9 place-items-center rounded-none border border-violet/35 bg-bg-2 text-[19px] font-bold"
+                    className="grid h-11 w-9 place-items-center rounded-none border border-jade/35 bg-bg-2 text-[19px] font-bold"
                   >
                     {digit}
                   </span>
@@ -107,7 +107,7 @@ export default async function PassPage() {
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <h2 className="text-[15px]">Activité récente</h2>
-              <Link href="/app/commandes" className="text-xs text-green-text">
+              <Link href="/app/commandes" className="text-xs text-gold-text">
                 Mes commandes
               </Link>
             </div>
@@ -115,11 +115,11 @@ export default async function PassPage() {
               <div key={entry.id} className="flex items-center gap-3">
                 <span className="glass grid h-10 w-10 place-items-center rounded-full">
                   {entry.kind === "in" ? (
-                    <CoinIcon size={17} className="text-green-text" />
+                    <CoinIcon size={17} className="text-gold-text" />
                   ) : entry.kind === "out" ? (
                     <QrIcon size={17} className="text-muted" />
                   ) : (
-                    <TrophyIcon size={17} className="text-violet-text" />
+                    <TrophyIcon size={17} className="text-jade-text" />
                   )}
                 </span>
                 <span className="flex grow flex-col gap-0.5">
@@ -130,9 +130,9 @@ export default async function PassPage() {
                   className={cn(
                     "text-[13px] font-semibold",
                     entry.kind === "in"
-                      ? "text-green-text"
+                      ? "text-gold-text"
                       : entry.kind === "xp"
-                        ? "text-violet-text"
+                        ? "text-jade-text"
                         : "text-muted",
                   )}
                 >
@@ -147,7 +147,7 @@ export default async function PassPage() {
             className="flex items-center justify-center gap-2 rounded-full border border-dashed border-line px-4 py-3 text-xs text-muted transition hover:text-dim"
           >
             <CoinIcon size={14} />
-            Tu es gérant ? Ouvrir KIX Scan
+            Tu es gérant ? Ouvrir Master Scan
           </Link>
         </div>
       </div>

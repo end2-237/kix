@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ScreenHeader } from "@/components/kix/AppHeader";
-import { QrCode } from "@/components/kix/QrCode";
+import { ScreenHeader } from "@/components/mb/AppHeader";
+import { QrCode } from "@/components/mb/QrCode";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ArrowRightIcon, TicketIcon } from "@/components/icons";
@@ -31,7 +31,7 @@ export default async function BilletsPage() {
           </div>
           <Link
             href="/app/events"
-            className="flex h-12 items-center gap-2 rounded-full bg-green px-5 text-sm font-semibold text-green-ink"
+            className="flex h-12 items-center gap-2 rounded-full bg-gold px-5 text-sm font-semibold text-gold-ink"
           >
             Voir les événements
             <ArrowRightIcon size={16} />
@@ -52,7 +52,7 @@ export default async function BilletsPage() {
                   {event.day} · {event.hours}
                 </span>
               </span>
-              <Chip tone={ticket.status === "valid" ? "green" : "neutral"}>
+              <Chip tone={ticket.status === "valid" ? "gold" : "neutral"}>
                 {ticket.status === "valid" ? "Valide" : "Utilisé"}
               </Chip>
             </div>
@@ -60,7 +60,7 @@ export default async function BilletsPage() {
 
           <div className="flex items-center gap-4 p-4">
             <div className="rounded-card bg-white p-2">
-              <QrCode shape={qrShape(`kix://billet/${ticket.code}`)} size={104} />
+              <QrCode shape={qrShape(`mb://billet/${ticket.code}`)} size={104} />
             </div>
             <div className="flex grow flex-col gap-1.5">
               <span className="label-caps">Code d&apos;entrée</span>

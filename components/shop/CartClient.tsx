@@ -40,7 +40,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
         venues[0]?.id,
       );
       if (!result.ok) {
-        notify("Commande refusée", { detail: result.error, tone: "amber" });
+        notify("Commande refusée", { detail: result.error, tone: "warn" });
         return;
       }
       clearCart();
@@ -51,8 +51,8 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
 
   if (done) {
     return (
-      <Card tone="green" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center lg:mx-auto lg:max-w-xl lg:py-14">
-        <span className="grid h-16 w-16 place-items-center rounded-full bg-green text-green-ink">
+      <Card tone="gold" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center lg:mx-auto lg:max-w-xl lg:py-14">
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-gold text-gold-ink">
           <CheckIcon size={30} />
         </span>
         <div className="flex flex-col gap-1.5">
@@ -64,7 +64,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
         </div>
         <Link
           href="/app/commandes"
-          className="flex h-12 items-center gap-2 rounded-full bg-green px-5 text-sm font-semibold text-green-ink"
+          className="flex h-12 items-center gap-2 rounded-full bg-gold px-5 text-sm font-semibold text-gold-ink"
         >
           Suivre ma commande
           <ArrowRightIcon size={16} />
@@ -85,7 +85,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
         </div>
         <Link
           href="/app/shop"
-          className="flex h-12 items-center gap-2 rounded-full bg-green px-5 text-sm font-semibold text-green-ink"
+          className="flex h-12 items-center gap-2 rounded-full bg-gold px-5 text-sm font-semibold text-gold-ink"
         >
           Aller au Shop
           <ArrowRightIcon size={16} />
@@ -117,7 +117,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
               <button
                 onClick={() => setQty(product.slug, qty - 1)}
                 aria-label="Retirer un article"
-                className="glass press grid h-9 w-9 place-items-center rounded-full hover:text-green-text"
+                className="glass press grid h-9 w-9 place-items-center rounded-full hover:text-gold-text"
               >
                 <MinusIcon size={14} />
               </button>
@@ -125,7 +125,7 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
               <button
                 onClick={() => setQty(product.slug, qty + 1)}
                 aria-label="Ajouter un article"
-                className="press grid h-9 w-9 place-items-center rounded-full bg-green text-green-ink hover:brightness-105"
+                className="press grid h-9 w-9 place-items-center rounded-full bg-gold text-gold-ink hover:brightness-105"
               >
                 <PlusIcon size={14} />
               </button>
@@ -197,7 +197,7 @@ function Toggle({
       onClick={onClick}
       className={cn(
         "press flex h-11 grow items-center justify-center gap-1.5 rounded-full text-xs transition",
-        active ? "border border-green/40 bg-green/15 font-semibold text-green-text" : "glass text-muted",
+        active ? "border border-gold/40 bg-gold/15 font-semibold text-gold-text" : "glass text-muted",
       )}
     >
       {icon}

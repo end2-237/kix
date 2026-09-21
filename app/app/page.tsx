@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AppHeader } from "@/components/kix/AppHeader";
-import { WalletStrip } from "@/components/kix/WalletStrip";
-import { VenueCard } from "@/components/kix/VenueCard";
+import { AppHeader } from "@/components/mb/AppHeader";
+import { WalletStrip } from "@/components/mb/WalletStrip";
+import { VenueCard } from "@/components/mb/VenueCard";
 import { Chip } from "@/components/ui/Chip";
 import { SectionTitle } from "@/components/ui/Card";
 import { ChevronRightIcon, SearchIcon, SlidersIcon } from "@/components/icons";
@@ -35,7 +35,7 @@ export default async function AccueilPage() {
         </div>
         <button
           aria-label="Filtres"
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-violet/40 bg-violet/15 text-violet-text"
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-jade/40 bg-jade/15 text-jade-text"
         >
           <SlidersIcon size={18} />
         </button>
@@ -62,7 +62,7 @@ export default async function AccueilPage() {
             <div className="absolute inset-0 bg-linear-to-b from-black/10 via-black/45 to-black/95" />
             <div className="absolute inset-x-4 bottom-3.5 flex flex-col gap-2 text-white lg:inset-x-8 lg:bottom-8 lg:gap-3">
               <div className="flex gap-1.5">
-                <span className="rounded-full border border-green/45 bg-green/20 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-green uppercase">
+                <span className="rounded-full border border-gold/45 bg-gold/20 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-gold uppercase">
                   Tournoi
                 </span>
                 <span className="rounded-full border border-white/20 bg-black/50 px-2.5 py-1 text-[10px] font-medium">
@@ -98,7 +98,7 @@ export default async function AccueilPage() {
             />
             <div className="flex grow flex-col gap-1 lg:justify-center lg:gap-2.5">
               <span className="hidden lg:block">
-                <Chip tone="violet" className="text-[11px]">
+                <Chip tone="jade" className="text-[11px]">
                   Ce soir
                 </Chip>
               </span>
@@ -108,7 +108,7 @@ export default async function AccueilPage() {
               </span>
               <span className="hidden text-[13px] leading-5 text-dim lg:line-clamp-3">{tonight.description}</span>
             </div>
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-violet/40 bg-violet/15 text-violet-text lg:h-11 lg:w-full lg:gap-2 lg:text-[13px] lg:font-semibold">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-jade/40 bg-jade/15 text-jade-text lg:h-11 lg:w-full lg:gap-2 lg:text-[13px] lg:font-semibold">
               <ChevronRightIcon size={15} className="lg:hidden" />
               <span className="hidden lg:inline">Prendre un pass</span>
             </span>

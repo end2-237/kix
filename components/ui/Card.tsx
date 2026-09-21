@@ -1,12 +1,12 @@
 import { cn } from "@/lib/cn";
 
-type Tone = "glass" | "green" | "violet" | "dashed" | "plain";
+type Tone = "glass" | "gold" | "jade" | "dashed" | "plain";
 type Shape = "card" | "square" | "panel";
 
 const tones: Record<Tone, string> = {
   glass: "glass",
-  green: "glass-green",
-  violet: "glass-violet",
+  gold: "glass-gold",
+  jade: "glass-jade",
   dashed: "border border-dashed border-line bg-surface",
   plain: "bg-surface-2",
 };
@@ -37,11 +37,11 @@ export function SectionTitle({ title, action, href }: { title: string; action?: 
       <h2 className="text-base">{title}</h2>
       {action ? (
         href ? (
-          <a href={href} className="text-xs text-green-text">
+          <a href={href} className="text-xs text-gold-text">
             {action}
           </a>
         ) : (
-          <span className="text-xs text-green-text">{action}</span>
+          <span className="text-xs text-gold-text">{action}</span>
         )
       ) : null}
     </div>

@@ -42,7 +42,7 @@ export default async function AdminVenues() {
             <Td>{f(venue.tokenPrice)}</Td>
             <Td className="text-muted">{km(venue.distanceKm)}</Td>
             <Td>
-              <Pill tone={venue.active ? "green" : "neutral"}>{venue.active ? "Visible" : "Masquée"}</Pill>
+              <Pill tone={venue.active ? "gold" : "neutral"}>{venue.active ? "Visible" : "Masquée"}</Pill>
             </Td>
             <Td>
               <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export default async function AdminVenues() {
                   </summary>
                   <form
                     action={saveVenue}
-                    className="absolute right-0 z-10 mt-2 grid w-80 gap-3 border border-line bg-bg p-4 shadow-[var(--kix-shadow)]"
+                    className="absolute right-0 z-10 mt-2 grid w-80 gap-3 border border-line bg-bg p-4 shadow-[var(--mb-shadow)]"
                   >
                     <input type="hidden" name="id" value={venue.id} />
                     <input type="hidden" name="slug" value={venue.slug} />
@@ -73,7 +73,7 @@ export default async function AdminVenues() {
                 </details>
                 <form action={deleteVenue}>
                   <input type="hidden" name="id" value={venue.id} />
-                  <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-amber">
+                  <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-warn">
                     Masquer
                   </button>
                 </form>

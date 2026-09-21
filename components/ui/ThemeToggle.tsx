@@ -22,7 +22,7 @@ const getServerSnapshot = (): Theme => "dark";
 function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme;
   try {
-    window.localStorage.setItem("kix.theme", theme);
+    window.localStorage.setItem("mb.theme", theme);
   } catch {
     // stockage indisponible : le thème reste valable pour la session
   }
@@ -37,7 +37,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       onClick={() => applyTheme(theme === "light" ? "dark" : "light")}
       aria-label={theme === "light" ? "Passer en thème sombre" : "Passer en thème clair"}
       className={cn(
-        "glass press group grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2 hover:text-green-text",
+        "glass press group grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2 hover:text-gold-text",
         className,
       )}
     >

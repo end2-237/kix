@@ -19,17 +19,29 @@ export function Counter({
   value,
   format = "plain",
   duration = 900,
+  animateOnMount = true,
   className,
 }: {
   value: number;
   format?: Format;
   duration?: number;
+  /** Un solde doit être juste tout de suite : on n'anime alors que ses changements. */
+  animateOnMount?: boolean;
   className?: string;
 }) {
   const [shown, setShown] = useState(value);
   const previous = useRef(value);
 
+  const mounted = useRef(false);
+
   useEffect(() => {
+    const first = !mounted.current;
+    mounted.current = true;
+    if (first && !animateOnMount) {
+      previous.current = value;
+      return;
+    }
+
     const from = previous.current === value ? 0 : previous.current;
     previous.current = value;
 
@@ -50,7 +62,7 @@ export function Counter({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [value, duration]);
+  }, [value, duration, animateOnMount]);
 
   return (
     <span className={className} suppressHydrationWarning>

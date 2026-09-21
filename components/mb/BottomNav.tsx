@@ -29,8 +29,8 @@ export function BottomNav() {
 
         <Link
           href="/app/pass"
-          aria-label="Mon KIX Pass"
-          className="press -mt-11 grid h-14 w-14 place-items-center rounded-full bg-green text-green-ink shadow-[0_10px_28px_rgba(61,240,138,0.35)] transition hover:scale-105 hover:brightness-105"
+          aria-label="Mon Master Pass"
+          className="press -mt-11 grid h-14 w-14 place-items-center rounded-full bg-gold text-gold-ink shadow-[0_10px_28px_rgba(217,180,80,0.35)] transition hover:scale-105 hover:brightness-105"
         >
           <QrIcon size={25} />
         </Link>
@@ -66,7 +66,7 @@ function NavItem({
       href={href}
       className={cn(
         "press relative flex w-12 flex-col items-center gap-1 py-2 text-[9px] transition",
-        active ? "text-green-text" : "text-faint hover:text-dim",
+        active ? "text-gold-text" : "text-faint hover:text-dim",
       )}
     >
       <span className={cn("transition-transform duration-300", active && "-translate-y-0.5 scale-110")}>
@@ -74,7 +74,7 @@ function NavItem({
       </span>
       {label}
       {badge > 0 ? (
-        <span className="absolute top-0.5 right-1 grid h-4 min-w-4 place-items-center rounded-full bg-green px-1 text-[9px] font-semibold text-green-ink">
+        <span className="absolute top-0.5 right-1 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 text-[9px] font-semibold text-gold-ink">
           {badge}
         </span>
       ) : null}

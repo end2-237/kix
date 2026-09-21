@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db, users, type User } from "@/db";
 
-export const SESSION_COOKIE = "kix_user";
+export const SESSION_COOKIE = "mb_session";
 
 /**
  * Session de démonstration : un cookie porte l'id de l'utilisateur, sans mot de

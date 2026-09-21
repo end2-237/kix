@@ -17,12 +17,12 @@ const geist = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "KIX — billard, vape et nuit",
-    template: "%s · KIX",
+    default: "Master Break — l'écosystème de l'excellence billard",
+    template: "%s · Master Break",
   },
   description:
-    "Achète tes jetons de billard depuis ton téléphone, scanne ton QR à la table, commande tes vapes et prends tes billets de tournoi. Douala et Yaoundé.",
-  applicationName: "KIX",
+    "Achète tes jetons de billard depuis ton téléphone, scanne ton QR à la table, commande ton matériel et prends tes billets de tournoi. Douala et Yaoundé.",
+  applicationName: "Master Break",
   manifest: "/manifest.webmanifest",
 };
 
@@ -34,7 +34,7 @@ export const viewport: Viewport = {
 };
 
 // Applique le thème avant le premier rendu : pas de flash blanc au chargement.
-const themeScript = `try{var t=localStorage.getItem("kix.theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t}}catch(e){}`;
+const themeScript = `try{var t=localStorage.getItem("mb.theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t}}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

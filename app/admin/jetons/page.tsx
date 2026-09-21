@@ -14,8 +14,8 @@ export default async function AdminTokens() {
 
       <div className="grid gap-3.5 sm:grid-cols-3">
         <StatBlock label="Jetons actifs" value={stats.activeTokens} hint="en circulation" className="rounded-none" />
-        <StatBlock label="Vendus sur 30 j" value={stats.tokensSold} hint="jetons crédités" tone="green" className="rounded-none" />
-        <StatBlock label="Recharges sur 30 j" value={f(stats.revenueMonth)} hint="encaissé" tone="violet" className="rounded-none" />
+        <StatBlock label="Vendus sur 30 j" value={stats.tokensSold} hint="jetons crédités" tone="gold" className="rounded-none" />
+        <StatBlock label="Recharges sur 30 j" value={f(stats.revenueMonth)} hint="encaissé" tone="jade" className="rounded-none" />
       </div>
 
       <Table head={["Date", "Client", "Salle", "Jetons", "Montant", "Moyen", "Statut"]}>
@@ -35,7 +35,7 @@ export default async function AdminTokens() {
             <Td className="font-semibold">{f(purchase.amount)}</Td>
             <Td className="text-muted">{purchase.method === "om" ? "Orange Money" : "MTN MoMo"}</Td>
             <Td>
-              <Pill tone={purchase.status === "paid" ? "green" : "amber"}>
+              <Pill tone={purchase.status === "paid" ? "gold" : "warn"}>
                 {purchase.status === "paid" ? "Payée" : purchase.status}
               </Pill>
             </Td>

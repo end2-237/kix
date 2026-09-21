@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { TicketButton } from "@/components/kix/TicketButton";
+import { TicketButton } from "@/components/mb/TicketButton";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { BookmarkIcon, CalendarIcon, ChevronLeftIcon, PinIcon, ShareIcon } from "@/components/icons";
@@ -46,7 +46,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             </button>
             <button
               aria-label="Enregistrer"
-              className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/50 text-green backdrop-blur"
+              className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/50 text-gold backdrop-blur"
             >
               <BookmarkIcon size={17} />
             </button>
@@ -61,7 +61,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             {event.tags.split(",").filter(Boolean).map((tag, i) => (
               <Chip
                 key={tag}
-                tone={i === 0 ? "green" : "violet"}
+                tone={i === 0 ? "gold" : "jade"}
                 className="px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] uppercase"
               >
                 {tag}
@@ -82,14 +82,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <div className="flex flex-col gap-3">
           <Row
             icon={<CalendarIcon size={19} />}
-            tone="green"
+            tone="gold"
             title={event.day}
             detail={`${event.hours} · ${event.checkin}`}
             action="Rappel"
           />
           <Row
             icon={<PinIcon size={19} />}
-            tone="violet"
+            tone="jade"
             title={venue?.name ?? "Salle partenaire"}
             detail={event.address}
             action="Itinéraire"
@@ -159,7 +159,7 @@ function Row({
   action,
 }: {
   icon: React.ReactNode;
-  tone: "green" | "violet";
+  tone: "gold" | "jade";
   title: string;
   detail: string;
   action: string;
@@ -168,9 +168,9 @@ function Row({
     <div className="flex items-center gap-3">
       <span
         className={
-          tone === "green"
-            ? "grid h-11 w-11 shrink-0 place-items-center rounded-full border border-green/30 bg-green/12 text-green-text"
-            : "grid h-11 w-11 shrink-0 place-items-center rounded-full border border-violet/30 bg-violet/12 text-violet-text"
+          tone === "gold"
+            ? "grid h-11 w-11 shrink-0 place-items-center rounded-full border border-gold/30 bg-gold/12 text-gold-text"
+            : "grid h-11 w-11 shrink-0 place-items-center rounded-full border border-jade/30 bg-jade/12 text-jade-text"
         }
       >
         {icon}

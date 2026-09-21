@@ -1,5 +1,5 @@
-import { ScreenHeader } from "@/components/kix/AppHeader";
-import { RechargeForm } from "@/components/kix/RechargeForm";
+import { ScreenHeader } from "@/components/mb/AppHeader";
+import { RechargeForm } from "@/components/mb/RechargeForm";
 import { getPacks, getVenues } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";

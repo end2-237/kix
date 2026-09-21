@@ -1,16 +1,16 @@
 import type { MetadataRoute } from "next";
 
-// KIX est pensé comme une PWA mobile-first : installable, plein écran, thème nuit.
+// MASTER BREAK est pensé comme une PWA mobile-first : installable, plein écran, thème nuit.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "KIX — billard, vape et nuit",
-    short_name: "KIX",
+    name: "Master Break — l'écosystème de l'excellence billard",
+    short_name: "Master Break",
     description:
-      "Jetons de billard, vapes et billetterie de tournois au Cameroun. Paiement Orange Money et MTN MoMo.",
+      "Jetons de billard, boutique et billetterie de tournois au Cameroun. Paiement Mobile Money.",
     start_url: "/app",
     display: "standalone",
-    background_color: "#0b0b0d",
-    theme_color: "#0b0b0d",
+    background_color: "#071a13",
+    theme_color: "#071a13",
     lang: "fr",
     icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
   };

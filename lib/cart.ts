@@ -8,7 +8,7 @@ import { useSyncExternalStore } from "react";
  * d'un appareil à l'autre.
  */
 
-const STORAGE_KEY = "kix.cart.v1";
+const STORAGE_KEY = "mb.cart.v1";
 type Cart = Record<string, number>;
 
 let cart: Cart = {};

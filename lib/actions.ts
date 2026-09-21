@@ -119,7 +119,7 @@ export type ScanResult =
   | { ok: true; kind: "ticket"; client: string; event: string }
   | { ok: false; error: string };
 
-/** Débit d'un jeton (ou validation d'un billet) depuis KIX Scan. */
+/** Débit d'un jeton (ou validation d'un billet) depuis Master Scan. */
 export async function scanCode(raw: string, method: "qr" | "code" = "code"): Promise<ScanResult> {
   const manager = await requireRole("manager", "admin");
   const code = raw.trim();
@@ -174,7 +174,7 @@ export async function scanCode(raw: string, method: "qr" | "code" = "code"): Pro
     return {
       ok: true,
       kind: "token",
-      client: client?.name ?? "Client KIX",
+      client: client?.name ?? "Client MASTER BREAK",
       venue: venue?.name ?? "Salle partenaire",
       remaining: Number(rest[0]?.n ?? 0),
       table: token.tableNumber,
@@ -447,7 +447,7 @@ export async function saveEvent(formData: FormData) {
     venueId: str(formData, "venueId") || null,
     address: str(formData, "address"),
     price: num(formData, "price"),
-    image: str(formData, "image") || "/img/crowd-green.jpg",
+    image: str(formData, "image") || "/img/crowd-lights.jpg",
     capacity: num(formData, "capacity"),
     description: str(formData, "description"),
     tags: str(formData, "tags"),

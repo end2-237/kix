@@ -96,7 +96,7 @@ await db.insert(packs).values(packRows);
 /* comptes ----------------------------------------------------------------- */
 const ariel = { id: uid(), name: "Ariel N.", phone: "677451208", avatar: "/img/p-ariel.jpg", role: "client", points: 1240, venueId: null };
 const serge = { id: uid(), name: "Serge M.", phone: "699120345", avatar: "/img/p-gerant.jpg", role: "manager", points: 0, venueId: breakAkwa.id };
-const admin = { id: uid(), name: "Direction KIX", phone: "690000000", avatar: null, role: "admin", points: 0, venueId: null };
+const admin = { id: uid(), name: "Direction MASTER BREAK", phone: "690000000", avatar: null, role: "admin", points: 0, venueId: null };
 const others = [
   { id: uid(), name: "Blaise K.", phone: "670000001", avatar: "/img/p-champion.jpg", role: "client", points: 4020, venueId: null },
   { id: uid(), name: "Yannick T.", phone: "670000002", avatar: "/img/p-yannick.jpg", role: "client", points: 3180, venueId: null },
@@ -183,7 +183,7 @@ const productRows = [
     image: "/img/puffs.jpg",
     category: "vapes",
     badgeLabel: "Top vente",
-    badgeTone: "violet",
+    badgeTone: "jade",
     stock: 48,
   },
   {
@@ -202,8 +202,8 @@ const productRows = [
   },
   {
     id: uid(),
-    slug: "carte-kix-10",
-    name: "Carte KIX · 10 jetons",
+    slug: "carte-mb-10",
+    name: "Carte MASTER BREAK · 10 jetons",
     detail: "Offerte par QR, valable 6 mois",
     description:
       "Dix jetons de billard offerts par QR code, valables six mois dans toutes les salles partenaires. Le cadeau qui se joue le soir même.",
@@ -211,7 +211,7 @@ const productRows = [
     image: "/img/balls-glow.jpg",
     category: "vapes",
     badgeLabel: "Carte cadeau",
-    badgeTone: "green",
+    badgeTone: "gold",
     stock: 99,
   },
   {
@@ -234,7 +234,7 @@ const productRows = [
     name: "Set de billes tournoi",
     detail: "Résine · 57,2 mm",
     description:
-      "Jeu complet de billes en résine phénolique, 57,2 mm, équilibrage tournoi. Le même set que celui utilisé sur les tables du KIX Open.",
+      "Jeu complet de billes en résine phénolique, 57,2 mm, équilibrage tournoi. Le même set que celui utilisé sur les tables du MASTER BREAK Open.",
     price: 28000,
     image: "/img/balls-dark.jpg",
     category: "billard",
@@ -282,8 +282,8 @@ await db.insert(orderItems)
 const eventRows = [
   {
     id: uid(),
-    slug: "kix-open-douala",
-    title: "KIX Open Douala",
+    slug: "mb-open-douala",
+    title: "Master Break Open Douala",
     subtitle: "8-Ball Championship",
     day: "Samedi 03 octobre",
     hours: "18:00 → 23:30",
@@ -291,7 +291,7 @@ const eventRows = [
     venueId: breakAkwa.id,
     address: "Rue Joss, Akwa · Douala",
     price: 3000,
-    image: "/img/crowd-green.jpg",
+    image: "/img/crowd-lights.jpg",
     capacity: 152,
     attendees: 128,
     description:
@@ -347,7 +347,7 @@ await db.insert(notifications)
       id: uid(),
       userId: ariel.id,
       title: "Jeton débité · table 3",
-      body: "Il te reste 7 jetons dans ton KIX Pass.",
+      body: "Il te reste 7 jetons dans ton Master Pass.",
       kind: "token",
       href: "/app/pass",
       read: false,
@@ -356,10 +356,10 @@ await db.insert(notifications)
     {
       id: uid(),
       userId: ariel.id,
-      title: "KIX Open Douala samedi",
+      title: "Master Break Open Douala samedi",
       body: "Il reste 24 places sur 152. Les inscrits reçoivent un jeton offert.",
       kind: "event",
-      href: "/app/events/kix-open-douala",
+      href: "/app/events/mb-open-douala",
       read: true,
       createdAt: hoursAgo(28),
     },

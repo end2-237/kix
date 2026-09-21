@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { KixMark } from "@/components/icons";
+import { MasterMark } from "@/components/icons";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { signOut } from "@/lib/actions";
 import { requireRole } from "@/lib/session";
@@ -24,9 +24,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <aside className="flex shrink-0 flex-col gap-6 border-b border-line bg-surface p-4 lg:w-64 lg:border-r lg:border-b-0">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-2.5">
-            <KixMark size={28} />
+            <MasterMark size={28} />
             <span className="flex flex-col">
-              <span className="text-[15px] font-bold tracking-[0.14em]">KIX</span>
+              <span className="text-[15px] font-bold tracking-[0.14em]">MASTER BREAK</span>
               <span className="text-[11px] text-muted">Administration</span>
             </span>
           </Link>

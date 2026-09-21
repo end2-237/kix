@@ -13,7 +13,7 @@ export function VenueCard({ venue, className }: { venue: Venue; className?: stri
       <div className="relative h-22 lg:h-44">
         <Image src={venue.image} alt={venue.name} fill sizes="180px" className="object-cover" />
         <span className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-black/70 px-2 py-1 text-[10px] text-white">
-          <span className={cn("h-1.5 w-1.5 rounded-full", venue.freeTables > 0 ? "bg-green" : "bg-amber")} />
+          <span className={cn("h-1.5 w-1.5 rounded-full", venue.freeTables > 0 ? "bg-gold" : "bg-warn")} />
           {venue.freeTables > 0 ? `${venue.freeTables} tables libres` : "Complet"}
         </span>
       </div>

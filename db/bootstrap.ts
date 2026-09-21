@@ -14,15 +14,15 @@ export async function bootstrapDatabase() {
   try {
     await migrate(db, { migrationsFolder: path.join(process.cwd(), "db", "migrations") });
   } catch (error) {
-    console.error("[kix] migrations impossibles :", error);
+    console.error("[mb] migrations impossibles :", error);
     return;
   }
 
-  if (process.env.KIX_SKIP_SEED === "1") return;
+  if (process.env.MB_SKIP_SEED === "1") return;
 
   const rows = await db.select({ id: venues.id }).from(venues).limit(1);
   if (rows.length === 0) {
-    console.log(`[kix] base vide (${getDbUrl()}) — chargement du jeu de démonstration`);
+    console.log(`[mb] base vide (${getDbUrl()}) — chargement du jeu de démonstration`);
     const { seed } = await import("./seed");
     await seed();
   }

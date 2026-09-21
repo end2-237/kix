@@ -10,7 +10,7 @@ export function Marquee({ items }: { items: string[] }) {
             className="flex shrink-0 items-center gap-10 text-[12px] font-medium tracking-[0.28em] text-muted uppercase"
           >
             {item}
-            <span className="h-1.5 w-1.5 rounded-full bg-green" />
+            <span className="h-1.5 w-1.5 rounded-full bg-gold" />
           </span>
         ))}
       </div>

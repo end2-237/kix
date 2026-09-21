@@ -36,7 +36,7 @@ export default async function AdminUsers() {
             </Td>
             <Td className="text-muted">+237 {user.phone}</Td>
             <Td>
-              <Pill tone={user.role === "admin" ? "violet" : user.role === "manager" ? "green" : "neutral"}>
+              <Pill tone={user.role === "admin" ? "jade" : user.role === "manager" ? "gold" : "neutral"}>
                 {roles.find((r) => r.value === user.role)?.label ?? user.role}
               </Pill>
             </Td>
@@ -70,7 +70,7 @@ export default async function AdminUsers() {
                     </option>
                   ))}
                 </select>
-                <button className="rounded-full bg-green px-3 py-2 text-[11px] font-semibold text-green-ink">OK</button>
+                <button className="rounded-full bg-gold px-3 py-2 text-[11px] font-semibold text-gold-ink">OK</button>
               </form>
             </Td>
           </tr>

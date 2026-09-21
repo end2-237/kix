@@ -8,7 +8,7 @@ import {
   CartIcon,
   CoinIcon,
   HomeIcon,
-  KixMark,
+  MasterMark,
   MapIcon,
   PlusIcon,
   QrIcon,
@@ -23,7 +23,7 @@ import type { User } from "@/db";
 
 const primary = [
   { href: "/app", label: "Accueil", Icon: HomeIcon },
-  { href: "/app/pass", label: "KIX Pass", Icon: QrIcon },
+  { href: "/app/pass", label: "Master Pass", Icon: QrIcon },
   { href: "/app/salles", label: "Salles", Icon: MapIcon },
   { href: "/app/shop", label: "Shop", Icon: CartIcon, cart: true },
   { href: "/app/events", label: "Événements", Icon: TicketIcon },
@@ -47,28 +47,29 @@ export function AppSidebar({ user, balance, unread }: { user: User; balance: num
       <div className="sticky top-0 flex h-dvh flex-col gap-6 border-r border-line bg-surface p-4">
         <div className="flex items-center justify-between gap-3 px-2 pt-2">
           <Link href="/" className="flex items-center gap-2.5">
-            <KixMark size={28} />
+            <MasterMark size={28} />
             <span className="flex flex-col">
-              <span className="text-[15px] font-bold tracking-[0.16em]">KIX</span>
+              <span className="text-[15px] font-bold tracking-[0.16em]">MASTER BREAK</span>
               <span className="text-[11px] text-muted">Douala · Akwa</span>
             </span>
           </Link>
           <ThemeToggle className="h-10 w-10" />
         </div>
 
-        <div className="glass-green flex flex-col gap-3 rounded-card p-4">
-          <span className="label-caps">Solde KIX Pass</span>
+        <div className="glass-gold flex flex-col gap-3 rounded-card p-4">
+          <span className="label-caps">Solde Master Pass</span>
           <span className="flex items-baseline gap-2">
             <Counter
               value={balance}
               format="pad2"
-              className="text-[28px] leading-none font-bold tracking-[-0.03em] text-green-text"
+              animateOnMount={false}
+              className="text-[28px] leading-none font-bold tracking-[-0.03em] text-gold-text"
             />
             <span className="text-xs text-muted">jetons</span>
           </span>
           <Link
             href="/app/recharge"
-            className="press go flex h-10 items-center justify-center gap-1.5 rounded-full bg-green text-[13px] font-semibold text-green-ink transition hover:brightness-105"
+            className="press go flex h-10 items-center justify-center gap-1.5 rounded-full bg-gold text-[13px] font-semibold text-gold-ink transition hover:brightness-105"
           >
             Recharger
             <PlusIcon size={14} />
@@ -83,14 +84,14 @@ export function AppSidebar({ user, balance, unread }: { user: User; balance: num
               className={cn(
                 "press flex h-11 items-center gap-3 rounded-full px-4 text-sm transition hover:translate-x-0.5",
                 isActive(href)
-                  ? "border border-green/30 bg-green/12 font-semibold text-green-text"
+                  ? "border border-gold/30 bg-gold/12 font-semibold text-gold-text"
                   : "text-dim hover:bg-surface-2 hover:text-ink",
               )}
             >
               <Icon size={18} />
               {label}
               {cart && count > 0 ? (
-                <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-green px-1.5 text-[10px] font-semibold text-green-ink">
+                <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1.5 text-[10px] font-semibold text-gold-ink">
                   {count}
                 </span>
               ) : null}
@@ -105,12 +106,12 @@ export function AppSidebar({ user, balance, unread }: { user: User; balance: num
               href={href}
               className={cn(
                 "flex h-9 items-center gap-2 rounded-full px-4 text-[13px] transition hover:translate-x-0.5 hover:text-ink",
-                isActive(href) ? "text-green-text" : "text-muted",
+                isActive(href) ? "text-gold-text" : "text-muted",
               )}
             >
               {label}
               {href === "/app/notifications" && unread > 0 ? (
-                <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-green px-1.5 text-[10px] font-semibold text-green-ink">
+                <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1.5 text-[10px] font-semibold text-gold-ink">
                   {unread}
                 </span>
               ) : null}
@@ -153,7 +154,7 @@ export function DesktopBar({ title, subtitle }: { title: string; subtitle?: stri
       </div>
       <Link
         href="/app/pass"
-        className="flex h-11 items-center gap-2 rounded-full bg-green px-5 text-[13px] font-semibold text-green-ink"
+        className="flex h-11 items-center gap-2 rounded-full bg-gold px-5 text-[13px] font-semibold text-gold-ink"
       >
         <CoinIcon size={16} />
         Mon QR de partie

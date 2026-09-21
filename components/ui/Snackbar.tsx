@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 import { CheckIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
-type Snack = { id: number; message: string; detail?: string; tone: "green" | "violet" | "amber"; leaving?: boolean };
+type Snack = { id: number; message: string; detail?: string; tone: "gold" | "jade" | "warn"; leaving?: boolean };
 
 type SnackbarApi = {
   /** Affiche un message court en bas de l'écran (2,6 s). */
@@ -19,7 +19,7 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
 
   const notify = useCallback<SnackbarApi["notify"]>((message, options) => {
     const id = ++seq.current;
-    setSnacks((list) => [...list, { id, message, detail: options?.detail, tone: options?.tone ?? "green" }]);
+    setSnacks((list) => [...list, { id, message, detail: options?.detail, tone: options?.tone ?? "gold" }]);
     // on marque la sortie avant de retirer : le message s'efface au lieu de sauter
     window.setTimeout(
       () => setSnacks((list) => list.map((s) => (s.id === id ? { ...s, leaving: true } : s))),
@@ -41,19 +41,19 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
           <div
             key={snack.id}
             className={cn(
-              "glass-strong relative flex items-center gap-3 overflow-hidden rounded-full py-2.5 pr-5 pl-2.5 shadow-[var(--kix-shadow)]",
+              "glass-strong relative flex items-center gap-3 overflow-hidden rounded-full py-2.5 pr-5 pl-2.5 shadow-[var(--mb-shadow)]",
               snack.leaving ? "snackbar-out" : "snackbar-in",
-              snack.tone === "green" && "border-green/45",
-              snack.tone === "violet" && "border-violet/45",
-              snack.tone === "amber" && "border-amber/45",
+              snack.tone === "gold" && "border-gold/45",
+              snack.tone === "jade" && "border-jade/45",
+              snack.tone === "warn" && "border-warn/45",
             )}
           >
             <span
               className={cn(
                 "pop grid h-8 w-8 shrink-0 place-items-center rounded-full",
-                snack.tone === "green" && "bg-green text-green-ink",
-                snack.tone === "violet" && "bg-violet text-white",
-                snack.tone === "amber" && "bg-amber text-green-ink",
+                snack.tone === "gold" && "bg-gold text-gold-ink",
+                snack.tone === "jade" && "bg-jade text-white",
+                snack.tone === "warn" && "bg-warn text-gold-ink",
               )}
             >
               <CheckIcon size={16} />
@@ -65,9 +65,9 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
             <span
               className={cn(
                 "snackbar-life absolute inset-x-0 bottom-0 h-0.5 origin-left",
-                snack.tone === "green" && "bg-green",
-                snack.tone === "violet" && "bg-violet",
-                snack.tone === "amber" && "bg-amber",
+                snack.tone === "gold" && "bg-gold",
+                snack.tone === "jade" && "bg-jade",
+                snack.tone === "warn" && "bg-warn",
               )}
             />
           </div>

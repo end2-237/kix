@@ -26,11 +26,11 @@ export function TicketButton({
     startTransition(async () => {
       const result = await buyTicket(eventId);
       if (!result.ok) {
-        notify("Billet indisponible", { detail: result.error, tone: "amber" });
+        notify("Billet indisponible", { detail: result.error, tone: "warn" });
         return;
       }
       setTaken(true);
-      notify("Billet réservé", { detail: `Code d'entrée ${result.code}`, tone: "violet" });
+      notify("Billet réservé", { detail: `Code d'entrée ${result.code}`, tone: "jade" });
       router.refresh();
     });
   }
@@ -46,8 +46,8 @@ export function TicketButton({
         disabled={pending}
         className={
           taken
-            ? "pop press flex h-12 grow items-center justify-center gap-2 rounded-full border border-green/45 bg-green/15 text-sm font-semibold text-green-text"
-            : "press flex h-12 grow items-center justify-center gap-2 rounded-full bg-green text-sm font-semibold text-green-ink transition hover:brightness-105"
+            ? "pop press flex h-12 grow items-center justify-center gap-2 rounded-full border border-gold/45 bg-gold/15 text-sm font-semibold text-gold-text"
+            : "press flex h-12 grow items-center justify-center gap-2 rounded-full bg-gold text-sm font-semibold text-gold-ink transition hover:brightness-105"
         }
       >
         {pending ? <Spinner size={17} /> : taken ? <CheckIcon size={18} /> : <TicketIcon size={18} />}

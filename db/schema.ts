@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /**
- * Schéma KIX. SQLite pour le développement ; les types sont volontairement
+ * Schéma MASTER BREAK. SQLite pour le développement ; les types sont volontairement
  * portables (texte, entiers, timestamps) pour la migration vers Postgres /
  * Supabase : seul le driver et le dialecte changeront.
  */

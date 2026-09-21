@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ScreenHeader } from "@/components/kix/AppHeader";
+import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Chip } from "@/components/ui/Chip";
 import { getEvents } from "@/lib/queries";
 import { f } from "@/lib/format";
@@ -18,7 +18,7 @@ export default async function EventsPage() {
         title="Événements"
         subtitle="Tournois et soirées des salles partenaires."
         action={
-          <Link href="/app/billets" className="text-xs whitespace-nowrap text-green-text">
+          <Link href="/app/billets" className="text-xs whitespace-nowrap text-gold-text">
             Mes billets
           </Link>
         }
@@ -35,7 +35,7 @@ export default async function EventsPage() {
           <div className="absolute inset-x-4 bottom-3.5 flex flex-col gap-1.5 text-white">
             <div className="flex gap-1.5">
               {event.tags.split(",").filter(Boolean).map((tag) => (
-                <Chip key={tag} tone="green" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
+                <Chip key={tag} tone="gold" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
                   {tag}
                 </Chip>
               ))}

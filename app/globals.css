@@ -1,75 +1,75 @@
 @import "tailwindcss";
 
 /* --------------------------------------------------------------------------
- * Jetons de design KIX — thème sombre par défaut, thème clair au switch.
- * Les composants n'utilisent que les couleurs sémantiques ci-dessous, jamais
- * une valeur brute : c'est ce qui rend le light mode possible partout.
+ * Jetons de design Master Break — or sur vert billard, thème sombre par
+ * défaut et thème clair au commutateur. Les composants n'utilisent que ces
+ * couleurs sémantiques, jamais une valeur brute.
  * -------------------------------------------------------------------------- */
 
 :root {
-  --kix-bg: #0b0b0d;
-  --kix-bg-2: #101013;
-  --kix-surface: rgba(255, 255, 255, 0.055);
-  --kix-surface-2: rgba(255, 255, 255, 0.09);
-  --kix-overlay: rgba(11, 11, 13, 0.72);
-  --kix-line: rgba(255, 255, 255, 0.1);
-  --kix-line-strong: rgba(255, 255, 255, 0.18);
-  --kix-ink: #f4f4f2;
-  --kix-dim: #b9bcc2;
-  --kix-muted: #8c8f97;
-  --kix-faint: #64676e;
-  --kix-accent: #3df08a;
-  --kix-accent-text: #3df08a;
-  --kix-accent-ink: #06130c;
-  --kix-accent-soft: rgba(61, 240, 138, 0.14);
-  --kix-violet: #9b6bff;
-  --kix-violet-text: #c4a6ff;
-  --kix-violet-soft: rgba(155, 107, 255, 0.14);
-  --kix-amber: #ffb042;
-  --kix-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+  --mb-bg: #071a13;
+  --mb-bg-2: #0b241a;
+  --mb-surface: rgba(244, 239, 226, 0.06);
+  --mb-surface-2: rgba(244, 239, 226, 0.1);
+  --mb-overlay: rgba(7, 26, 19, 0.74);
+  --mb-line: rgba(232, 222, 186, 0.14);
+  --mb-line-strong: rgba(232, 222, 186, 0.24);
+  --mb-ink: #f5f1e6;
+  --mb-dim: #c8c6b6;
+  --mb-muted: #93998d;
+  --mb-faint: #6b7268;
+  --mb-gold: #d9b450;
+  --mb-gold-text: #e8c86a;
+  --mb-gold-ink: #17120a;
+  --mb-gold-soft: rgba(217, 180, 80, 0.14);
+  --mb-jade: #1fa97a;
+  --mb-jade-text: #6fd8ae;
+  --mb-jade-soft: rgba(31, 169, 122, 0.16);
+  --mb-warn: #e2823a;
+  --mb-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="light"] {
-  --kix-bg: #f2f2ee;
-  --kix-bg-2: #ffffff;
-  --kix-surface: #ffffff;
-  --kix-surface-2: #e9e9e3;
-  --kix-overlay: rgba(255, 255, 255, 0.86);
-  --kix-line: rgba(11, 11, 13, 0.1);
-  --kix-line-strong: rgba(11, 11, 13, 0.18);
-  --kix-ink: #0b0b0d;
-  --kix-dim: #3c3f45;
-  --kix-muted: #6b6e75;
-  --kix-faint: #94979d;
-  --kix-accent: #22d46f;
-  --kix-accent-text: #0b8f4c;
-  --kix-accent-ink: #06130c;
-  --kix-accent-soft: rgba(34, 212, 111, 0.16);
-  --kix-violet: #7c4dff;
-  --kix-violet-text: #5b2fd6;
-  --kix-violet-soft: rgba(124, 77, 255, 0.12);
-  --kix-amber: #b96b00;
-  --kix-shadow: 0 24px 50px rgba(11, 11, 13, 0.12);
+  --mb-bg: #f4f1e8;
+  --mb-bg-2: #ffffff;
+  --mb-surface: #ffffff;
+  --mb-surface-2: #eae5d7;
+  --mb-overlay: rgba(255, 255, 255, 0.88);
+  --mb-line: rgba(8, 32, 26, 0.12);
+  --mb-line-strong: rgba(8, 32, 26, 0.2);
+  --mb-ink: #08201a;
+  --mb-dim: #3a4a42;
+  --mb-muted: #6b7a71;
+  --mb-faint: #97a399;
+  --mb-gold: #c9a227;
+  --mb-gold-text: #8a6b10;
+  --mb-gold-ink: #17120a;
+  --mb-gold-soft: rgba(201, 162, 39, 0.16);
+  --mb-jade: #12805c;
+  --mb-jade-text: #0e6b4d;
+  --mb-jade-soft: rgba(18, 128, 92, 0.12);
+  --mb-warn: #b4551f;
+  --mb-shadow: 0 24px 50px rgba(8, 32, 26, 0.14);
 }
 
 @theme inline {
-  --color-bg: var(--kix-bg);
-  --color-bg-2: var(--kix-bg-2);
-  --color-surface: var(--kix-surface);
-  --color-surface-2: var(--kix-surface-2);
-  --color-overlay: var(--kix-overlay);
-  --color-line: var(--kix-line);
-  --color-line-strong: var(--kix-line-strong);
-  --color-ink: var(--kix-ink);
-  --color-dim: var(--kix-dim);
-  --color-muted: var(--kix-muted);
-  --color-faint: var(--kix-faint);
-  --color-green: var(--kix-accent);
-  --color-green-text: var(--kix-accent-text);
-  --color-green-ink: var(--kix-accent-ink);
-  --color-violet: var(--kix-violet);
-  --color-violet-text: var(--kix-violet-text);
-  --color-amber: var(--kix-amber);
+  --color-bg: var(--mb-bg);
+  --color-bg-2: var(--mb-bg-2);
+  --color-surface: var(--mb-surface);
+  --color-surface-2: var(--mb-surface-2);
+  --color-overlay: var(--mb-overlay);
+  --color-line: var(--mb-line);
+  --color-line-strong: var(--mb-line-strong);
+  --color-ink: var(--mb-ink);
+  --color-dim: var(--mb-dim);
+  --color-muted: var(--mb-muted);
+  --color-faint: var(--mb-faint);
+  --color-gold: var(--mb-gold);
+  --color-gold-text: var(--mb-gold-text);
+  --color-gold-ink: var(--mb-gold-ink);
+  --color-jade: var(--mb-jade);
+  --color-jade-text: var(--mb-jade-text);
+  --color-warn: var(--mb-warn);
 
   --font-sans: var(--font-geist), "Helvetica Neue", Arial, sans-serif;
   --font-display: var(--font-geist), "Helvetica Neue", Arial, sans-serif;
@@ -82,12 +82,12 @@
 
 @layer base {
   html {
-    background: var(--kix-bg);
+    background: var(--mb-bg);
   }
 
   body {
-    background: var(--kix-bg);
-    color: var(--kix-ink);
+    background: var(--mb-bg);
+    color: var(--mb-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
@@ -106,8 +106,8 @@
   }
 
   ::selection {
-    background: var(--kix-accent);
-    color: var(--kix-accent-ink);
+    background: var(--mb-gold);
+    color: var(--mb-gold-ink);
   }
 
   ::-webkit-scrollbar {
@@ -119,30 +119,30 @@
 @layer components {
   /* surfaces */
   .glass {
-    background: var(--kix-surface);
-    border: 1px solid var(--kix-line);
+    background: var(--mb-surface);
+    border: 1px solid var(--mb-line);
   }
 
   .glass-strong {
-    background: var(--kix-overlay);
-    border: 1px solid var(--kix-line);
+    background: var(--mb-overlay);
+    border: 1px solid var(--mb-line);
     backdrop-filter: blur(22px);
   }
 
-  .glass-green {
-    background: var(--kix-accent-soft);
-    border: 1px solid color-mix(in srgb, var(--kix-accent) 32%, transparent);
+  .glass-gold {
+    background: var(--mb-gold-soft);
+    border: 1px solid color-mix(in srgb, var(--mb-gold) 32%, transparent);
   }
 
-  .glass-violet {
-    background: var(--kix-violet-soft);
-    border: 1px solid color-mix(in srgb, var(--kix-violet) 32%, transparent);
+  .glass-jade {
+    background: var(--mb-jade-soft);
+    border: 1px solid color-mix(in srgb, var(--mb-jade) 32%, transparent);
   }
 
   /* le bloc « rectangle » du design : angles vifs, filet net */
   .rect {
-    background: var(--kix-surface);
-    border: 1px solid var(--kix-line);
+    background: var(--mb-surface);
+    border: 1px solid var(--mb-line);
     border-radius: 0;
   }
 
@@ -152,19 +152,19 @@
     pointer-events: none;
   }
 
-  .halo-green {
-    background: radial-gradient(circle, color-mix(in srgb, var(--kix-accent) 20%, transparent), transparent 70%);
+  .halo-gold {
+    background: radial-gradient(circle, color-mix(in srgb, var(--mb-gold) 20%, transparent), transparent 70%);
   }
 
-  .halo-violet {
-    background: radial-gradient(circle, color-mix(in srgb, var(--kix-violet) 20%, transparent), transparent 70%);
+  .halo-jade {
+    background: radial-gradient(circle, color-mix(in srgb, var(--mb-jade) 20%, transparent), transparent 70%);
   }
 
   .label-caps {
     font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--kix-muted);
+    color: var(--mb-muted);
   }
 
   .display {
@@ -233,7 +233,7 @@
   .skeleton {
     position: relative;
     overflow: hidden;
-    background: var(--kix-surface);
+    background: var(--mb-surface);
   }
 
   .skeleton::after {
@@ -244,7 +244,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      color-mix(in srgb, var(--kix-ink) 8%, transparent),
+      color-mix(in srgb, var(--mb-ink) 8%, transparent),
       transparent
     );
     animation: shimmer 1.4s infinite;
@@ -260,7 +260,7 @@
     position: absolute;
     inset: -4px;
     border-radius: 9999px;
-    border: 1px solid color-mix(in srgb, var(--kix-accent) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--mb-gold) 60%, transparent);
     animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
   }
 
@@ -274,8 +274,8 @@
 
   .lift:hover {
     transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--kix-accent) 35%, var(--kix-line));
-    box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--kix-accent) 55%, transparent);
+    border-color: color-mix(in srgb, var(--mb-gold) 35%, var(--mb-line));
+    box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--mb-gold) 55%, transparent);
   }
 
   .zoom img {
@@ -342,7 +342,7 @@
 
   @keyframes flash {
     0% {
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--kix-accent) 55%, transparent);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--mb-gold) 55%, transparent);
     }
     100% {
       box-shadow: 0 0 0 18px transparent;

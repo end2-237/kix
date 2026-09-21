@@ -12,7 +12,7 @@ import * as schema from "./schema";
 export function getDbUrl(): string {
   // Chemin relatif au dossier de travail du serveur : SQLite le résout lui-même,
   // et le build n'a pas à tracer un chemin absolu calculé.
-  const raw = process.env.DATABASE_URL ?? "data/kix.db";
+  const raw = process.env.DATABASE_URL ?? "data/masterbreak.db";
   return raw.includes("://") ? raw : `file:${raw}`;
 }
 

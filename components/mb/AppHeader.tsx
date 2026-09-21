@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BellIcon, ChevronDownIcon, ChevronLeftIcon, KixMark, PinIcon } from "@/components/icons";
+import { BellIcon, ChevronDownIcon, ChevronLeftIcon, MasterMark, PinIcon } from "@/components/icons";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import type { User } from "@/db";
 
@@ -38,9 +38,9 @@ export function AppHeader({
 
       <header className="flex items-center justify-between gap-3 lg:hidden">
       <div className="flex items-center gap-2.5">
-        <KixMark />
+        <MasterMark />
         <div className="flex flex-col gap-0.5">
-          <span className="text-[19px] leading-[19px] font-bold tracking-[0.14em]">KIX</span>
+          <span className="text-[19px] leading-[19px] font-bold tracking-[0.14em]">MASTER BREAK</span>
           <span className="flex items-center gap-1 text-[11px] text-muted">
             <PinIcon size={11} />
             {city} · {area}
@@ -58,7 +58,7 @@ export function AppHeader({
         >
           <BellIcon size={19} />
           {unread > 0 ? (
-            <span className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-green px-1.5 text-[10px] font-semibold text-green-ink">
+            <span className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1.5 text-[10px] font-semibold text-gold-ink">
               {unread}
             </span>
           ) : null}
@@ -70,10 +70,10 @@ export function AppHeader({
               alt={user.name}
               width={44}
               height={44}
-              className="h-11 w-11 rounded-full border border-green/45 object-cover"
+              className="h-11 w-11 rounded-full border border-gold/45 object-cover"
             />
           ) : (
-            <span className="grid h-11 w-11 place-items-center rounded-full border border-green/45 bg-surface text-[13px] font-semibold">
+            <span className="grid h-11 w-11 place-items-center rounded-full border border-gold/45 bg-surface text-[13px] font-semibold">
               {user.name.slice(0, 2).toUpperCase()}
             </span>
           )}

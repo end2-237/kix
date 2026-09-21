@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ScreenHeader } from "@/components/kix/AppHeader";
-import { ConvertButton } from "@/components/kix/ConvertButton";
+import { ScreenHeader } from "@/components/mb/AppHeader";
+import { ConvertButton } from "@/components/mb/ConvertButton";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { BoltIcon, CartIcon, ClockIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
@@ -12,7 +12,7 @@ import { levelFor, POINTS_PER_FREE_TOKEN } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { group } from "@/lib/format";
 
-export const metadata = { title: "KIX Rewards" };
+export const metadata = { title: "Master Rank" };
 
 export default async function RewardsPage() {
   const user = await requireUser();
@@ -24,17 +24,17 @@ export default async function RewardsPage() {
 
   return (
     <>
-      <ScreenHeader title="KIX Rewards" subtitle="Chaque partie scannée compte des points, chaque tournoi te classe." />
+      <ScreenHeader title="Master Rank" subtitle="Chaque partie scannée compte des points, chaque tournoi te classe." />
 
       <div className="grid gap-3.5 lg:grid-cols-2 lg:items-start lg:gap-8">
       <div className="flex flex-col gap-3.5 lg:gap-5">
-      <Card tone="violet" shape="panel" className="flex flex-col gap-3.5 p-5">
+      <Card tone="jade" shape="panel" className="flex flex-col gap-3.5 p-5">
         <div className="flex items-center gap-3.5">
-          <span className="grid h-13 w-13 place-items-center rounded-full border border-violet/45 bg-bg-2 text-violet-text">
+          <span className="grid h-13 w-13 place-items-center rounded-full border border-jade/45 bg-bg-2 text-jade-text">
             <TrophyIcon size={26} />
           </span>
           <div className="flex grow flex-col gap-0.5">
-            <span className="text-[11px] tracking-[0.1em] text-violet-text uppercase">Niveau {current.level}</span>
+            <span className="text-[11px] tracking-[0.1em] text-jade-text uppercase">Niveau {current.level}</span>
             <span className="text-[22px] font-bold tracking-[-0.03em]">{current.name}</span>
           </div>
           <div className="flex flex-col items-end gap-0.5">
@@ -46,7 +46,7 @@ export default async function RewardsPage() {
           <div className="h-2 overflow-hidden rounded-full bg-bg-2">
             <div
               style={{ width: `${progress}%` }}
-              className="h-full rounded-full bg-linear-to-r from-violet to-green transition-[width] duration-500"
+              className="h-full rounded-full bg-linear-to-r from-jade to-gold transition-[width] duration-500"
             />
           </div>
           <div className="flex items-center justify-between text-[11px] text-dim">
@@ -56,7 +56,7 @@ export default async function RewardsPage() {
         </div>
       </Card>
 
-      <Card tone="green" className="flex items-center gap-3.5 px-4 py-3.5">
+      <Card tone="gold" className="flex items-center gap-3.5 px-4 py-3.5">
         <div className="flex grow flex-col gap-0.5">
           <span className="text-sm font-semibold">Convertir mes points</span>
           <span className="text-xs text-muted">
@@ -68,11 +68,11 @@ export default async function RewardsPage() {
 
       <div className="flex flex-wrap gap-2">
         <Chip tone="neutral" className="text-[11px]">
-          <BoltIcon size={13} className="text-green-text" />
+          <BoltIcon size={13} className="text-gold-text" />
           Série de 5 soirs
         </Chip>
         <Chip tone="neutral" className="text-[11px]">
-          <ClockIcon size={13} className="text-violet-text" />
+          <ClockIcon size={13} className="text-jade-text" />
           Noctambule
         </Chip>
         <Chip tone="neutral" className="text-[11px]">
@@ -98,7 +98,7 @@ export default async function RewardsPage() {
                 key={player.id}
                 className={cn(
                   "flex grow flex-col items-center gap-2 rounded-card px-2 pb-3",
-                  first ? "glass-green border-[1.5px] border-green/50 pt-5" : "glass pt-4",
+                  first ? "glass-gold border-[1.5px] border-gold/50 pt-5" : "glass pt-4",
                 )}
               >
                 {player.avatar ? (
@@ -107,7 +107,7 @@ export default async function RewardsPage() {
                     alt={player.name}
                     width={first ? 52 : 44}
                     height={first ? 52 : 44}
-                    className={cn("rounded-full object-cover", first ? "h-13 w-13 border-2 border-green" : "h-11 w-11")}
+                    className={cn("rounded-full object-cover", first ? "h-13 w-13 border-2 border-gold" : "h-11 w-11")}
                   />
                 ) : (
                   <span
@@ -122,7 +122,7 @@ export default async function RewardsPage() {
                 <span className={cn("font-semibold", first ? "text-[13px]" : "text-xs")}>
                   {player.name.split(" ")[0]}
                 </span>
-                <span className={cn("font-bold", first ? "text-lg text-green-text" : "text-[15px] text-dim")}>
+                <span className={cn("font-bold", first ? "text-lg text-gold-text" : "text-[15px] text-dim")}>
                   {i === 1 ? 1 : i === 0 ? 2 : 3}
                 </span>
                 <span className="text-[10px] text-muted">{group(player.points)} pts</span>
@@ -142,8 +142,8 @@ export default async function RewardsPage() {
               <span className="text-xs text-muted">{group(player.points)} pts</span>
             </div>
           ))}
-          <div className="flex items-center gap-3 rounded-none border-[1.5px] border-green/45 bg-green/12 px-3.5 py-2.5">
-            <span className="w-6 text-sm font-bold text-green-text">{rank}</span>
+          <div className="flex items-center gap-3 rounded-none border-[1.5px] border-gold/45 bg-gold/12 px-3.5 py-2.5">
+            <span className="w-6 text-sm font-bold text-gold-text">{rank}</span>
             {user.avatar ? (
               <Image
                 src={user.avatar}
@@ -154,7 +154,7 @@ export default async function RewardsPage() {
               />
             ) : null}
             <span className="grow text-[13px] font-semibold">Toi · {user.name}</span>
-            <span className="text-xs text-green-text">{group(user.points)} pts</span>
+            <span className="text-xs text-gold-text">{group(user.points)} pts</span>
           </div>
         </div>
       </div>
@@ -184,7 +184,7 @@ export default async function RewardsPage() {
 function Shortcut({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
     <Link href={href} className="glass flex items-center gap-2.5 rounded-card px-3.5 py-3 transition hover:bg-surface-2">
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-green-text">{icon}</span>
+      <span className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-gold-text">{icon}</span>
       <span className="text-[13px] font-medium">{label}</span>
     </Link>
   );

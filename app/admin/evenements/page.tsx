@@ -23,7 +23,7 @@ export default async function AdminEvents() {
           <Select label="Salle" name="venueId" options={venueOptions} />
           <Field label="Prix (F)" name="price" type="number" defaultValue={3000} />
           <Field label="Capacité" name="capacity" type="number" defaultValue={120} />
-          <Field label="Image" name="image" defaultValue="/img/crowd-green.jpg" />
+          <Field label="Image" name="image" defaultValue="/img/crowd-lights.jpg" />
           <Field label="Tags (virgules)" name="tags" placeholder="Tournoi 8-ball,32 joueurs" />
           <Field label="Adresse" name="address" className="lg:col-span-2" />
           <TextArea label="Description" name="description" className="lg:col-span-4" />
@@ -51,7 +51,7 @@ export default async function AdminEvents() {
             </Td>
             <Td>{sold}</Td>
             <Td>
-              <Pill tone={event.active ? "green" : "neutral"}>{event.active ? "Publié" : "Archivé"}</Pill>
+              <Pill tone={event.active ? "gold" : "neutral"}>{event.active ? "Publié" : "Archivé"}</Pill>
             </Td>
             <Td>
               <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export default async function AdminEvents() {
                   </summary>
                   <form
                     action={saveEvent}
-                    className="absolute right-0 z-10 mt-2 grid w-80 gap-3 border border-line bg-bg p-4 shadow-[var(--kix-shadow)]"
+                    className="absolute right-0 z-10 mt-2 grid w-80 gap-3 border border-line bg-bg p-4 shadow-[var(--mb-shadow)]"
                   >
                     <input type="hidden" name="id" value={event.id} />
                     <input type="hidden" name="slug" value={event.slug} />
@@ -85,7 +85,7 @@ export default async function AdminEvents() {
                 </details>
                 <form action={deleteEvent}>
                   <input type="hidden" name="id" value={event.id} />
-                  <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-amber">
+                  <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-warn">
                     Archiver
                   </button>
                 </form>

@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "glass" | "violet" | "outline" | "ghost";
+type Variant = "primary" | "glass" | "jade" | "outline" | "ghost";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-green text-green-ink font-semibold hover:brightness-105",
+  primary: "bg-gold text-gold-ink font-semibold hover:brightness-105",
   glass: "glass text-ink hover:bg-surface-2",
-  violet: "glass-violet text-violet-text hover:brightness-110",
+  jade: "glass-jade text-jade-text hover:brightness-110",
   outline: "border border-line text-ink hover:bg-surface",
   ghost: "text-dim hover:text-ink",
 };
@@ -22,7 +22,7 @@ const sizes: Record<Size, string> = {
 };
 
 const base =
-  "press go inline-flex items-center justify-center rounded-full whitespace-nowrap transition select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green disabled:opacity-45 disabled:pointer-events-none";
+  "press go inline-flex items-center justify-center rounded-full whitespace-nowrap transition select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:opacity-45 disabled:pointer-events-none";
 
 type CommonProps = { variant?: Variant; size?: Size; className?: string; children: React.ReactNode };
 
@@ -64,7 +64,7 @@ export function IconButton({ className, children, ...rest }: React.ButtonHTMLAtt
   return (
     <button
       className={cn(
-        "glass press grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2 hover:text-green-text",
+        "glass press grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2 hover:text-gold-text",
         className,
       )}
       {...rest}
@@ -79,7 +79,7 @@ export function IconLink({ href, className, children, ...rest }: { href: string;
     <Link
       href={href}
       className={cn(
-        "glass press grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2 hover:text-green-text",
+        "glass press grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink transition hover:bg-surface-2 hover:text-gold-text",
         className,
       )}
       {...rest}

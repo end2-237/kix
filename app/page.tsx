@@ -39,8 +39,8 @@ export default async function LandingPage() {
 
       {/* ---------------------------------------------------------------- héros */}
       <section className="relative overflow-hidden border-b border-line">
-        <div className="halo halo-green -top-40 -left-30 h-160 w-160" />
-        <div className="halo halo-violet -right-40 bottom-0 h-150 w-150" />
+        <div className="halo halo-gold -top-40 -left-30 h-160 w-160" />
+        <div className="halo halo-jade -right-40 bottom-0 h-150 w-150" />
 
         <div className="relative mx-auto flex min-h-[660px] max-w-400 flex-col px-5 pt-12 pb-6 lg:min-h-[720px] lg:px-10">
           <div className="stagger grid gap-8 lg:grid-cols-3 lg:items-start lg:gap-6">
@@ -56,7 +56,7 @@ export default async function LandingPage() {
             </div>
 
             <div className="flex flex-col items-start gap-4 lg:items-center lg:text-center">
-              <h1 className="text-[58px] font-extrabold text-green-text lg:text-[86px] xl:text-[104px]">
+              <h1 className="text-[58px] font-extrabold text-gold-text lg:text-[86px] xl:text-[104px]">
                 Contrôle.
               </h1>
               <p className="max-w-64 text-[13px] leading-5 text-muted">
@@ -96,7 +96,7 @@ export default async function LandingPage() {
               </span>
               <span className="h-10 w-px bg-line" />
               <span className="flex flex-col gap-1">
-                <span className="text-[22px] font-bold text-green-text">4,8</span>
+                <span className="text-[22px] font-bold text-gold-text">4,8</span>
                 <span className="text-[11px] text-muted">128 avis</span>
               </span>
               <span className="h-10 w-px bg-line" />
@@ -108,10 +108,10 @@ export default async function LandingPage() {
 
             <Link
               href="/app/recharge"
-              className="press group flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-green-text uppercase"
+              className="press group flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-gold-text uppercase"
             >
               Réserver une table
-              <span className="grid h-9 w-9 place-items-center rounded-full border border-green/45 transition group-hover:bg-green group-hover:text-green-ink">
+              <span className="grid h-9 w-9 place-items-center rounded-full border border-gold/45 transition group-hover:bg-gold group-hover:text-gold-ink">
                 <ArrowRightIcon size={15} className="-rotate-45" />
               </span>
             </Link>
@@ -119,7 +119,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <Marquee items={["KIX Social Club", "Billard", "Vape", "Nuit", "Douala"]} />
+      <Marquee items={["Master Break Club", "Billard", "Vape", "Nuit", "Douala"]} />
 
       {/* ------------------------------------------------------------- énergie */}
       <section className="relative isolate flex min-h-[560px] items-center justify-center overflow-hidden px-5 py-20 lg:min-h-[680px]">
@@ -136,7 +136,7 @@ export default async function LandingPage() {
           <p className="text-[12px] tracking-[0.22em] text-dim uppercase">
             Trouve une table, achète tes jetons, scanne, joue
           </p>
-          <DotGrid size={7} className="text-green" />
+          <DotGrid size={7} className="text-gold" />
           <h2 className="text-[38px] font-extrabold text-balance uppercase lg:text-[62px]">
             Vis la vraie énergie
             <br />
@@ -149,7 +149,7 @@ export default async function LandingPage() {
           </p>
           <Link
             href="/app"
-            className="press go flex h-13 items-center gap-3 rounded-full bg-green px-7 text-[13px] font-semibold tracking-[0.16em] text-green-ink uppercase transition hover:brightness-105"
+            className="press go flex h-13 items-center gap-3 rounded-full bg-gold px-7 text-[13px] font-semibold tracking-[0.16em] text-gold-ink uppercase transition hover:brightness-105"
           >
             Réserver une table
             <ArrowRightIcon size={16} className="-rotate-45" />
@@ -162,7 +162,7 @@ export default async function LandingPage() {
         <Reveal className="mx-auto flex max-w-400 flex-col gap-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <span className="h-px w-12 bg-green" />
+              <span className="h-px w-12 bg-gold" />
               <h2 className="text-[22px] font-bold tracking-[0.06em] uppercase lg:text-[26px]">
                 Joue comme un pro
               </h2>
@@ -193,7 +193,7 @@ export default async function LandingPage() {
                 <div className="absolute inset-x-5 top-5 flex items-start justify-between">
                   <Link
                     href="/app/recharge"
-                    className="press flex h-10 items-center rounded-full bg-green px-4 text-[11px] font-semibold tracking-[0.12em] text-green-ink uppercase"
+                    className="press flex h-10 items-center rounded-full bg-gold px-4 text-[11px] font-semibold tracking-[0.12em] text-gold-ink uppercase"
                   >
                     Réserver une séance
                   </Link>
@@ -212,7 +212,7 @@ export default async function LandingPage() {
                     <span className="text-[12px] text-white/70">{coach.role}</span>
                   </div>
                   <span className="hidden rounded-full border border-white/25 px-3 py-2 text-[11px] tracking-[0.12em] text-white/80 uppercase sm:inline">
-                    Coach KIX
+                    Coach MASTER BREAK
                   </span>
                 </div>
               </article>
@@ -243,7 +243,7 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <span className="flex items-center gap-2.5 rounded-full bg-white/12 px-4 py-2.5 text-[11px] font-semibold tracking-[0.16em] text-white uppercase backdrop-blur">
               Choisis ta table
-              <span className="h-1.5 w-1.5 rounded-full bg-green" />
+              <span className="h-1.5 w-1.5 rounded-full bg-gold" />
             </span>
             <span className="text-[11px] tracking-[0.22em] text-white/70 uppercase">Table black</span>
             <span className="text-[11px] tracking-[0.22em] text-white/70 uppercase">
@@ -253,7 +253,7 @@ export default async function LandingPage() {
 
           <div className="stagger flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
             {["Élève", "Ton", "Jeu", "De Billard"].map((word) => (
-              <span key={word} className="text-[44px] font-extrabold text-green lg:text-[76px] xl:text-[92px]">
+              <span key={word} className="text-[44px] font-extrabold text-gold lg:text-[76px] xl:text-[92px]">
                 {word}
               </span>
             ))}
@@ -262,10 +262,10 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-end justify-between gap-6">
             <Link
               href="/app/salles"
-              className="press go flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-green uppercase"
+              className="press go flex items-center gap-3 text-[13px] font-semibold tracking-[0.18em] text-gold uppercase"
             >
               Réserver une table
-              <span className="grid h-9 w-9 place-items-center rounded-full border border-green/60">
+              <span className="grid h-9 w-9 place-items-center rounded-full border border-gold/60">
                 <ArrowRightIcon size={15} className="-rotate-45" />
               </span>
             </Link>
@@ -275,7 +275,7 @@ export default async function LandingPage() {
                 <Link
                   key={venue.id}
                   href="/app/salles"
-                  className="zoom relative h-20 w-28 overflow-hidden border border-white/25 transition hover:border-green lg:h-24 lg:w-36"
+                  className="zoom relative h-20 w-28 overflow-hidden border border-white/25 transition hover:border-gold lg:h-24 lg:w-36"
                 >
                   <Image src={venue.image} alt={venue.name} fill sizes="144px" className="object-cover" />
                   <span className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-[10px] text-white">
@@ -292,7 +292,7 @@ export default async function LandingPage() {
       <footer className="border-t border-line px-5 py-10 lg:px-10">
         <div className="mx-auto flex max-w-400 flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <span className="text-[28px] font-extrabold lg:text-[40px]">KIX Social Club</span>
+            <span className="text-[28px] font-extrabold lg:text-[40px]">Master Break Club</span>
             <div className="flex flex-wrap gap-3 text-[13px]">
               <Link href="/app" className="rounded-full border border-line px-4 py-2.5 hover:bg-surface">
                 L&apos;app client

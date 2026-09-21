@@ -32,7 +32,7 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
         const result = await purchasePack(pack.id, venue.id, method);
         if (!result.ok) {
           setStatus("idle");
-          notify("Paiement refusé", { detail: result.error, tone: "amber" });
+          notify("Paiement refusé", { detail: result.error, tone: "warn" });
           return;
         }
         setCredited(result.credited);
@@ -44,8 +44,8 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
 
   if (status === "done") {
     return (
-      <Card tone="green" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center lg:mx-auto lg:max-w-xl lg:py-14">
-        <span className="pop grid h-16 w-16 place-items-center rounded-full bg-green text-green-ink shadow-[0_0_50px_rgba(61,240,138,0.45)]">
+      <Card tone="gold" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center lg:mx-auto lg:max-w-xl lg:py-14">
+        <span className="pop grid h-16 w-16 place-items-center rounded-full bg-gold text-gold-ink shadow-[0_0_50px_rgba(217,180,80,0.45)]">
           <CheckIcon size={30} />
         </span>
         <div className="flex flex-col gap-1.5">
@@ -56,9 +56,9 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
         </div>
         <Link
           href="/app/pass"
-          className="flex h-12 items-center gap-2 rounded-full bg-green px-5 text-sm font-semibold text-green-ink"
+          className="flex h-12 items-center gap-2 rounded-full bg-gold px-5 text-sm font-semibold text-gold-ink"
         >
-          Ouvrir mon KIX Pass
+          Ouvrir mon Master Pass
           <ArrowRightIcon size={16} />
         </Link>
       </Card>
@@ -77,7 +77,7 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
               onClick={() => setVenue(v)}
               className={cn(
                 "press flex w-52 shrink-0 items-center gap-2.5 rounded-card p-2.5 text-left transition lg:w-full lg:shrink",
-                v.id === venue.id ? "glass-green border-[1.5px] border-green" : "glass hover:bg-surface-2",
+                v.id === venue.id ? "glass-gold border-[1.5px] border-gold" : "glass hover:bg-surface-2",
               )}
             >
               <Image
@@ -107,14 +107,14 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
               className={cn(
                 "press relative flex items-center gap-3.5 rounded-card px-4 py-3.5 text-left transition",
                 active
-                  ? "glass-green border-[1.5px] border-green shadow-[0_0_26px_rgba(61,240,138,0.16)]"
+                  ? "glass-gold border-[1.5px] border-gold shadow-[0_0_26px_rgba(217,180,80,0.16)]"
                   : "glass hover:bg-surface-2",
               )}
             >
               <span
                 className={cn(
                   "grid h-6 w-6 shrink-0 place-items-center rounded-full",
-                  active ? "bg-green text-green-ink" : "border-[1.6px] border-line-strong",
+                  active ? "bg-gold text-gold-ink" : "border-[1.6px] border-line-strong",
                 )}
               >
                 {active ? <CheckIcon size={12} /> : null}
@@ -123,13 +123,13 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
                 <span className="text-[15px] font-semibold">
                   {p.tokens === 1 ? "1 jeton" : `Pack ${p.tokens} jetons`}
                 </span>
-                <span className={cn("text-xs", p.bonus > 0 ? "text-violet-text" : "text-muted")}>
+                <span className={cn("text-xs", p.bonus > 0 ? "text-jade-text" : "text-muted")}>
                   {p.bonus > 0 ? `+ ${p.bonus} jetons offerts` : p.hint}
                 </span>
               </span>
-              <span className={cn("text-[17px] font-bold", active && "text-green-text")}>{f(p.price)}</span>
+              <span className={cn("text-[17px] font-bold", active && "text-gold-text")}>{f(p.price)}</span>
               {p.badge ? (
-                <span className="absolute -top-2 right-3.5 rounded-full bg-green px-2.5 py-0.5 text-[9px] font-semibold tracking-[0.08em] text-green-ink uppercase">
+                <span className="absolute -top-2 right-3.5 rounded-full bg-gold px-2.5 py-0.5 text-[9px] font-semibold tracking-[0.08em] text-gold-ink uppercase">
                   {p.badge}
                 </span>
               ) : null}
@@ -157,7 +157,7 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
             aria-label="Numéro Mobile Money"
             className="w-full grow bg-transparent text-[15px] tracking-[0.04em] outline-none placeholder:text-faint"
           />
-          <CheckIcon size={17} className="text-green-text" />
+          <CheckIcon size={17} className="text-gold-text" />
         </label>
       </div>
 
@@ -202,20 +202,20 @@ function MethodTile({
       onClick={onClick}
       className={cn(
         "press flex grow items-center gap-2.5 rounded-card px-3.5 py-3 text-left transition",
-        active ? "border-[1.5px] border-green/55 bg-green/10" : "glass hover:bg-surface-2",
+        active ? "border-[1.5px] border-gold/55 bg-gold/10" : "glass hover:bg-surface-2",
       )}
     >
       <span
         className={cn(
           "grid h-9 w-9 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
-          active ? "bg-green/20 text-green-text" : "bg-surface-2 text-ink",
+          active ? "bg-gold/20 text-gold-text" : "bg-surface-2 text-ink",
         )}
       >
         {code}
       </span>
       <span className="flex flex-col">
         <span className="text-[13px] font-medium">{name}</span>
-        <span className={cn("text-[11px]", active ? "text-green-text" : "text-muted")}>
+        <span className={cn("text-[11px]", active ? "text-gold-text" : "text-muted")}>
           {active ? "Sélectionné" : "6 9x xx xx xx"}
         </span>
       </span>

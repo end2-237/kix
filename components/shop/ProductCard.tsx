@@ -14,7 +14,7 @@ export function ProductCard({ product }: { product: Product }) {
           <span
             className={cn(
               "absolute top-2 left-2 rounded-full px-2 py-1 text-[9px] font-semibold tracking-[0.06em] uppercase",
-              product.badgeTone === "green" ? "bg-green text-green-ink" : "bg-violet text-white",
+              product.badgeTone === "gold" ? "bg-gold text-gold-ink" : "bg-jade text-white",
             )}
           >
             {product.badgeLabel}

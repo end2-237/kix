@@ -41,7 +41,7 @@ export default async function AdminPacks() {
             <Td>{pack.bonus > 0 ? `+${pack.bonus}` : "—"}</Td>
             <Td className="text-muted">{pack.badge ?? "—"}</Td>
             <Td>
-              <Pill tone={pack.active ? "green" : "neutral"}>{pack.active ? "Actif" : "Retiré"}</Pill>
+              <Pill tone={pack.active ? "gold" : "neutral"}>{pack.active ? "Actif" : "Retiré"}</Pill>
             </Td>
             <Td>
               <div className="flex items-center gap-2">
@@ -51,7 +51,7 @@ export default async function AdminPacks() {
                   </summary>
                   <form
                     action={savePack}
-                    className="absolute right-0 z-10 mt-2 grid w-72 gap-3 border border-line bg-bg p-4 shadow-[var(--kix-shadow)]"
+                    className="absolute right-0 z-10 mt-2 grid w-72 gap-3 border border-line bg-bg p-4 shadow-[var(--mb-shadow)]"
                   >
                     <input type="hidden" name="id" value={pack.id} />
                     <div className="grid grid-cols-2 gap-3">
@@ -68,7 +68,7 @@ export default async function AdminPacks() {
                 </details>
                 <form action={deletePack}>
                   <input type="hidden" name="id" value={pack.id} />
-                  <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-amber">
+                  <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-warn">
                     Retirer
                   </button>
                 </form>

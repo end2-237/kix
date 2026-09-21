@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ScreenHeader } from "@/components/kix/AppHeader";
+import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Chip } from "@/components/ui/Chip";
 import { ChevronRightIcon, PinIcon } from "@/components/icons";
 import { getVenues } from "@/lib/queries";
@@ -44,7 +44,7 @@ export default async function SallesPage() {
               {venue.area}, {venue.city} · {km(venue.distanceKm)}
             </span>
             <span className="flex flex-wrap items-center gap-2 text-[11px]">
-              <span className="text-green-text">{venue.freeTables} tables libres</span>
+              <span className="text-gold-text">{venue.freeTables} tables libres</span>
               <span className="text-muted">sur {venue.tables}</span>
               <span className="text-muted">· Jeton {f(venue.tokenPrice)}</span>
             </span>

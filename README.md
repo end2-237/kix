@@ -1,17 +1,25 @@
-# KIX
+# Master Break
 
-Application lifestyle qui digitalise le billard, la vape et la nuit au Cameroun :
-jetons de billard achetés depuis le téléphone, QR scanné par le gérant, boutique
-de vapes et d'accessoires, billetterie de tournois et fidélité.
+> L'écosystème de l'excellence billard — Cameroun.
+
+Plateforme web et mobile qui numérise le billard, la nuit et la culture urbaine :
+jetons achetés depuis le téléphone et validés par QR en salle, boutique
+d'équipement, billetterie de tournois, fidélité et classement.
 
 Le dépôt contient l'application Next.js, sa base de données et les maquettes
-d'origine (`design/`).
+d'origine (`design/`, réalisées sous l'ancien nom du projet).
+
+## Identité
+
+Or `#D9B450` sur vert billard `#071A13`, typographie Geist, monogramme dans
+`public/brand/`. Deux familles de formes : blocs rectangulaires pour la donnée,
+pastilles pour l'action.
 
 ## Démarrer
 
 ```bash
 npm install
-npm run db:migrate   # crée data/kix.db
+npm run db:migrate   # crée data/masterbreak.db
 npm run db:seed      # jeu de données de démonstration
 npm run dev          # http://localhost:3000
 ```
@@ -28,8 +36,8 @@ mot de passe tant que Supabase Auth n'est pas branché.
 | Compte | Rôle | Accès |
 | --- | --- | --- |
 | Ariel N. | client | `/app` — jetons, shop, billets, fidélité |
-| Serge M. | gérant | `/gerant` — KIX Scan, caisse du Break Akwa |
-| Direction KIX | admin | `/admin` — catalogue, salles, revenus |
+| Serge M. | gérant | `/gerant` — Master Scan, caisse du Break Akwa |
+| Direction Master Break | admin | `/admin` — catalogue, salles, revenus |
 
 ## Parcours
 
@@ -42,7 +50,7 @@ MTN MoMo) · `/app/pass` QR + code de secours · `/app/shop` boutique ·
 `/app/billets` · `/app/notifications` · `/app/rewards` · `/app/salles`.
 
 **Gérant** — `/gerant` : scanner, code de secours à 4 chiffres, jetons débités du
-jour, recette, derniers passages, commission KIX.
+jour, recette, derniers passages, commission Master Break.
 
 **Admin** — `/admin` tableau de bord, puis `salles`, `packs`, `produits`,
 `commandes`, `evenements`, `jetons`, `utilisateurs` (création, édition, retrait,
@@ -50,8 +58,8 @@ changement de rôle et de statut).
 
 ### La boucle jeton, de bout en bout
 
-Une recharge crée une ligne `purchases` et autant de `tokens` ; le KIX Pass
-affiche le QR (`kix://jeton/<code>`) et son code de secours ; KIX Scan débite le
+Une recharge crée une ligne `purchases` et autant de `tokens` ; le Master Pass
+affiche le QR (`mb://jeton/<code>`) et son code de secours ; Master Scan débite le
 jeton, écrit un `scan`, crédite les points du client et lui envoie une
 notification. Le solde client, la recette du gérant et le tableau de bord admin
 bougent dans la même seconde.
@@ -72,7 +80,7 @@ bougent dans la même seconde.
 
 ```
 app/            routes ; app/app/* = client, app/gerant = caisse, app/admin = back-office
-components/     ui/ (boutons, cartes, snackbar, thème), kix/, shop/, admin/, site/
+components/     ui/ (boutons, cartes, snackbar, thème), mb/, shop/, admin/, site/
 db/             schema.ts, migrations/, seed.ts, client.ts
 lib/            queries.ts (lectures), actions.ts (mutations), session.ts, cart.ts, format.ts
 design/         maquettes d'origine (voir design/README.md)
@@ -95,8 +103,8 @@ Variables utiles :
 
 | Variable | Rôle |
 | --- | --- |
-| `DATABASE_URL` | chemin du fichier SQLite (`/app/data/kix.db` par défaut) ou URL `libsql://` (Turso) |
-| `KIX_SKIP_SEED` | `1` pour ne jamais charger le jeu de démonstration |
+| `DATABASE_URL` | chemin du fichier SQLite (`/app/data/masterbreak.db` par défaut) ou URL `libsql://` (Turso) |
+| `MB_SKIP_SEED` | `1` pour ne jamais charger le jeu de démonstration |
 
 **Persistance** : monter un volume sur `/app/data`, sinon la base repart de zéro
 à chaque redéploiement (le conteneur est immuable). Sur Coolify : Storages →

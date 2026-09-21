@@ -72,7 +72,7 @@ export function Field({
         defaultValue={defaultValue ?? ""}
         placeholder={placeholder}
         required={required}
-        className="h-11 rounded-none border border-line bg-surface px-3 text-[13px] text-ink outline-none focus:border-green"
+        className="h-11 rounded-none border border-line bg-surface px-3 text-[13px] text-ink outline-none focus:border-gold"
       />
     </label>
   );
@@ -98,7 +98,7 @@ export function TextArea({
         name={name}
         rows={rows}
         defaultValue={defaultValue ?? ""}
-        className="rounded-none border border-line bg-surface px-3 py-2.5 text-[13px] text-ink outline-none focus:border-green"
+        className="rounded-none border border-line bg-surface px-3 py-2.5 text-[13px] text-ink outline-none focus:border-gold"
       />
     </label>
   );
@@ -123,7 +123,7 @@ export function Select({
       <select
         name={name}
         defaultValue={defaultValue ?? options[0]?.value}
-        className="h-11 rounded-none border border-line bg-surface px-3 text-[13px] text-ink outline-none focus:border-green"
+        className="h-11 rounded-none border border-line bg-surface px-3 text-[13px] text-ink outline-none focus:border-gold"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value} className="bg-bg text-ink">
@@ -138,7 +138,7 @@ export function Select({
 export function Switch({ label, name, defaultChecked = true }: { label: string; name: string; defaultChecked?: boolean }) {
   return (
     <label className="flex items-center gap-2.5 self-end pb-2.5 text-[13px]">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 accent-[var(--kix-accent)]" />
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 accent-[var(--mb-accent)]" />
       {label}
     </label>
   );
@@ -146,7 +146,7 @@ export function Switch({ label, name, defaultChecked = true }: { label: string; 
 
 export function SubmitButton({ children = "Enregistrer" }: { children?: React.ReactNode }) {
   return (
-    <button className="h-11 rounded-full bg-green px-6 text-[13px] font-semibold text-green-ink transition hover:brightness-105">
+    <button className="h-11 rounded-full bg-gold px-6 text-[13px] font-semibold text-gold-ink transition hover:brightness-105">
       {children}
     </button>
   );
@@ -156,13 +156,13 @@ export function Pill({
   tone = "neutral",
   children,
 }: {
-  tone?: "green" | "violet" | "amber" | "neutral";
+  tone?: "gold" | "jade" | "warn" | "neutral";
   children: React.ReactNode;
 }) {
   const tones = {
-    green: "bg-green/15 text-green-text border-green/35",
-    violet: "bg-violet/15 text-violet-text border-violet/35",
-    amber: "bg-amber/15 text-amber border-amber/35",
+    gold: "bg-gold/15 text-gold-text border-gold/35",
+    jade: "bg-jade/15 text-jade-text border-jade/35",
+    warn: "bg-warn/15 text-warn border-warn/35",
     neutral: "bg-surface-2 text-dim border-line",
   } as const;
   return (

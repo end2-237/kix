@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { db, tokens } from "@/db";
-import { ScanConsole } from "@/components/kix/ScanConsole";
+import { ScanConsole } from "@/components/mb/ScanConsole";
 import { Card, StatBlock } from "@/components/ui/Card";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
@@ -10,7 +10,7 @@ import {
   ChevronDownIcon,
   CoinIcon,
   GearIcon,
-  KixMark,
+  MasterMark,
   QrIcon,
   TableIcon,
   TicketIcon,
@@ -22,7 +22,7 @@ import { cn } from "@/lib/cn";
 import { group } from "@/lib/format";
 import { Counter } from "@/components/ui/Counter";
 
-export const metadata = { title: "KIX Scan" };
+export const metadata = { title: "Master Scan" };
 
 const navItems = [
   { label: "Scanner", Icon: QrIcon, active: true },
@@ -56,9 +56,9 @@ export default async function GerantPage() {
     <div className="flex min-h-dvh">
       <aside className="hidden w-62 shrink-0 flex-col gap-6 border-r border-line bg-surface p-4 lg:flex">
         <Link href="/" className="flex items-center gap-2.5 px-2">
-          <KixMark />
+          <MasterMark />
           <span className="flex flex-col gap-px">
-            <span className="text-base font-bold tracking-[0.14em]">KIX SCAN</span>
+            <span className="text-base font-bold tracking-[0.14em]">MASTER SCAN</span>
             <span className="text-[11px] text-muted">Espace gérant</span>
           </span>
         </Link>
@@ -88,7 +88,7 @@ export default async function GerantPage() {
               key={label}
               className={cn(
                 "flex h-11 items-center gap-3 rounded-full px-4 text-sm",
-                active ? "border border-green/30 bg-green/12 font-semibold text-green-text" : "text-dim",
+                active ? "border border-gold/30 bg-gold/12 font-semibold text-gold-text" : "text-dim",
               )}
             >
               <Icon size={18} />
@@ -110,7 +110,7 @@ export default async function GerantPage() {
             ) : null}
             <span className="flex grow flex-col gap-0.5">
               <span className="text-[13px] font-semibold">{manager.name}</span>
-              <span className="text-[11px] text-green-text">Poste 1 · en ligne</span>
+              <span className="text-[11px] text-gold-text">Poste 1 · en ligne</span>
             </span>
             <ThemeToggle className="h-9 w-9" />
           </div>
@@ -126,7 +126,7 @@ export default async function GerantPage() {
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 lg:flex-col lg:items-start lg:gap-1">
             <span className="lg:hidden">
-              <KixMark size={28} />
+              <MasterMark size={28} />
             </span>
             <h1 className="text-xl lg:text-[26px]">Bonsoir {manager.name.split(" ")[0]}</h1>
             <p className="hidden text-[13px] text-muted lg:block">
@@ -135,8 +135,8 @@ export default async function GerantPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2 rounded-full border border-green/30 bg-green/12 px-3 py-2 text-[11px] text-green-text">
-              <span className="live-dot h-1.5 w-1.5 rounded-full bg-green" />
+            <span className="flex items-center gap-2 rounded-full border border-gold/30 bg-gold/12 px-3 py-2 text-[11px] text-gold-text">
+              <span className="live-dot h-1.5 w-1.5 rounded-full bg-gold" />
               En ligne
             </span>
             <span className="lg:hidden">
@@ -160,7 +160,7 @@ export default async function GerantPage() {
               </>
             }
             hint="versement lundi"
-            tone="green"
+            tone="gold"
             className="rounded-none"
           />
           <StatBlock
@@ -173,7 +173,7 @@ export default async function GerantPage() {
             label="Billets scannés"
             value={<Counter value={stats?.tickets ?? 0} />}
             hint="entrées validées"
-            tone="violet"
+            tone="jade"
             className="rounded-none"
           />
         </div>
@@ -184,7 +184,7 @@ export default async function GerantPage() {
           <Card shape="panel" className="flex min-h-0 flex-col gap-3.5 p-5">
             <div className="flex items-center justify-between">
               <h2 className="text-[17px]">Derniers passages</h2>
-              <span className="text-xs text-green-text">Exporter</span>
+              <span className="text-xs text-gold-text">Exporter</span>
             </div>
 
             <div className="flex flex-col gap-2.5">
@@ -200,11 +200,11 @@ export default async function GerantPage() {
                     />
                   ) : (
                     <span className="grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-xs font-semibold text-dim">
-                      {(user?.name ?? "KIX").slice(0, 2).toUpperCase()}
+                      {(user?.name ?? "MASTER BREAK").slice(0, 2).toUpperCase()}
                     </span>
                   )}
                   <span className="flex min-w-0 grow flex-col gap-0.5">
-                    <span className="truncate text-[13px] font-semibold">{user?.name ?? "Client KIX"}</span>
+                    <span className="truncate text-[13px] font-semibold">{user?.name ?? "Client MASTER BREAK"}</span>
                     <span className="truncate text-[11px] text-muted">
                       {scan.kind === "ticket" ? "Billet · entrée" : `Jeton · ${scanVenue?.name ?? ""}`} · code{" "}
                       {scan.code}
@@ -216,7 +216,7 @@ export default async function GerantPage() {
                   <span
                     className={cn(
                       "rounded-full px-2.5 py-1.5 text-[11px]",
-                      scan.kind === "ticket" ? "bg-violet/16 text-violet-text" : "bg-surface-2 text-dim",
+                      scan.kind === "ticket" ? "bg-jade/16 text-jade-text" : "bg-surface-2 text-dim",
                     )}
                   >
                     {scan.kind === "ticket" ? "Pass validé" : "Débité"}
@@ -227,7 +227,7 @@ export default async function GerantPage() {
 
             <Card tone="dashed" shape="square" className="mt-auto flex items-center justify-between px-4 py-3.5">
               <span className="flex flex-col gap-0.5">
-                <span className="text-xs text-muted">Commission KIX du jour</span>
+                <span className="text-xs text-muted">Commission Master Break du jour</span>
                 <span className="text-[11px] text-muted">10 % des jetons vendus en ligne</span>
               </span>
               <span className="text-xl font-bold tracking-[-0.03em]">{group(stats?.commission ?? 0)} F</span>

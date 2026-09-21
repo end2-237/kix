@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ScreenHeader } from "@/components/kix/AppHeader";
+import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Card } from "@/components/ui/Card";
 import { BellIcon, CartIcon, CoinIcon, TicketIcon, TrophyIcon } from "@/components/icons";
 import { markNotificationsRead } from "@/lib/actions";
@@ -38,7 +38,7 @@ export default async function NotificationsPage() {
         action={
           unread > 0 ? (
             <form action={markNotificationsRead}>
-              <button className="text-xs whitespace-nowrap text-green-text">Tout lire</button>
+              <button className="text-xs whitespace-nowrap text-gold-text">Tout lire</button>
             </form>
           ) : null
         }
@@ -60,13 +60,13 @@ export default async function NotificationsPage() {
           <div
             className={cn(
               "lift flex gap-3 rounded-card px-4 py-3.5",
-              notification.read ? "glass" : "glass-green",
+              notification.read ? "glass" : "glass-gold",
             )}
           >
             <span
               className={cn(
                 "grid h-10 w-10 shrink-0 place-items-center rounded-full",
-                notification.read ? "bg-surface-2 text-muted" : "bg-green text-green-ink",
+                notification.read ? "bg-surface-2 text-muted" : "bg-gold text-gold-ink",
               )}
             >
               {icons[notification.kind] ?? icons.system}
@@ -74,7 +74,7 @@ export default async function NotificationsPage() {
             <div className="flex min-w-0 grow flex-col gap-1">
               <span className="flex items-center gap-2">
                 <span className="truncate text-[14px] font-semibold">{notification.title}</span>
-                {notification.read ? null : <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green" />}
+                {notification.read ? null : <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />}
               </span>
               <span className="text-[12px] leading-5 text-dim">{notification.body}</span>
               <span className="text-[11px] text-muted">{ago(notification.createdAt)}</span>

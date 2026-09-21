@@ -18,10 +18,10 @@ export function ConvertButton({ points }: { points: number }) {
         startTransition(async () => {
           const result = await convertPoints();
           if (result.ok) notify("1 jeton ajouté", { detail: `Solde de points : ${result.points}` });
-          else notify("Conversion impossible", { detail: result.error, tone: "amber" });
+          else notify("Conversion impossible", { detail: result.error, tone: "warn" });
         })
       }
-      className="press flex h-11 items-center gap-2 rounded-full bg-green px-4 text-[13px] font-semibold text-green-ink transition hover:brightness-105 disabled:opacity-40"
+      className="press flex h-11 items-center gap-2 rounded-full bg-gold px-4 text-[13px] font-semibold text-gold-ink transition hover:brightness-105 disabled:opacity-40"
     >
       {pending ? <Spinner size={15} /> : null}
       {pending ? "En cours" : "Convertir"}

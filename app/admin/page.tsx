@@ -22,7 +22,7 @@ export default async function AdminDashboard() {
         action={
           <Link
             href="/admin/salles"
-            className="h-11 rounded-full bg-green px-5 text-[13px] leading-11 font-semibold text-green-ink"
+            className="h-11 rounded-full bg-gold px-5 text-[13px] leading-11 font-semibold text-gold-ink"
           >
             Ajouter une salle
           </Link>
@@ -38,7 +38,7 @@ export default async function AdminDashboard() {
             </>
           }
           hint="parties scannées"
-          tone="green"
+          tone="gold"
           className="rounded-none"
         />
         <StatBlock
@@ -59,7 +59,7 @@ export default async function AdminDashboard() {
             </>
           }
           hint={`${stats.ordersCount} commandes`}
-          tone="violet"
+          tone="jade"
           className="rounded-none"
         />
         <StatBlock label="Billets vendus" value={<Counter value={stats.ticketsSold} />} hint={`${stats.clients} clients inscrits`} className="rounded-none" />
@@ -67,7 +67,7 @@ export default async function AdminDashboard() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-[17px]">Salles · 7 derniers jours</h2>
-        <Table head={["Salle", "Ville", "Tables", "Jeton", "Parties", "Recette", "Commission KIX"]}>
+        <Table head={["Salle", "Ville", "Tables", "Jeton", "Parties", "Recette", "Commission Master Break"]}>
           {breakdown.map((venue) => (
             <tr key={venue.id}>
               <Td className="font-semibold">{venue.name}</Td>
@@ -76,7 +76,7 @@ export default async function AdminDashboard() {
               <Td>{f(venue.tokenPrice)}</Td>
               <Td>{venue.debited}</Td>
               <Td className="font-semibold">{f(Number(venue.revenue))}</Td>
-              <Td className="text-green-text">{f(Math.round(Number(venue.revenue) * 0.1))}</Td>
+              <Td className="text-gold-text">{f(Math.round(Number(venue.revenue) * 0.1))}</Td>
             </tr>
           ))}
         </Table>
@@ -96,7 +96,7 @@ export default async function AdminDashboard() {
               <Td className="font-semibold">{user?.name ?? "—"}</Td>
               <Td className="text-muted">{venue?.name ?? "—"}</Td>
               <Td>
-                <Pill tone={scan.kind === "ticket" ? "violet" : "green"}>
+                <Pill tone={scan.kind === "ticket" ? "jade" : "gold"}>
                   {scan.kind === "ticket" ? "Billet" : "Jeton"}
                 </Pill>
               </Td>

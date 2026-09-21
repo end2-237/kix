@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ScreenHeader } from "@/components/kix/AppHeader";
+import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ArrowRightIcon, CartIcon } from "@/components/icons";
@@ -10,12 +10,12 @@ import { f, fcfa } from "@/lib/format";
 
 export const metadata = { title: "Mes commandes" };
 
-const statusLabels: Record<string, { label: string; tone: "green" | "violet" | "neutral" | "amber" }> = {
-  paid: { label: "Payée", tone: "violet" },
-  ready: { label: "Prête au retrait", tone: "green" },
+const statusLabels: Record<string, { label: string; tone: "gold" | "jade" | "neutral" | "warn" }> = {
+  paid: { label: "Payée", tone: "jade" },
+  ready: { label: "Prête au retrait", tone: "gold" },
   done: { label: "Récupérée", tone: "neutral" },
-  pending: { label: "En attente", tone: "amber" },
-  cancelled: { label: "Annulée", tone: "amber" },
+  pending: { label: "En attente", tone: "warn" },
+  cancelled: { label: "Annulée", tone: "warn" },
 };
 
 export default async function CommandesPage() {
@@ -37,7 +37,7 @@ export default async function CommandesPage() {
           </div>
           <Link
             href="/app/shop"
-            className="flex h-12 items-center gap-2 rounded-full bg-green px-5 text-sm font-semibold text-green-ink"
+            className="flex h-12 items-center gap-2 rounded-full bg-gold px-5 text-sm font-semibold text-gold-ink"
           >
             Aller au Shop
             <ArrowRightIcon size={16} />

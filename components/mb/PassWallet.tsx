@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { QrCode } from "@/components/kix/QrCode";
+import { QrCode } from "@/components/mb/QrCode";
 import { cn } from "@/lib/cn";
 import { clockFrom } from "@/lib/format";
 import { ClockIcon } from "@/components/icons";
@@ -25,8 +25,8 @@ export function PassWallet({ tokens }: { tokens: WalletToken[] }) {
 
   return (
     <div className="glass flex flex-col items-center gap-3.5 rounded-panel px-5 pt-6 pb-4">
-      <span className="flex items-center gap-2.5 rounded-full border border-green/35 bg-green/15 px-3 py-1.5 text-[11px] font-semibold tracking-[0.06em] text-green-text">
-        <span className="live-dot h-1.5 w-1.5 rounded-full bg-green" />
+      <span className="flex items-center gap-2.5 rounded-full border border-gold/35 bg-gold/15 px-3 py-1.5 text-[11px] font-semibold tracking-[0.06em] text-gold-text">
+        <span className="live-dot h-1.5 w-1.5 rounded-full bg-gold" />
         JETON {index + 1} / {tokens.length} — PRÊT À SCANNER
       </span>
 
@@ -55,7 +55,7 @@ export function PassWallet({ tokens }: { tokens: WalletToken[] }) {
             height="96"
             rx="14"
             fill="none"
-            stroke="#3DF08A"
+            stroke="#D9B450"
             strokeWidth="1.6"
             strokeLinecap="round"
             pathLength={100}
@@ -64,7 +64,7 @@ export function PassWallet({ tokens }: { tokens: WalletToken[] }) {
             style={{ transition: "stroke-dashoffset 1s linear" }}
           />
         </svg>
-        <div className="rounded-panel bg-white p-3 shadow-[0_0_40px_rgba(61,240,138,0.22)]">
+        <div className="rounded-panel bg-white p-3 shadow-[0_0_40px_rgba(217,180,80,0.22)]">
           <QrCode shape={token.shape} size={196} />
         </div>
       </div>
@@ -86,7 +86,7 @@ export function PassWallet({ tokens }: { tokens: WalletToken[] }) {
               onClick={() => setIndex(i)}
               className={cn(
                 "press h-1 rounded-full transition-all duration-300",
-                i === index ? "w-5 bg-green" : "w-1.5 bg-line-strong hover:bg-muted",
+                i === index ? "w-5 bg-gold" : "w-1.5 bg-line-strong hover:bg-muted",
               )}
             />
           ))}

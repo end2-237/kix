@@ -228,10 +228,20 @@ export const GearIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const KixMark = ({ size = 30, className }: { size?: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 30 30" fill="none" aria-hidden="true" className={className}>
-    <circle cx="15" cy="15" r="13.2" stroke="#3DF08A" strokeWidth="1.6" />
-    <path d="M3.4 10.6h23.2M3.4 19.4h23.2" stroke="#3DF08A" strokeWidth="1.6" strokeLinecap="round" opacity="0.35" />
-    <circle cx="15" cy="15" r="5.4" fill="#3DF08A" />
+export const MasterMark = ({ size = 30, className }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true" className={className}>
+    <defs>
+      <linearGradient id="mbGold" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stopColor="#F4DE9A" />
+        <stop offset="0.45" stopColor="#D9B450" />
+        <stop offset="1" stopColor="#9A7519" />
+      </linearGradient>
+    </defs>
+    <path d="M32 6 58 57H6z" stroke="url(#mbGold)" strokeWidth="3.4" strokeLinejoin="round" />
+    <path d="M14 57 32 28l18 29" stroke="url(#mbGold)" strokeWidth="3" strokeLinejoin="round" />
+    <circle cx="32" cy="19" r="2.6" fill="url(#mbGold)" />
+    <circle cx="24" cy="46" r="2.4" fill="url(#mbGold)" />
+    <circle cx="40" cy="46" r="2.4" fill="url(#mbGold)" />
+    <path d="M24 62 56 5" stroke="url(#mbGold)" strokeWidth="2.6" strokeLinecap="round" />
   </svg>
 );

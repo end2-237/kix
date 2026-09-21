@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { KixMark } from "@/components/icons";
+import { MasterMark } from "@/components/icons";
 import { Card } from "@/components/ui/Card";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { signIn } from "@/lib/actions";
@@ -10,7 +10,7 @@ export const metadata = { title: "Connexion" };
 
 const roleLabels: Record<string, { label: string; hint: string }> = {
   client: { label: "Client", hint: "app mobile, jetons, shop, billets" },
-  manager: { label: "Gérant", hint: "KIX Scan, caisse de la salle" },
+  manager: { label: "Gérant", hint: "Master Scan, caisse de la salle" },
   admin: { label: "Administration", hint: "catalogue, salles, revenus" },
 };
 
@@ -19,13 +19,13 @@ export default async function ConnexionPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="relative min-h-dvh overflow-hidden px-5 py-10">
-      <div className="halo halo-green -top-40 -left-20 h-100 w-100" />
+      <div className="halo halo-gold -top-40 -left-20 h-100 w-100" />
 
       <div className="relative mx-auto flex w-full max-w-lg flex-col gap-8">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <KixMark size={30} />
-            <span className="text-[15px] font-semibold tracking-[0.2em] uppercase">KIX</span>
+            <MasterMark size={30} />
+            <span className="text-[15px] font-semibold tracking-[0.2em] uppercase">MASTER BREAK</span>
           </Link>
           <ThemeToggle />
         </div>

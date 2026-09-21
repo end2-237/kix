@@ -1,4 +1,4 @@
-import { ScreenHeader } from "@/components/kix/AppHeader";
+import { ScreenHeader } from "@/components/mb/AppHeader";
 import { CartClient } from "@/components/shop/CartClient";
 import { getProducts, getVenues } from "@/lib/queries";
 

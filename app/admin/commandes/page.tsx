@@ -12,11 +12,11 @@ const statuses = [
   { value: "cancelled", label: "Annulée" },
 ];
 
-const tones: Record<string, "green" | "violet" | "amber" | "neutral"> = {
-  paid: "violet",
-  ready: "green",
+const tones: Record<string, "gold" | "jade" | "warn" | "neutral"> = {
+  paid: "jade",
+  ready: "gold",
   done: "neutral",
-  cancelled: "amber",
+  cancelled: "warn",
 };
 
 export default async function AdminOrders() {
@@ -63,7 +63,7 @@ export default async function AdminOrders() {
                     </option>
                   ))}
                 </select>
-                <button className="rounded-full bg-green px-3 py-2 text-[11px] font-semibold text-green-ink">
+                <button className="rounded-full bg-gold px-3 py-2 text-[11px] font-semibold text-gold-ink">
                   OK
                 </button>
               </form>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AppHeader } from "@/components/kix/AppHeader";
+import { AppHeader } from "@/components/mb/AppHeader";
 import { ProductCard } from "@/components/shop/ProductCard";
 import { CartBar } from "@/components/shop/CartBar";
 import { Chip } from "@/components/ui/Chip";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 import { f } from "@/lib/format";
 import { DELIVERY_FEE } from "@/lib/constants";
 
-export const metadata = { title: "KIX Shop" };
+export const metadata = { title: "Master Shop" };
 
 const tabs = [
   { id: "vapes", label: "Vapes & puffs" },
@@ -25,11 +25,11 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <AppHeader user={user} unread={unread} title="KIX Shop" subtitle="Vapes, puffs et matériel de billard livrés à Douala ou retirés en salle." />
+      <AppHeader user={user} unread={unread} title="Master Shop" subtitle="Vapes, puffs et matériel de billard livrés à Douala ou retirés en salle." />
 
       <div className="flex items-center justify-between gap-3 lg:hidden">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-[22px]">KIX Shop</h1>
+          <h1 className="text-[22px]">Master Shop</h1>
           <p className="text-xs text-muted">Vapes &amp; matériel de billard · Douala</p>
         </div>
         <button aria-label="Rechercher" className="glass grid h-11 w-11 place-items-center rounded-full">
@@ -47,7 +47,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
       </div>
 
       <div className="glass flex gap-2.5 rounded-full p-1.5">
-        <span className="flex h-11 grow items-center justify-center gap-1.5 rounded-full border border-green/40 bg-green/15 text-xs font-semibold text-green-text">
+        <span className="flex h-11 grow items-center justify-center gap-1.5 rounded-full border border-gold/40 bg-gold/15 text-xs font-semibold text-gold-text">
           <PinIcon size={15} />
           Retrait en salle · gratuit
         </span>
