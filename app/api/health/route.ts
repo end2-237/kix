@@ -67,7 +67,16 @@ export async function GET() {
     if (available === 0) {
       report.reason = "le dossier db/migrations n'est pas dans l'image de déploiement";
     } else if (done === 0) {
-      report.reason = "aucune migration appliquée — lance « npm run db:migrate »";
+      // Journal vide mais tables présentes : une migration s'est interrompue
+      // en chemin. Relancer ne sert à rien, elle butera sur l'existant.
+      const half = await db.execute(
+        sql`select to_regclass('mb.venues') is not null as exists`,
+      );
+      const started = Boolean((half as unknown as { exists: boolean }[])[0]?.exists);
+
+      report.reason = started
+        ? "schéma à moitié créé — une migration s'est interrompue. Reprends à zéro : « npx tsx db/reset.ts » puis « npm run db:migrate » (efface tout le schéma mb)"
+        : "aucune migration appliquée — lance « npm run db:migrate »";
     } else if (done < available) {
       report.reason = `${available - done} migration(s) en retard — lance « npm run db:migrate »`;
     }
