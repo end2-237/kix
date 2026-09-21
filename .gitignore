@@ -43,3 +43,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Certificat auto-signé que MediaMTX dépose dans le répertoire courant quand on
+# le lance depuis la racine du dépôt (serveur MoQ). C'est une clé privée : elle
+# n'a rien à faire ici, même jetable.
+auto.crt
+auto.key
