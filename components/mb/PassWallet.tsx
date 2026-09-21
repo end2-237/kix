@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QrCode } from "@/components/mb/QrCode";
+import { rotatePass } from "@/lib/actions";
 import { cn } from "@/lib/cn";
 import { clockFrom } from "@/lib/format";
 import { ClockIcon } from "@/components/icons";
@@ -9,16 +10,46 @@ import type { QrShape } from "@/lib/qr";
 
 export type WalletToken = { id: string; code: string; venue: string; shape: QrShape };
 
-const CYCLE = 300; // le QR se régénère toutes les 5 minutes
+/**
+ * Durée de vie d'un laissez-passer, côté serveur comme à l'écran (lib/pass.ts).
+ * Passé ce délai le QR affiché est refusé au comptoir : il faut le renouveler.
+ */
+const CYCLE = 90;
 
-export function PassWallet({ tokens }: { tokens: WalletToken[] }) {
+export function PassWallet({ tokens: initial }: { tokens: WalletToken[] }) {
+  // Les QR renouvelés vivent à part : le rendu serveur reste la source, on ne
+  // garde en état que ce qui a été re-signé depuis.
+  const [fresh, setFresh] = useState<WalletToken[] | null>(null);
   const [index, setIndex] = useState(0);
   const [left, setLeft] = useState(CYCLE);
+  const tokens = fresh ?? initial;
 
+  // Le compte à rebours n'est pas décoratif : à zéro, on va chercher des QR
+  // fraîchement signés, sinon le gérant scannerait un laissez-passer périmé.
   useEffect(() => {
-    const id = window.setInterval(() => setLeft((s) => (s <= 1 ? CYCLE : s - 1)), 1000);
-    return () => window.clearInterval(id);
-  }, []);
+    let alive = true;
+    const id = window.setInterval(() => {
+      setLeft((s) => {
+        if (s > 1) return s - 1;
+        rotatePass().then((rotated) => {
+          if (!alive || rotated.length === 0) return;
+          setFresh((current) => {
+            const known = current ?? initial;
+            return rotated.map((r) => ({
+              ...r,
+              venue: known.find((t) => t.id === r.id)?.venue ?? known[0]?.venue ?? "",
+            }));
+          });
+        });
+        return CYCLE;
+      });
+    }, 1000);
+
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, [initial]);
 
   const token = tokens[Math.min(index, tokens.length - 1)];
   if (!token) return null;

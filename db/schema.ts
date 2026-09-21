@@ -3,6 +3,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgSchema,
   real,
   text,
@@ -84,9 +85,9 @@ export const purchases = mb.table(
     amount: integer("amount").notNull(),
     // om | momo
     method: text("method").notNull(),
-    // pending | paid | failed
-    status: text("status").notNull().default("paid"),
-    /** Référence du paiement chez l'opérateur (PowerPay) — unique pour l'idempotence. */
+    // pending | paid | failed | expired
+    status: text("status").notNull().default("pending"),
+    /** Référence du paiement (mb.payments.reference) — unique, sert à l'idempotence. */
     reference: text("reference").unique(),
     createdAt: createdAt(),
   },
@@ -141,8 +142,10 @@ export const orders = mb.table(
     method: text("method").notNull().default("momo"),
     // pickup | delivery
     fulfillment: text("fulfillment").notNull().default("pickup"),
-    // pending | paid | ready | done | cancelled
-    status: text("status").notNull().default("paid"),
+    // pending | paid | ready | done | cancelled | failed
+    status: text("status").notNull().default("pending"),
+    /** Référence du paiement (mb.payments.reference). */
+    reference: text("reference").unique(),
     createdAt: createdAt(),
   },
   (t) => [index("orders_user_idx").on(t.userId)],
@@ -191,12 +194,55 @@ export const tickets = mb.table(
       .notNull()
       .references(() => users.id),
     code: text("code").notNull(),
-    // valid | used
+    // pending | valid | used | failed
     status: text("status").notNull().default("valid"),
+    /** Référence du paiement (mb.payments.reference) — nulle pour un billet gratuit. */
+    reference: text("reference").unique(),
     usedAt: timestamp("used_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [index("tickets_user_idx").on(t.userId)],
+);
+
+/**
+ * Paiements Mobile Money.
+ *
+ * Une ligne par tentative, quelle que soit la chose payée : `kind` + `targetId`
+ * désignent la recharge, la commande ou le billet correspondant. `reference` est
+ * ce que l'on transmet à PowerPay et ce que son webhook nous renvoie — unique,
+ * c'est la clé d'idempotence : deux notifications pour le même paiement ne
+ * créditent qu'une fois.
+ */
+export const payments = mb.table(
+  "payments",
+  {
+    id: id(),
+    reference: text("reference").notNull().unique(),
+    // powerpay | simulated
+    provider: text("provider").notNull(),
+    /** Identifiant de la transaction chez l'opérateur. */
+    providerRef: text("provider_ref"),
+    // pack | order | ticket
+    kind: text("kind").notNull(),
+    targetId: uuid("target_id"),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    amount: integer("amount").notNull(),
+    // om | momo
+    method: text("method").notNull(),
+    phone: text("phone").notNull(),
+    // pending | paid | failed | expired
+    status: text("status").notNull().default("pending"),
+    failureReason: text("failure_reason"),
+    /** Dernière charge utile reçue de l'opérateur, telle quelle. */
+    detail: jsonb("detail"),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("payments_user_idx").on(t.userId), index("payments_status_idx").on(t.status)],
 );
 
 export const scans = mb.table(
@@ -257,6 +303,7 @@ export type Venue = typeof venues.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Pack = typeof packs.$inferSelect;
 export type Purchase = typeof purchases.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
 export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;

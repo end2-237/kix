@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -21,6 +20,10 @@ import {
   venues,
 } from "@/db";
 import { POINTS_PER_FREE_TOKEN, XP_PER_TOKEN } from "@/lib/constants";
+import { freshCode, notify, uid } from "@/lib/domain";
+import { looksLikePass, passUrl, verifyPass } from "@/lib/pass";
+import { qrShape, type QrShape } from "@/lib/qr";
+import { refreshPayment, startPayment } from "@/lib/payments/service";
 import {
   createSession,
   destroySession,
@@ -31,25 +34,6 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { getCurrentUser, homeFor, requireRole, requireUser, SESSION_COOKIE } from "@/lib/session";
-
-const uid = () => randomUUID();
-
-async function freshCode(): Promise<string> {
-  for (let i = 0; i < 40; i++) {
-    const code = String(Math.floor(1000 + Math.random() * 9000));
-    const clash = await db
-      .select({ id: tokens.id })
-      .from(tokens)
-      .where(and(eq(tokens.code, code), eq(tokens.status, "active")))
-      .limit(1);
-    if (!clash[0]) return code;
-  }
-  return String(Date.now()).slice(-4);
-}
-
-async function notify(userId: string, title: string, body: string, kind: string, href?: string) {
-  await db.insert(notifications).values({ id: uid(), userId, title, body, kind, href, read: false });
-}
 
 /* ------------------------------------------------------------------ session */
 
@@ -135,10 +119,21 @@ export async function signOut() {
 
 /* ------------------------------------------------------------------- jetons */
 
-export type PurchaseResult = { ok: true; credited: number; balance: number } | { ok: false; error: string };
+export type StartResult =
+  | { ok: true; reference: string; instruction?: string; amount: number }
+  | { ok: false; error: string };
 
-/** Achat d'un pack : crée la recharge puis les jetons, comme le fera le webhook. */
-export async function purchasePack(packId: string, venueId: string, method: "om" | "momo"): Promise<PurchaseResult> {
+/**
+ * Recharge du Master Pass. La ligne d'achat est créée en attente et rien n'est
+ * crédité ici : les jetons n'apparaissent qu'à la confirmation de l'opérateur
+ * (webhook PowerPay, ou interrogation depuis l'app).
+ */
+export async function startPackPurchase(
+  packId: string,
+  venueId: string,
+  method: "om" | "momo",
+  phone: string,
+): Promise<StartResult> {
   const user = await requireUser();
   const pack = (await db.select().from(packs).where(eq(packs.id, packId)).limit(1))[0];
   if (!pack) return { ok: false, error: "Pack introuvable" };
@@ -154,37 +149,56 @@ export async function purchasePack(packId: string, venueId: string, method: "om"
     tokens: credited,
     amount: pack.price,
     method,
-    status: "paid",
+    status: "pending",
   });
 
-  for (let i = 0; i < credited; i++) {
-    await db.insert(tokens).values({
-      id: uid(),
-      code: await freshCode(),
-      userId: user.id,
-      venueId,
-      purchaseId,
-      status: "active",
-    });
+  const started = await startPayment({
+    kind: "pack",
+    userId: user.id,
+    amount: pack.price,
+    method,
+    phone,
+    description: `Master Break · ${credited} jetons`,
+    targetId: purchaseId,
+  });
+
+  if (!started.ok) return started;
+
+  await db.update(purchases).set({ reference: started.reference }).where(eq(purchases.id, purchaseId));
+  return { ok: true, reference: started.reference, instruction: started.instruction, amount: pack.price };
+}
+
+export type PaymentState = {
+  status: "pending" | "paid" | "failed" | "expired";
+  failureReason: string | null;
+  kind: "pack" | "order" | "ticket";
+  targetId: string | null;
+};
+
+/**
+ * Interrogé par l'écran d'attente toutes les deux secondes. Le webhook reste la
+ * source d'autorité ; ceci couvre le cas où il se perd ou arrive en retard.
+ */
+export async function pollPayment(reference: string): Promise<PaymentState | null> {
+  const user = await requireUser();
+  const payment = await refreshPayment(reference, user.id);
+  if (!payment) return null;
+
+  if (payment.status === "paid") {
+    revalidatePath("/app");
+    revalidatePath("/app/pass");
+    revalidatePath("/app/commandes");
+    revalidatePath("/app/billets");
+    revalidatePath("/app/notifications");
+    revalidatePath("/admin/commandes");
   }
 
-  await notify(
-    user.id,
-    `${credited} jetons crédités`,
-    `Paiement de ${pack.price.toLocaleString("fr-FR")} F par ${method === "om" ? "Orange Money" : "MTN MoMo"}.`,
-    "token",
-    "/app/pass",
-  );
-
-  const balance = await db
-    .select({ n: sql<number>`count(*)` })
-    .from(tokens)
-    .where(and(eq(tokens.userId, user.id), eq(tokens.status, "active")));
-
-  revalidatePath("/app");
-  revalidatePath("/app/pass");
-  revalidatePath("/app/notifications");
-  return { ok: true, credited, balance: Number(balance[0]?.n ?? 0) };
+  return {
+    status: payment.status,
+    failureReason: payment.failureReason,
+    kind: payment.kind,
+    targetId: payment.targetId,
+  };
 }
 
 export type ScanResult =
@@ -192,10 +206,33 @@ export type ScanResult =
   | { ok: true; kind: "ticket"; client: string; event: string }
   | { ok: false; error: string };
 
-/** Débit d'un jeton (ou validation d'un billet) depuis Master Scan. */
+/**
+ * Débit d'un jeton (ou validation d'un billet) depuis Master Scan.
+ *
+ * Deux entrées possibles : le laissez-passer signé du QR, qui expire au bout de
+ * 90 secondes, ou le code à quatre chiffres tapé à la main quand le réseau du
+ * client lâche. Dans les deux cas on finit sur le même code, et c'est le
+ * passage du jeton en « utilisé » qui empêche de le rejouer.
+ */
 export async function scanCode(raw: string, method: "qr" | "code" = "code"): Promise<ScanResult> {
   const manager = await requireRole("manager", "admin");
-  const code = raw.trim();
+  let code = raw.trim();
+
+  if (looksLikePass(code)) {
+    const check = verifyPass(code);
+    if (!check.ok) {
+      return {
+        ok: false,
+        error:
+          check.reason === "expired"
+            ? "QR périmé — demande au client de rafraîchir son Master Pass"
+            : "QR invalide — ce n'est pas un Master Pass",
+      };
+    }
+    code = check.claims.c;
+    method = "qr";
+  }
+
   if (!/^\d{4}$/.test(code)) return { ok: false, error: "Code à 4 chiffres attendu" };
 
   const token = (
@@ -285,15 +322,38 @@ export async function scanCode(raw: string, method: "qr" | "code" = "code"): Pro
   return { ok: false, error: `Code ${code} inconnu ou déjà utilisé` };
 }
 
+/**
+ * Renouvelle les laissez-passer du Master Pass. L'écran appelle cette action à
+ * chaque fin de cycle : le QR affiché n'est jamais valable plus de 90 secondes.
+ */
+export async function rotatePass(): Promise<{ id: string; code: string; shape: QrShape }[]> {
+  const user = await requireUser();
+  const rows = await db
+    .select()
+    .from(tokens)
+    .where(and(eq(tokens.userId, user.id), eq(tokens.status, "active")))
+    .orderBy(tokens.createdAt);
+
+  return rows.map((token) => ({
+    id: token.id,
+    code: token.code,
+    shape: qrShape(passUrl({ k: "token", i: token.id, c: token.code, u: user.id })),
+  }));
+}
+
 /* ---------------------------------------------------------------- boutique */
 
 export type CheckoutItem = { slug: string; qty: number };
-export type CheckoutResult = { ok: true; orderId: string; total: number } | { ok: false; error: string };
+export type CheckoutResult =
+  | { ok: true; reference: string; orderId: string; total: number; instruction?: string }
+  | { ok: false; error: string };
 
+/** La commande naît en attente ; le stock n'est décompté qu'au paiement. */
 export async function checkout(
   items: CheckoutItem[],
   fulfillment: "pickup" | "delivery",
   method: "om" | "momo",
+  phone: string,
   venueId?: string,
 ): Promise<CheckoutResult> {
   const user = await requireUser();
@@ -329,53 +389,78 @@ export async function checkout(
     total,
     method,
     fulfillment,
-    status: "paid",
+    status: "pending",
   });
   await db.insert(orderItems).values(lines.map((l) => ({ ...l, orderId })));
-  for (const line of lines) {
-    await db
-      .update(products)
-      .set({ stock: sql`greatest(0, ${products.stock} - ${line.qty})` })
-      .where(eq(products.id, line.productId));
+
+  const started = await startPayment({
+    kind: "order",
+    userId: user.id,
+    amount: total,
+    method,
+    phone,
+    description: `Master Break · commande ${lines.length} article${lines.length > 1 ? "s" : ""}`,
+    targetId: orderId,
+  });
+
+  if (!started.ok) {
+    revalidatePath("/app/commandes");
+    return started;
   }
 
-  await notify(
-    user.id,
-    "Commande confirmée",
-    `${lines.length} article${lines.length > 1 ? "s" : ""} · ${total.toLocaleString("fr-FR")} F · ${
-      fulfillment === "pickup" ? "retrait en salle" : "livraison Douala"
-    }.`,
-    "order",
-    "/app/commandes",
-  );
-
+  await db.update(orders).set({ reference: started.reference }).where(eq(orders.id, orderId));
   revalidatePath("/app/commandes");
-  revalidatePath("/app/shop");
-  revalidatePath("/admin/commandes");
-  return { ok: true, orderId, total };
+  return { ok: true, reference: started.reference, orderId, total, instruction: started.instruction };
 }
 
 /* ------------------------------------------------------------------ billets */
 
-export type TicketResult = { ok: true; code: string } | { ok: false; error: string };
+export type TicketResult =
+  | { ok: true; free: true; code: string }
+  | { ok: true; free: false; reference: string; instruction?: string; amount: number }
+  | { ok: false; error: string };
 
-export async function buyTicket(eventId: string): Promise<TicketResult> {
+/** Billet gratuit : émis tout de suite. Billet payant : émis à la confirmation. */
+export async function buyTicket(eventId: string, phone?: string, method: "om" | "momo" = "momo"): Promise<TicketResult> {
   const user = await requireUser();
   const event = (await db.select().from(events).where(eq(events.id, eventId)).limit(1))[0];
   if (!event) return { ok: false, error: "Événement introuvable" };
   if (event.attendees >= event.capacity) return { ok: false, error: "Complet" };
 
   const code = await freshCode();
-  await db.insert(tickets).values({ id: uid(), eventId, userId: user.id, code, status: "valid" });
-  await db
-    .update(events)
-    .set({ attendees: sql`${events.attendees} + 1` })
-    .where(eq(events.id, eventId));
-  await notify(user.id, `Billet · ${event.title}`, `${event.day} · code ${code}`, "event", "/app/billets");
+  const ticketId = uid();
 
-  revalidatePath(`/app/events/${event.slug}`);
-  revalidatePath("/app/billets");
-  return { ok: true, code };
+  if (event.price <= 0) {
+    await db.insert(tickets).values({ id: ticketId, eventId, userId: user.id, code, status: "valid" });
+    await db
+      .update(events)
+      .set({ attendees: sql`${events.attendees} + 1` })
+      .where(eq(events.id, eventId));
+    await notify(user.id, `Billet · ${event.title}`, `${event.day} · code ${code}`, "event", "/app/billets");
+
+    revalidatePath(`/app/events/${event.slug}`);
+    revalidatePath("/app/billets");
+    return { ok: true, free: true, code };
+  }
+
+  if (!phone) return { ok: false, error: "Numéro Mobile Money requis" };
+
+  await db.insert(tickets).values({ id: ticketId, eventId, userId: user.id, code, status: "pending" });
+
+  const started = await startPayment({
+    kind: "ticket",
+    userId: user.id,
+    amount: event.price,
+    method,
+    phone,
+    description: `Master Break · ${event.title}`,
+    targetId: ticketId,
+  });
+
+  if (!started.ok) return started;
+
+  await db.update(tickets).set({ reference: started.reference }).where(eq(tickets.id, ticketId));
+  return { ok: true, free: false, reference: started.reference, instruction: started.instruction, amount: event.price };
 }
 
 /* ------------------------------------------------------------------ rewards */

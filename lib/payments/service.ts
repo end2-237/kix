@@ -1,0 +1,377 @@
+import "server-only";
+import { randomUUID } from "node:crypto";
+import { and, eq, inArray, lt, sql } from "drizzle-orm";
+import {
+  db,
+  events,
+  orderItems,
+  orders,
+  payments,
+  products,
+  purchases,
+  tickets,
+  tokens,
+  type Payment,
+} from "@/db";
+import { freshCode, notify, uid, type Executor } from "@/lib/domain";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
+import { paymentProvider } from ".";
+import { shortRef } from "./pawapay";
+import { methodLabel, type Outcome, type PaymentMethod, type PaymentStatus } from "./types";
+
+/** Durée pendant laquelle le client peut encore valider sur son téléphone. */
+const WINDOW_MINUTES = 10;
+
+const fcfa = (n: number) => `${n.toLocaleString("fr-FR")} F`;
+
+/**
+ * La référence d'un paiement est un UUID v4 : c'est le `depositId` attendu par
+ * pawaPay, et c'est lui qui rend leur endpoint idempotent. La forme courte
+ * montrée au client (MB-XXXXXXXX) en est dérivée.
+ */
+const newReference = () => randomUUID();
+
+export type PaymentKind = "pack" | "order" | "ticket";
+
+export type StartInput = {
+  kind: PaymentKind;
+  userId: string;
+  amount: number;
+  method: PaymentMethod;
+  phone: string;
+  description: string;
+  /** Ligne métier déjà créée en attente (recharge, commande, billet). */
+  targetId: string;
+};
+
+export type StartResult =
+  | { ok: true; reference: string; status: PaymentStatus; instruction?: string; provider: string }
+  | { ok: false; error: string };
+
+/**
+ * Pousse une demande de débit chez l'opérateur. La ligne métier existe déjà, en
+ * attente : rien n'est crédité ni décompté avant la confirmation.
+ */
+export async function startPayment(input: StartInput): Promise<StartResult> {
+  const phone = normalizePhone(input.phone);
+  if (!isValidPhone(phone)) return { ok: false, error: "Numéro Mobile Money invalide." };
+  if (input.amount <= 0) return { ok: false, error: "Montant invalide." };
+
+  const provider = paymentProvider();
+  const reference = newReference();
+
+  await db.insert(payments).values({
+    id: uid(),
+    reference,
+    provider: provider.name,
+    kind: input.kind,
+    targetId: input.targetId,
+    userId: input.userId,
+    amount: input.amount,
+    method: input.method,
+    phone,
+    status: "pending",
+    expiresAt: new Date(Date.now() + WINDOW_MINUTES * 60_000),
+  });
+
+  const charge = await provider.charge({
+    reference,
+    amount: input.amount,
+    phone,
+    method: input.method,
+    description: input.description,
+    callbackUrl: callbackUrl(),
+  });
+
+  if (!charge.ok) {
+    await settlePayment(reference, { status: "failed", failureReason: charge.error, detail: charge.detail });
+    return { ok: false, error: charge.error };
+  }
+
+  await db
+    .update(payments)
+    .set({ providerRef: charge.providerRef, detail: charge.detail ?? null, updatedAt: new Date() })
+    .where(eq(payments.reference, reference));
+
+  // Certains opérateurs confirment immédiatement (compte de test, solde pré-autorisé).
+  if (charge.status === "paid") {
+    await settlePayment(reference, { status: "paid", providerRef: charge.providerRef, detail: charge.detail });
+  }
+
+  return {
+    ok: true,
+    reference,
+    status: charge.status,
+    instruction: charge.instruction,
+    provider: provider.name,
+  };
+}
+
+function callbackUrl(): string | undefined {
+  const base = process.env.MB_PUBLIC_URL?.trim().replace(/\/+$/, "");
+  return base ? `${base}/api/webhooks/powerpay` : undefined;
+}
+
+/**
+ * Applique un résultat de paiement. Idempotent : c'est le même chemin pour le
+ * webhook, pour l'interrogation depuis l'app et pour l'expiration, et un
+ * paiement déjà réglé ne bouge plus. Le verrou de ligne empêche qu'une
+ * notification et une interrogation simultanées créditent deux fois.
+ */
+export async function settlePayment(reference: string, outcome: Outcome): Promise<Payment | null> {
+  return db.transaction(async (tx) => {
+    const current = (
+      await tx.select().from(payments).where(eq(payments.reference, reference)).limit(1).for("update")
+    )[0];
+    if (!current) return null;
+    if (current.status !== "pending") return current; // déjà réglé : on ne rejoue rien
+
+    if (outcome.status === "pending") return current;
+
+    if (outcome.status === "paid") {
+      await fulfil(tx, current);
+    } else {
+      await cancelTarget(tx, current, outcome.status);
+    }
+
+    const updated = await tx
+      .update(payments)
+      .set({
+        status: outcome.status,
+        providerRef: outcome.providerRef ?? current.providerRef,
+        failureReason: outcome.failureReason ?? null,
+        detail: outcome.detail ?? current.detail,
+        paidAt: outcome.status === "paid" ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(payments.id, current.id))
+      .returning();
+
+    return updated[0] ?? current;
+  });
+}
+
+type Tx = Exclude<Executor, typeof db>;
+
+/* ------------------------------------------------------------------ livraison */
+
+async function fulfil(tx: Tx, payment: Payment) {
+  if (payment.kind === "pack") return fulfilPack(tx, payment);
+  if (payment.kind === "order") return fulfilOrder(tx, payment);
+  if (payment.kind === "ticket") return fulfilTicket(tx, payment);
+}
+
+async function fulfilPack(tx: Tx, payment: Payment) {
+  const purchase = (await tx.select().from(purchases).where(eq(purchases.id, payment.targetId!)).limit(1))[0];
+  if (!purchase || purchase.status === "paid") return;
+
+  await tx.update(purchases).set({ status: "paid" }).where(eq(purchases.id, purchase.id));
+
+  for (let i = 0; i < purchase.tokens; i++) {
+    await tx.insert(tokens).values({
+      id: uid(),
+      code: await freshCode(tx),
+      userId: purchase.userId,
+      venueId: purchase.venueId,
+      purchaseId: purchase.id,
+      status: "active",
+    });
+  }
+
+  await notify(
+    purchase.userId,
+    `${purchase.tokens} jetons crédités`,
+    `Paiement de ${fcfa(purchase.amount)} par ${methodLabel[payment.method as PaymentMethod]} · réf. ${shortRef(payment.reference)}.`,
+    "token",
+    "/app/pass",
+    tx,
+  );
+}
+
+async function fulfilOrder(tx: Tx, payment: Payment) {
+  const order = (await tx.select().from(orders).where(eq(orders.id, payment.targetId!)).limit(1))[0];
+  if (!order || order.status !== "pending") return;
+
+  await tx.update(orders).set({ status: "paid" }).where(eq(orders.id, order.id));
+
+  const lines = await tx.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+  for (const line of lines) {
+    await tx
+      .update(products)
+      .set({ stock: sql`greatest(0, ${products.stock} - ${line.qty})` })
+      .where(eq(products.id, line.productId));
+  }
+
+  await notify(
+    order.userId,
+    "Commande confirmée",
+    `${lines.length} article${lines.length > 1 ? "s" : ""} · ${fcfa(order.total)} · ${
+      order.fulfillment === "pickup" ? "retrait en salle" : "livraison Douala"
+    }.`,
+    "order",
+    "/app/commandes",
+    tx,
+  );
+}
+
+async function fulfilTicket(tx: Tx, payment: Payment) {
+  const ticket = (await tx.select().from(tickets).where(eq(tickets.id, payment.targetId!)).limit(1))[0];
+  if (!ticket || ticket.status !== "pending") return;
+
+  const event = (await tx.select().from(events).where(eq(events.id, ticket.eventId)).limit(1))[0];
+
+  // La salle a pu se remplir pendant que le client validait sur son téléphone.
+  if (event && event.attendees >= event.capacity) {
+    await tx.update(tickets).set({ status: "failed" }).where(eq(tickets.id, ticket.id));
+    await notify(
+      ticket.userId,
+      `Complet · ${event.title}`,
+      "L'événement s'est rempli pendant le paiement. Aucun montant n'a été retenu.",
+      "event",
+      "/app/events",
+      tx,
+    );
+    return;
+  }
+
+  await tx.update(tickets).set({ status: "valid" }).where(eq(tickets.id, ticket.id));
+  await tx
+    .update(events)
+    .set({ attendees: sql`${events.attendees} + 1` })
+    .where(eq(events.id, ticket.eventId));
+
+  await notify(
+    ticket.userId,
+    `Billet · ${event?.title ?? "événement"}`,
+    `${event?.day ?? ""} · code ${ticket.code}`,
+    "event",
+    "/app/billets",
+    tx,
+  );
+}
+
+async function cancelTarget(tx: Tx, payment: Payment, status: "failed" | "expired") {
+  if (!payment.targetId) return;
+  if (payment.kind === "pack") {
+    await tx.update(purchases).set({ status }).where(eq(purchases.id, payment.targetId));
+  } else if (payment.kind === "order") {
+    await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, payment.targetId));
+  } else if (payment.kind === "ticket") {
+    await tx.update(tickets).set({ status: "failed" }).where(eq(tickets.id, payment.targetId));
+  }
+}
+
+/* --------------------------------------------------------------- interrogation */
+
+export type PaymentView = {
+  reference: string;
+  status: PaymentStatus;
+  amount: number;
+  method: PaymentMethod;
+  phone: string;
+  failureReason: string | null;
+  targetId: string | null;
+  kind: PaymentKind;
+  /** Forme courte affichable : MB-XXXXXXXX. */
+  short: string;
+};
+
+const view = (p: Payment): PaymentView => ({
+  reference: p.reference,
+  short: shortRef(p.reference),
+  status: p.status as PaymentStatus,
+  amount: p.amount,
+  method: p.method as PaymentMethod,
+  phone: p.phone,
+  failureReason: p.failureReason,
+  targetId: p.targetId,
+  kind: p.kind as PaymentKind,
+});
+
+/**
+ * État d'un paiement pour le compte donné. Tant qu'il est en attente, on
+ * interroge l'opérateur : le webhook peut se perdre, l'app ne doit pas rester
+ * bloquée pour autant.
+ */
+export async function refreshPayment(reference: string, userId: string): Promise<PaymentView | null> {
+  const current = (
+    await db
+      .select()
+      .from(payments)
+      .where(and(eq(payments.reference, reference), eq(payments.userId, userId)))
+      .limit(1)
+  )[0];
+  if (!current) return null;
+  if (current.status !== "pending") return view(current);
+
+  if (current.expiresAt.getTime() < Date.now()) {
+    const expired = await settlePayment(reference, {
+      status: "expired",
+      failureReason: "Aucune validation reçue à temps.",
+    });
+    return expired ? view(expired) : null;
+  }
+
+  const result = await paymentProvider().verify({
+    reference: current.reference,
+    providerRef: current.providerRef,
+    phone: current.phone,
+    amount: current.amount,
+    method: current.method as PaymentMethod,
+    createdAt: current.createdAt,
+  });
+
+  if (!result.ok || result.status === "pending") return view(current);
+
+  const settled = await settlePayment(reference, result);
+  return settled ? view(settled) : view(current);
+}
+
+/**
+ * Règle un paiement d'après ce que dit l'opérateur, sans rien croire de ce qui
+ * nous a été envoyé. C'est le chemin du callback : la notification ne sert qu'à
+ * nous donner la référence à vérifier.
+ */
+export async function confirmFromProvider(reference: string): Promise<Payment | null> {
+  const current = (
+    await db.select().from(payments).where(eq(payments.reference, reference)).limit(1)
+  )[0];
+  if (!current) return null;
+  if (current.status !== "pending") return current;
+
+  const result = await paymentProvider().verify({
+    reference: current.reference,
+    providerRef: current.providerRef,
+    phone: current.phone,
+    amount: current.amount,
+    method: current.method as PaymentMethod,
+    createdAt: current.createdAt,
+  });
+
+  if (!result.ok) return current;
+  return (await settlePayment(reference, result)) ?? current;
+}
+
+/** Passe en « expiré » les paiements que plus personne n'interroge. */
+export async function expireStalePayments(): Promise<number> {
+  const stale = await db
+    .select({ reference: payments.reference })
+    .from(payments)
+    .where(and(eq(payments.status, "pending"), lt(payments.expiresAt, new Date())))
+    .limit(200);
+
+  for (const row of stale) {
+    await settlePayment(row.reference, { status: "expired", failureReason: "Délai de validation dépassé." });
+  }
+  return stale.length;
+}
+
+/** Paiements en attente d'un client, pour réafficher l'écran d'attente. */
+export async function pendingPayments(userId: string): Promise<PaymentView[]> {
+  const rows = await db
+    .select()
+    .from(payments)
+    .where(and(eq(payments.userId, userId), inArray(payments.status, ["pending"])))
+    .orderBy(payments.createdAt);
+  return rows.map(view);
+}

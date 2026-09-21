@@ -78,11 +78,53 @@ changement de rôle et de statut).
 
 ### La boucle jeton, de bout en bout
 
-Une recharge crée une ligne `purchases` et autant de `tokens` ; le Master Pass
-affiche le QR (`mb://jeton/<code>`) et son code de secours ; Master Scan débite le
-jeton, écrit un `scan`, crédite les points du client et lui envoie une
-notification. Le solde client, la recette du gérant et le tableau de bord admin
-bougent dans la même seconde.
+Une recharge crée une ligne `purchases` **en attente** ; rien n'est crédité tant
+que l'opérateur n'a pas confirmé. À la confirmation, les `tokens` apparaissent ;
+le Master Pass affiche un QR signé et son code de secours ; Master Scan vérifie
+la signature, débite le jeton, écrit un `scan`, crédite les points du client et
+lui envoie une notification. Le solde client, la recette du gérant et le tableau
+de bord admin bougent dans la même seconde.
+
+## Paiements — pawaPay
+
+Recharges, commandes et billets passent par le même chemin : une ligne
+`mb.payments` par tentative, `kind` + `target_id` désignant ce qui est payé.
+
+1. L'app crée la ligne métier **en attente** et pousse une demande de débit ;
+2. le client valide sur son téléphone (#150*50# pour Orange Money, *126# pour MoMo) ;
+3. pawaPay notifie `/api/webhooks/pawapay`, et l'écran d'attente interroge aussi
+   le serveur toutes les deux secondes — si la notification se perd, le client
+   n'est pas bloqué pour autant ;
+4. à la confirmation seulement : jetons crédités, stock décompté, billet émis.
+
+La référence d'un paiement **est** le `depositId` pawaPay (un UUID v4) : leur
+endpoint est idempotent, et le nôtre aussi — `settlePayment` verrouille la ligne
+et ne rejoue jamais un paiement déjà réglé. Une notification répétée ne crédite
+donc rien deux fois. C'est vérifié par les tests.
+
+**Sur la notification, rien n'est cru sur parole.** La route n'en retient que
+l'identifiant du dépôt, puis redemande le statut réel à pawaPay avec notre jeton
+d'API : une notification forgée ne peut rien créditer. Le `Content-Digest`, quand
+il est présent, est vérifié en plus.
+
+Sans `PAWAPAY_API_TOKEN`, l'app utilise un encaisseur de démonstration : même
+parcours, même écran d'attente, même webhook signé, aucun argent qui bouge. Deux
+numéros de test s'y comportent différemment — `…000` échoue (solde insuffisant),
+`…999` reste en attente (client qui ne valide jamais).
+
+Reste à faire côté pawaPay : renseigner l'URL de callback dans leur tableau de
+bord et vérifier les codes opérateurs camerounais (`ORANGE_CMR`,
+`MTN_MOMO_CMR`), tous deux pilotés par l'environnement.
+
+## Master Pass — le QR est signé
+
+Le QR ne porte plus le code du jeton, mais un laissez-passer signé
+(`mb://pass/mb1.<charge>.<signature>`, HMAC-SHA256) qui **expire au bout de 90
+secondes**. L'écran le renouvelle à chaque fin de cycle. Photographier l'écran
+d'un joueur ne sert donc plus à rien, et un QR rejoué est refusé au comptoir —
+le jeton étant de toute façon passé à « utilisé ». Le code à quatre chiffres
+reste la porte de secours quand le réseau lâche. Les billets suivent la même
+mécanique, avec une validité couvrant la soirée.
 
 ## Stack
 
@@ -102,7 +144,8 @@ bougent dans la même seconde.
 app/            routes ; app/app/* = client, app/gerant = caisse, app/admin = back-office
 components/     ui/ (boutons, cartes, snackbar, thème), mb/, shop/, admin/, site/
 db/             schema.ts, migrations/, seed.ts, client.ts, env.ts, reset.ts
-lib/            queries.ts (lectures), actions.ts (mutations), auth.ts, password.ts, session.ts, cart.ts
+lib/            queries.ts (lectures), actions.ts (mutations), auth.ts, session.ts, pass.ts
+lib/payments/   pawapay.ts, simulated.ts, service.ts (états, idempotence, livraison)
 design/         maquettes d'origine (voir design/README.md)
 ```
 
@@ -127,6 +170,10 @@ Variables (voir `.env.example`) :
 | `DATABASE_POOL` | taille du pool, 10 par défaut |
 | `MB_SKIP_SEED` | `1` pour ne jamais charger le jeu de démonstration |
 | `MB_DEMO_PASSWORD` | mot de passe des comptes de démonstration au seed |
+| `PAWAPAY_API_TOKEN` | jeton d'API pawaPay ; absent, l'encaisseur de démonstration prend la main |
+| `PAWAPAY_ENV` | `sandbox` (défaut) ou `production` |
+| `MB_QR_SECRET` | clé de signature des laissez-passer du Master Pass |
+| `MB_PUBLIC_URL` | URL publique, pour les liens sortants |
 
 La base vit désormais hors du conteneur : plus de volume à monter, le
 redéploiement ne perd plus rien.
@@ -148,6 +195,8 @@ filtre sur `mb` pour que `db:generate` ignore les tables des autres apps.
 | --- | --- |
 | `db/migrations/0000_schema_mb.sql` | création du schéma `mb` et de ses 13 tables |
 | `db/migrations/0001_rls.sql` | Row Level Security, politiques et droits |
+| `db/migrations/0002_payments.sql` | table `mb.payments`, références et statuts en attente |
+| `db/migrations/0003_payments_rls.sql` | RLS de `mb.payments` |
 
 Mise à jour d'une instance existante :
 
@@ -186,5 +235,5 @@ migrés. Le panier (`lib/cart.ts`) vit encore dans le navigateur.
 ## Données d'exemple
 
 Prix, salles, personnes et statistiques sont fictifs, y compris les valeurs entre
-crochets de l'accueil web. Le paiement Mobile Money est simulé côté serveur : il
-reste à brancher les API Orange Money / MTN MoMo et leurs webhooks.
+crochets de l'accueil web. Tant que les clés pawaPay ne sont pas renseignées,
+aucun argent ne bouge : le parcours, lui, est le vrai.

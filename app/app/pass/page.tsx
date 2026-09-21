@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { ArrowRightIcon, ClockIcon, CoinIcon, QrIcon, TrophyIcon } from "@/components/icons";
 import { getActiveTokens, getActivity, getVenues } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
+import { passUrl } from "@/lib/pass";
 import { qrShape } from "@/lib/qr";
 import { cn } from "@/lib/cn";
 import { pad2 } from "@/lib/format";
@@ -23,7 +24,7 @@ export default async function PassPage() {
     id: token.id,
     code: token.code,
     venue: venues.find((v) => v.id === token.venueId)?.name ?? "Toutes les salles partenaires",
-    shape: qrShape(`mb://jeton/${token.code}`),
+    shape: qrShape(passUrl({ k: "token", i: token.id, c: token.code, u: user.id })),
   }));
   const current = tokens[0];
   const currentVenue = venues.find((v) => v.id === current?.venueId);

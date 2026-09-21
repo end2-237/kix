@@ -40,5 +40,11 @@ export async function bootstrapDatabase() {
   const { purgeExpiredSessions } = await import("@/lib/auth");
   await purgeExpiredSessions();
 
+  // Un paiement laissé en attente (onglet fermé, webhook perdu) doit finir
+  // quelque part : on le passe en expiré au démarrage.
+  const { expireStalePayments } = await import("@/lib/payments/service");
+  const expired = await expireStalePayments();
+  if (expired > 0) console.log(`[mb] ${expired} paiement(s) expiré(s)`);
+
   await client.end();
 }

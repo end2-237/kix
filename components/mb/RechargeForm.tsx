@@ -2,47 +2,39 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { MomoCheckout, type Method } from "@/components/mb/MomoCheckout";
 import { Card } from "@/components/ui/Card";
 import { useSnackbar } from "@/components/ui/Snackbar";
-import { ArrowRightIcon, CheckIcon, LockIcon } from "@/components/icons";
-import { purchasePack } from "@/lib/actions";
+import { ArrowRightIcon, CheckIcon } from "@/components/icons";
+import { startPackPurchase } from "@/lib/actions";
 import { cn } from "@/lib/cn";
 import { f, fcfa } from "@/lib/format";
 import type { Pack, Venue } from "@/db";
 
-type Status = "idle" | "pending" | "done";
-
-export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[] }) {
+export function RechargeForm({ packs, venues, phone }: { packs: Pack[]; venues: Venue[]; phone: string }) {
   const { notify } = useSnackbar();
-  const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const [pack, setPack] = useState<Pack>(packs.find((p) => p.badge) ?? packs[0]);
   const [venue, setVenue] = useState<Venue>(venues[0]);
-  const [method, setMethod] = useState<"om" | "momo">("momo");
-  const [status, setStatus] = useState<Status>("idle");
-  const [credited, setCredited] = useState(0);
+  const [method, setMethod] = useState<Method>("momo");
+  const [done, setDone] = useState(false);
 
-  function pay() {
-    setStatus("pending");
-    // Le paiement Mobile Money est simulé : on attend la confirmation « côté
-    // téléphone » puis on crédite, comme le fera le webhook OM / MoMo.
-    window.setTimeout(() => {
-      startTransition(async () => {
-        const result = await purchasePack(pack.id, venue.id, method);
-        if (!result.ok) {
-          setStatus("idle");
-          notify("Paiement refusé", { detail: result.error, tone: "warn" });
-          return;
-        }
-        setCredited(result.credited);
-        setStatus("done");
-        notify(`${result.credited} jetons crédités`, { detail: `Solde : ${result.balance} jetons` });
-      });
-    }, 1500);
+  const credited = pack.tokens + pack.bonus;
+
+  const start = async (phoneNumber: string, chosen: Method) => {
+    setMethod(chosen);
+    return startPackPurchase(pack.id, venue.id, chosen, phoneNumber);
+  };
+
+  function onPaid() {
+    setDone(true);
+    notify(`${credited} jetons crédités`, { detail: `${fcfa(pack.price)} · ${venue.name}` });
+    router.refresh();
   }
 
-  if (status === "done") {
+  if (done) {
     return (
       <Card tone="gold" shape="panel" className="mt-4 flex flex-col items-center gap-4 px-5 py-9 text-center lg:mx-auto lg:max-w-xl lg:py-14">
         <span className="pop grid h-16 w-16 place-items-center rounded-full bg-gold text-gold-ink shadow-[0_0_50px_rgba(217,180,80,0.45)]">
@@ -141,84 +133,14 @@ export function RechargeForm({ packs, venues }: { packs: Pack[]; venues: Venue[]
       </div>
 
       <div className="flex flex-col gap-3.5 lg:sticky lg:top-8 lg:gap-6">
-      <div className="flex flex-col gap-2.5">
-        <h2 className="text-base">Paiement Mobile Money</h2>
-        <div className="flex gap-2.5">
-          <MethodTile active={method === "om"} onClick={() => setMethod("om")} code="OM" name="Orange Money" />
-          <MethodTile active={method === "momo"} onClick={() => setMethod("momo")} code="MoMo" name="MTN MoMo" />
-        </div>
-        <label className="glass flex h-13 items-center gap-3 rounded-full px-4">
-          <span className="text-sm text-muted">+237</span>
-          <span className="h-6 w-px bg-line" />
-          <input
-            type="tel"
-            inputMode="tel"
-            defaultValue="6 77 45 12 08"
-            aria-label="Numéro Mobile Money"
-            className="w-full grow bg-transparent text-[15px] tracking-[0.04em] outline-none placeholder:text-faint"
-          />
-          <CheckIcon size={17} className="text-gold-text" />
-        </label>
-      </div>
-
-      <Card tone="dashed" shape="square" className="flex items-center justify-between px-4 py-3.5">
-        <span className="flex flex-col gap-0.5">
-          <span className="text-xs text-muted">Total à payer</span>
-          <span className="text-[11px] text-muted">Frais de service inclus</span>
-        </span>
-        <span className="text-[22px] font-bold tracking-[-0.03em]">{fcfa(pack.price)}</span>
-      </Card>
-
-      <div className="mt-1 flex flex-col gap-2.5">
-        <Button size="lg" onClick={pay} loading={status === "pending" || pending} className="w-full">
-          {status === "pending" || pending ? "Demande envoyée…" : `Payer ${fcfa(pack.price)}`}
-          {status === "pending" || pending ? null : <ArrowRightIcon size={18} />}
-        </Button>
-        <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted">
-          <LockIcon size={12} />
-          {status === "pending"
-            ? "Valide la demande sur ton téléphone"
-            : "Confirme la demande Mobile Money sur ton téléphone"}
-        </p>
-      </div>
+      <MomoCheckout
+        amount={pack.price}
+        defaultPhone={phone}
+        start={start}
+        onPaid={onPaid}
+        hint={`${credited} jetons · ${venue.name}`}
+      />
       </div>
     </div>
-  );
-}
-
-function MethodTile({
-  active,
-  onClick,
-  code,
-  name,
-}: {
-  active: boolean;
-  onClick: () => void;
-  code: string;
-  name: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "press flex grow items-center gap-2.5 rounded-card px-3.5 py-3 text-left transition",
-        active ? "border-[1.5px] border-gold/55 bg-gold/10" : "glass hover:bg-surface-2",
-      )}
-    >
-      <span
-        className={cn(
-          "grid h-9 w-9 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
-          active ? "bg-gold/20 text-gold-text" : "bg-surface-2 text-ink",
-        )}
-      >
-        {code}
-      </span>
-      <span className="flex flex-col">
-        <span className="text-[13px] font-medium">{name}</span>
-        <span className={cn("text-[11px]", active ? "text-gold-text" : "text-muted")}>
-          {active ? "Sélectionné" : "6 9x xx xx xx"}
-        </span>
-      </span>
-    </button>
   );
 }

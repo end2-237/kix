@@ -13,7 +13,12 @@ import { cn } from "@/lib/cn";
 type Feedback = { ok: boolean; title: string; detail: string; seq: number } | null;
 
 /** Console de scan : QR au-dessus, code de secours à 4 chiffres en dessous. */
-export function ScanConsole({ sampleCode }: { sampleCode?: string }) {
+/**
+ * `samplePass` est un laissez-passer signé, identique à celui que le téléphone
+ * du client affiche en QR : le bouton de démonstration emprunte donc le même
+ * chemin de vérification qu'une vraie lecture au comptoir.
+ */
+export function ScanConsole({ samplePass }: { samplePass?: string }) {
   const router = useRouter();
   const { notify } = useSnackbar();
   const [pending, startTransition] = useTransition();
@@ -129,8 +134,13 @@ export function ScanConsole({ sampleCode }: { sampleCode?: string }) {
 
       <div className="flex flex-wrap items-center gap-3">
         <button
-          onClick={() => (sampleCode ? validate(sampleCode, "qr") : setFeedback({ ok: false, title: "Refusé", detail: "Aucun jeton actif à scanner", seq: ++seq.current }))}
+          onClick={() =>
+            samplePass
+              ? validate(samplePass, "qr")
+              : setFeedback({ ok: false, title: "Refusé", detail: "Aucun jeton actif à scanner", seq: ++seq.current })
+          }
           disabled={pending}
+          data-pass={samplePass}
           className="glass press flex h-11 items-center gap-2 rounded-full px-4 text-[13px] text-dim transition hover:bg-surface-2 hover:text-ink"
         >
           <QrIcon size={16} />

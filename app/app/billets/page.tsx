@@ -7,6 +7,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ArrowRightIcon, TicketIcon } from "@/components/icons";
 import { getTickets } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
+import { passUrl, TICKET_TTL } from "@/lib/pass";
 import { qrShape } from "@/lib/qr";
 import { f } from "@/lib/format";
 
@@ -60,7 +61,12 @@ export default async function BilletsPage() {
 
           <div className="flex items-center gap-4 p-4">
             <div className="rounded-card bg-white p-2">
-              <QrCode shape={qrShape(`mb://billet/${ticket.code}`)} size={104} />
+              <QrCode
+                shape={qrShape(
+                  passUrl({ k: "ticket", i: ticket.id, c: ticket.code, u: user.id }, TICKET_TTL),
+                )}
+                size={104}
+              />
             </div>
             <div className="flex grow flex-col gap-1.5">
               <span className="label-caps">Code d&apos;entrée</span>

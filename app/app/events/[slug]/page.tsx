@@ -135,7 +135,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <p className="text-[13px] leading-5 text-dim">
           Place gardée jusqu&apos;à l&apos;heure du check-in. Le pass QR arrive dans « Mes billets ».
         </p>
-        <TicketButton eventId={event.id} price={event.price} owned={owned} />
+        <TicketButton eventId={event.id} eventTitle={event.title} price={event.price} phone={user.phone} owned={owned} />
         <span className="text-[11px] text-muted">
           {Math.max(0, event.capacity - event.attendees)} places restantes sur {event.capacity}
         </span>
@@ -144,7 +144,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-full max-w-[430px] px-5 lg:hidden">
         <div className="glass-strong rounded-full px-4 py-3">
-          <TicketButton eventId={event.id} price={event.price} owned={owned} />
+          <TicketButton eventId={event.id} eventTitle={event.title} price={event.price} phone={user.phone} owned={owned} />
         </div>
       </div>
     </div>

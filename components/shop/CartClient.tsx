@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { MomoCheckout, type Method } from "@/components/mb/MomoCheckout";
 import { Card } from "@/components/ui/Card";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { ArrowRightIcon, CartIcon, CheckIcon, MinusIcon, PinIcon, PlusIcon, TruckIcon } from "@/components/icons";
@@ -15,12 +16,20 @@ import { f, fcfa } from "@/lib/format";
 import { DELIVERY_FEE } from "@/lib/constants";
 import type { Product, Venue } from "@/db";
 
-export function CartClient({ products, venues }: { products: Product[]; venues: Venue[] }) {
+export function CartClient({
+  products,
+  venues,
+  phone,
+}: {
+  products: Product[];
+  venues: Venue[];
+  phone: string;
+}) {
   const { list, count } = useCart();
   const { notify } = useSnackbar();
-  const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup");
-  const [method, setMethod] = useState<"om" | "momo">("momo");
+  const [method, setMethod] = useState<Method>("momo");
   const [done, setDone] = useState<{ total: number } | null>(null);
 
   const lines = list
@@ -31,22 +40,24 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
   const shipping = fulfillment === "delivery" ? DELIVERY_FEE : 0;
   const total = subtotal + shipping;
 
-  function pay() {
-    startTransition(async () => {
-      const result = await checkout(
-        lines.map((l) => ({ slug: l.product.slug, qty: l.qty })),
-        fulfillment,
-        method,
-        venues[0]?.id,
-      );
-      if (!result.ok) {
-        notify("Commande refusée", { detail: result.error, tone: "warn" });
-        return;
-      }
-      clearCart();
-      setDone({ total: result.total });
-      notify("Commande confirmée", { detail: fcfa(result.total) });
-    });
+  // Le panier n'est vidé qu'à la confirmation : un paiement refusé laisse le
+  // client avec ses articles, prêt à réessayer.
+  const start = async (phoneNumber: string, chosen: Method) => {
+    setMethod(chosen);
+    return checkout(
+      lines.map((l) => ({ slug: l.product.slug, qty: l.qty })),
+      fulfillment,
+      chosen,
+      phoneNumber,
+      venues[0]?.id,
+    );
+  };
+
+  function onPaid() {
+    clearCart();
+    setDone({ total });
+    notify("Commande confirmée", { detail: fcfa(total) });
+    router.refresh();
   }
 
   if (done) {
@@ -153,14 +164,6 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5">
-        <h2 className="text-base">Paiement</h2>
-        <div className="flex gap-2.5">
-          <Toggle active={method === "om"} onClick={() => setMethod("om")} label="Orange Money" />
-          <Toggle active={method === "momo"} onClick={() => setMethod("momo")} label="MTN MoMo" />
-        </div>
-      </div>
-
       <Card shape="square" tone="dashed" className="flex flex-col gap-2 px-4 py-3.5">
         <Line label="Sous-total" value={fcfa(subtotal)} />
         <Line label={fulfillment === "pickup" ? "Retrait en salle" : "Livraison Douala"} value={shipping ? fcfa(shipping) : "Gratuit"} />
@@ -172,10 +175,13 @@ export function CartClient({ products, venues }: { products: Product[]; venues: 
         </div>
       </Card>
 
-      <Button size="lg" className="w-full" onClick={pay} loading={pending}>
-        {pending ? "Paiement en cours…" : `Payer ${fcfa(total)}`}
-        {pending ? null : <ArrowRightIcon size={18} />}
-      </Button>
+      <MomoCheckout
+        amount={total}
+        defaultPhone={phone}
+        start={start}
+        onPaid={onPaid}
+        hint={fulfillment === "pickup" ? "Retrait en salle" : "Livraison Douala"}
+      />
       </div>
     </div>
   );

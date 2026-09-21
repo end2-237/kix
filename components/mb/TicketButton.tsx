@@ -2,27 +2,35 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { MomoCheckout, type Method } from "@/components/mb/MomoCheckout";
+import { Sheet } from "@/components/ui/Sheet";
+import { Spinner } from "@/components/ui/Spinner";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { CheckIcon, TicketIcon } from "@/components/icons";
-import { Spinner } from "@/components/ui/Spinner";
 import { buyTicket } from "@/lib/actions";
 import { fcfa } from "@/lib/format";
 
 export function TicketButton({
   eventId,
+  eventTitle,
   price,
+  phone,
   owned = false,
 }: {
   eventId: string;
+  eventTitle: string;
   price: number;
+  phone: string;
   owned?: boolean;
 }) {
   const { notify } = useSnackbar();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [taken, setTaken] = useState(owned);
+  const [open, setOpen] = useState(false);
 
-  function take() {
+  /** Billet gratuit : pas de paiement, on l'émet tout de suite. */
+  function takeFree() {
     startTransition(async () => {
       const result = await buyTicket(eventId);
       if (!result.ok) {
@@ -30,29 +38,58 @@ export function TicketButton({
         return;
       }
       setTaken(true);
-      notify("Billet réservé", { detail: `Code d'entrée ${result.code}`, tone: "jade" });
+      if (result.free) notify("Billet réservé", { detail: `Code d'entrée ${result.code}`, tone: "jade" });
       router.refresh();
     });
   }
 
+  const start = async (phoneNumber: string, method: Method) => {
+    const result = await buyTicket(eventId, phoneNumber, method);
+    if (!result.ok) return result;
+    if (result.free) return { ok: false as const, error: "Billet gratuit : aucun paiement nécessaire." };
+    return { ok: true as const, reference: result.reference, instruction: result.instruction };
+  };
+
+  function onPaid() {
+    setOpen(false);
+    setTaken(true);
+    notify("Billet confirmé", { detail: `${eventTitle} · ${fcfa(price)}`, tone: "jade" });
+    router.refresh();
+  }
+
+  const action = taken ? () => router.push("/app/billets") : price > 0 ? () => setOpen(true) : takeFree;
+
   return (
-    <div className="flex items-center gap-3.5">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[11px] text-muted">Billet joueur</span>
-        <span className="text-xl font-bold tracking-[-0.03em]">{fcfa(price)}</span>
+    <>
+      <div className="flex items-center gap-3.5">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px] text-muted">Billet joueur</span>
+          <span className="text-xl font-bold tracking-[-0.03em]">{price > 0 ? fcfa(price) : "Gratuit"}</span>
+        </div>
+        <button
+          onClick={action}
+          disabled={pending}
+          className={
+            taken
+              ? "pop press flex h-12 grow items-center justify-center gap-2 rounded-full border border-gold/45 bg-gold/15 text-sm font-semibold text-gold-text"
+              : "press flex h-12 grow items-center justify-center gap-2 rounded-full bg-gold text-sm font-semibold text-gold-ink transition hover:brightness-105"
+          }
+        >
+          {pending ? <Spinner size={17} /> : taken ? <CheckIcon size={18} /> : <TicketIcon size={18} />}
+          {pending ? "Réservation…" : taken ? "Voir mon billet" : "Prendre mon billet"}
+        </button>
       </div>
-      <button
-        onClick={taken ? () => router.push("/app/billets") : take}
-        disabled={pending}
-        className={
-          taken
-            ? "pop press flex h-12 grow items-center justify-center gap-2 rounded-full border border-gold/45 bg-gold/15 text-sm font-semibold text-gold-text"
-            : "press flex h-12 grow items-center justify-center gap-2 rounded-full bg-gold text-sm font-semibold text-gold-ink transition hover:brightness-105"
-        }
-      >
-        {pending ? <Spinner size={17} /> : taken ? <CheckIcon size={18} /> : <TicketIcon size={18} />}
-        {pending ? "Réservation…" : taken ? "Voir mon billet" : "Prendre mon billet"}
-      </button>
-    </div>
+
+      <Sheet open={open} onClose={() => setOpen(false)} title={eventTitle}>
+        <MomoCheckout
+          amount={price}
+          defaultPhone={phone}
+          start={start}
+          onPaid={onPaid}
+          hint="Billet joueur · place gardée jusqu'au check-in"
+          label={`Payer mon billet · ${fcfa(price)}`}
+        />
+      </Sheet>
+    </>
   );
 }

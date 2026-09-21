@@ -17,6 +17,7 @@ import {
 } from "@/components/icons";
 import { getRecentScans, getVenueStats } from "@/lib/queries";
 import { requireRole } from "@/lib/session";
+import { passUrl } from "@/lib/pass";
 import { signOut } from "@/lib/actions";
 import { cn } from "@/lib/cn";
 import { group } from "@/lib/format";
@@ -41,14 +42,18 @@ export default async function GerantPage() {
     getRecentScans(venueId, 5),
   ]);
 
-  // Un jeton actif de la salle, pour le bouton « simuler un scan ».
+  // Un jeton actif de la salle, pour le bouton « simuler un scan » : on signe un
+  // vrai laissez-passer, comme celui qu'affiche le téléphone du client.
   const sample = (
     await db
-      .select({ code: tokens.code })
+      .select({ id: tokens.id, code: tokens.code, userId: tokens.userId })
       .from(tokens)
       .where(and(eq(tokens.status, "active"), venueId ? eq(tokens.venueId, venueId) : eq(tokens.status, "active")))
       .limit(1)
   )[0];
+  const samplePass = sample
+    ? passUrl({ k: "token", i: sample.id, c: sample.code, u: sample.userId })
+    : undefined;
 
   const venue = stats?.venue;
 
@@ -179,7 +184,7 @@ export default async function GerantPage() {
         </div>
 
         <div className="grid min-h-0 gap-4 lg:grow lg:grid-cols-2">
-          <ScanConsole sampleCode={sample?.code} />
+          <ScanConsole samplePass={samplePass} />
 
           <Card shape="panel" className="flex min-h-0 flex-col gap-3.5 p-5">
             <div className="flex items-center justify-between">
