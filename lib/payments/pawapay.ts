@@ -48,10 +48,39 @@ const config = () => {
 
 export const pawapayConfigured = () => Boolean(config().token);
 
-/** `customerMessage` doit faire entre 4 et 22 caractères — pawaPay refuse sinon. */
+/**
+ * Le libellé que le client voit sur son téléphone au moment de valider.
+ *
+ * pawaPay n'y accepte *que* des lettres, des chiffres et des espaces, entre 4
+ * et 22 caractères. Nos descriptions, elles, portent un point médian
+ * (« Master Break · 3 jetons ») et parfois un titre d'événement accentué :
+ * l'API refusait la demande avant même de joindre l'opérateur.
+ *
+ * On nettoie donc ici, au seul endroit par lequel tout passe, plutôt que dans
+ * chaque appelant — un futur libellé ne peut pas rouvrir la panne.
+ *
+ * Les accents sont dépliés avant d'être retirés : « Réservation » devient
+ * « Reservation », et non « R servation ».
+ */
+const LIMITE = 22;
+
 export function customerMessage(text: string): string {
-  const clean = text.replace(/\s+/g, " ").trim().slice(0, 22);
-  return clean.length >= 4 ? clean : "Master Break";
+  const propre = text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^A-Za-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (propre.length <= LIMITE) return propre.length >= 4 ? propre : "Master Break";
+
+  // Couper au dernier mot entier plutôt qu'en plein milieu : « Billet Finale d »
+  // n'inspire pas confiance au moment d'autoriser un débit. Si le premier mot
+  // dépasse à lui seul, on tranche quand même — mieux vaut tronqué que refusé.
+  const dur = propre.slice(0, LIMITE);
+  const espace = dur.lastIndexOf(" ");
+  const coupe = espace >= 4 ? dur.slice(0, espace) : dur;
+  return coupe.length >= 4 ? coupe : "Master Break";
 }
 
 type PawaFailure = { failureCode?: string; failureMessage?: string };

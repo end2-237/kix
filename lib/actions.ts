@@ -175,7 +175,7 @@ export async function startPackPurchase(
     amount: pack.price,
     method,
     phone,
-    description: `Master Break · ${credited} jetons`,
+    description: `Recharge ${credited} jetons`,
     targetId: purchaseId,
   });
 
@@ -418,7 +418,7 @@ export async function checkout(
     amount: total,
     method,
     phone,
-    description: `Master Break · commande ${lines.length} article${lines.length > 1 ? "s" : ""}`,
+    description: `Commande ${lines.length} article${lines.length > 1 ? "s" : ""}`,
     targetId: orderId,
   });
 
@@ -472,7 +472,7 @@ export async function buyTicket(eventId: string, phone?: string, method: "om" | 
     amount: event.price,
     method,
     phone,
-    description: `Master Break · ${event.title}`,
+    description: `Billet ${event.title}`,
     targetId: ticketId,
   });
 
@@ -742,7 +742,7 @@ export async function reserveTable(
     amount: table.deposit,
     method,
     phone,
-    description: `Master Break table ${table.label}`,
+    description: `Table ${table.label}`,
     targetId: id,
   });
   if (!started.ok) return started;
@@ -1429,7 +1429,7 @@ export async function buyStreamPass(
     amount: stream.price,
     method,
     phone,
-    description: `Master Break direct`,
+    description: "Direct Master Break",
     targetId: passId,
   });
   if (!started.ok) return started;
