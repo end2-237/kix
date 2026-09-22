@@ -28,5 +28,5 @@ export async function requireRole(...roles: User["role"][]): Promise<User> {
 
 /** Page d'accueil selon le rôle, après connexion. */
 export function homeFor(role: string): string {
-  return role === "admin" ? "/admin" : role === "manager" ? "/gerant" : "/app";
+  return role === "admin" ? "/admin" : role === "manager" ? "/gerant" : role === "seller" ? "/vendeur" : "/app";
 }

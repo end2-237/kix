@@ -120,6 +120,20 @@
       "when": 1790026626282,
       "tag": "0016_token_unit_price",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790039322541,
+      "tag": "0017_marketplace",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790039322542,
+      "tag": "0018_marketplace_rls",
+      "breakpoints": true
     }
   ]
 }

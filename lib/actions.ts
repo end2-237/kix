@@ -28,7 +28,7 @@ import {
   venues,
   venueTables,
 } from "@/db";
-import { POINTS_PER_FREE_TOKEN, XP_PER_TOKEN } from "@/lib/constants";
+import { COMMISSION_RATE, POINTS_PER_FREE_TOKEN, XP_PER_TOKEN } from "@/lib/constants";
 import { freshCode, notify, uid } from "@/lib/domain";
 import { INVITE_TTL, looksLikePass, passUrl, signPass, verifyPass } from "@/lib/pass";
 import { qrShape, type QrShape } from "@/lib/qr";
@@ -397,8 +397,19 @@ export async function checkout(
     .map((item) => {
       const product = rows.find((p) => p.slug === item.slug);
       if (!product) return null;
-      total += product.price * item.qty;
-      return { id: uid(), productId: product.id, qty: item.qty, unitPrice: product.price };
+      const ligne = product.price * item.qty;
+      total += ligne;
+      // Le vendeur et la commission sont figés ici, avec le prix : un article
+      // repris par un autre vendeur, ou un taux revu l'an prochain, ne doivent
+      // pas réécrire ce qu'on doit pour une vente d'aujourd'hui.
+      return {
+        id: uid(),
+        productId: product.id,
+        qty: item.qty,
+        unitPrice: product.price,
+        sellerId: product.sellerId,
+        commission: product.sellerId ? Math.round(ligne * COMMISSION_RATE) : ligne,
+      };
     })
     .filter((l): l is NonNullable<typeof l> => l !== null);
 
@@ -559,8 +570,16 @@ export async function deleteVenue(formData: FormData) {
 }
 
 export async function saveProduct(formData: FormData) {
-  await requireRole("admin");
+  // Un vendeur tient ses articles ; l'administrateur tient ceux de la maison
+  // et peut corriger n'importe lesquels.
+  const auteur = await requireRole("admin", "seller");
   const id = str(formData, "id");
+
+  if (auteur.role === "seller" && id) {
+    const actuel = (await db.select().from(products).where(eq(products.id, id)).limit(1))[0];
+    if (!actuel || actuel.sellerId !== auteur.id) redirect("/vendeur?refus=1");
+  }
+
   const values = {
     slug: str(formData, "slug") || str(formData, "name").toLowerCase().replace(/\s+/g, "-"),
     name: str(formData, "name"),
@@ -575,16 +594,37 @@ export async function saveProduct(formData: FormData) {
     active: bool(formData, "active"),
   };
 
+  // Le vendeur ne se choisit pas dans un formulaire : à la création, c'est
+  // l'auteur ; à la modification, on n'y touche pas — un article ne change
+  // pas de mains par un champ caché.
   if (id) await db.update(products).set(values).where(eq(products.id, id));
-  else await db.insert(products).values({ id: uid(), ...values });
+  else {
+    await db.insert(products).values({
+      id: uid(),
+      ...values,
+      sellerId: auteur.role === "seller" ? auteur.id : null,
+    });
+  }
 
+  revalidatePath("/vendeur");
   revalidatePath("/admin/produits");
   revalidatePath("/app/shop");
 }
 
 export async function deleteProduct(formData: FormData) {
-  await requireRole("admin");
-  await db.update(products).set({ active: false }).where(eq(products.id, str(formData, "id")));
+  const auteur = await requireRole("admin", "seller");
+  const id = str(formData, "id");
+
+  // Retirer un article le masque plutôt que de le supprimer : des commandes
+  // passées y renvoient, et une ligne de vente sans produit est une ligne
+  // qu'on ne sait plus expliquer.
+  const ou =
+    auteur.role === "seller"
+      ? and(eq(products.id, id), eq(products.sellerId, auteur.id))
+      : eq(products.id, id);
+
+  await db.update(products).set({ active: false }).where(ou);
+  revalidatePath("/vendeur");
   revalidatePath("/admin/produits");
   revalidatePath("/app/shop");
 }

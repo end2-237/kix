@@ -132,6 +132,14 @@ export const tokens = mb.table(
 
 export const products = mb.table("products", {
   id: id(),
+  /**
+   * Le vendeur. Nul pour les articles de Master Break.
+   *
+   * Sans lui, la boutique n'était pas une place de marché mais un magasin :
+   * seul l'administrateur pouvait créer un article, et personne n'en était
+   * propriétaire.
+   */
+  sellerId: uuid("seller_id").references(() => users.id, { onDelete: "set null" }),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   detail: text("detail").notNull().default(""),
@@ -178,6 +186,18 @@ export const orderItems = mb.table("order_items", {
     .references(() => products.id),
   qty: integer("qty").notNull().default(1),
   unitPrice: integer("unit_price").notNull(),
+  /**
+   * À qui revient cette ligne, et ce que la plateforme y prend — figés au
+   * moment de la vente.
+   *
+   * Un article revendu à un autre vendeur, ou un taux de commission revu
+   * l'an prochain, ne doivent pas réécrire ce qu'on doit pour une vente
+   * d'hier. C'est la même règle que le prix unitaire juste au-dessus, et que
+   * les jetons : ce qui est dû se fige à l'instant de la transaction.
+   */
+  sellerId: uuid("seller_id").references(() => users.id, { onDelete: "set null" }),
+  /** Part de la plateforme sur cette ligne, en francs. */
+  commission: integer("commission").notNull().default(0),
 });
 
 export const events = mb.table("events", {

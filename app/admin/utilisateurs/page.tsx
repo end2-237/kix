@@ -9,6 +9,7 @@ export const metadata = { title: "Utilisateurs" };
 const roles = [
   { value: "client", label: "Client" },
   { value: "manager", label: "Gérant" },
+  { value: "seller", label: "Vendeur" },
   { value: "admin", label: "Admin" },
 ];
 
