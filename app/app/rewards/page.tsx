@@ -4,7 +4,7 @@ import { ScreenHeader } from "@/components/mb/AppHeader";
 import { ConvertButton } from "@/components/mb/ConvertButton";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
-import { BoltIcon, CartIcon, ClockIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
+import { BoltIcon, CartIcon, ChartIcon, ClockIcon, TableIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
 import { getLeaderboard, getRank } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
 import { signOut } from "@/lib/actions";
@@ -165,10 +165,24 @@ export default async function RewardsPage() {
       <div className="flex flex-col gap-2.5 lg:hidden">
         <h2 className="text-base">Raccourcis</h2>
         <div className="grid grid-cols-2 gap-2.5">
+          <Shortcut href="/app/reservations" icon={<TableIcon size={18} />} label="Mes réservations" />
           <Shortcut href="/app/commandes" icon={<CartIcon size={18} />} label="Mes commandes" />
           <Shortcut href="/app/billets" icon={<TicketIcon size={18} />} label="Mes billets" />
           <Shortcut href="/app/notifications" icon={<ClockIcon size={18} />} label="Notifications" />
-          <Shortcut href="/gerant" icon={<TargetIcon size={18} />} label="Espace gérant" />
+
+          {/* Les espaces de gestion ne se montrent qu'à qui peut y entrer.
+              « Espace gérant » s'affichait à tout le monde : un client qui
+              cliquait était renvoyé sur un refus, pour avoir suivi un lien
+              qu'on lui avait mis sous les yeux. */}
+          {user.role === "manager" || user.role === "admin" ? (
+            <Shortcut href="/gerant" icon={<TargetIcon size={18} />} label="Espace gérant" />
+          ) : null}
+          {user.role === "seller" ? (
+            <Shortcut href="/vendeur" icon={<CartIcon size={18} />} label="Espace vendeur" />
+          ) : null}
+          {user.role === "admin" ? (
+            <Shortcut href="/admin" icon={<ChartIcon size={18} />} label="Administration" />
+          ) : null}
         </div>
       </div>
 

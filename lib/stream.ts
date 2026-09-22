@@ -242,6 +242,38 @@ export type Rubric = { id: string; label: string; image: string; live: number };
  * par angle d'entrée (ce qui se joue, la salle, la discipline), pas par
  * exclusivité.
  */
+/**
+ * Ce qui passe à l'instant, pour la bande de l'accueil.
+ *
+ * Partagé entre la page et son flux SSE : deux calculs séparés finiraient par
+ * diverger, et l'accueil annoncerait autre chose que ce qu'il montre une
+ * seconde plus tard.
+ */
+export async function getDirectsEnCours() {
+  const rows = await db
+    .select({ stream: streams, venue: venues })
+    .from(streams)
+    .innerJoin(venues, eq(venues.id, streams.venueId))
+    .where(eq(streams.status, "live"))
+    .orderBy(desc(streams.viewers))
+    .limit(8);
+
+  return {
+    total: rows.length,
+    spectateurs: rows.reduce((n, r) => n + r.stream.viewers, 0),
+    directs: rows.map(({ stream, venue }) => ({
+      id: stream.id,
+      titre: stream.title,
+      salle: venue.name,
+      image: stream.poster ?? venue.image,
+      rubrique: disciplineLabel[stream.discipline] ?? stream.discipline,
+      spectateurs: stream.viewers,
+    })),
+  };
+}
+
+export type Encours = Awaited<ReturnType<typeof getDirectsEnCours>>;
+
 export async function getShowcase(): Promise<{
   featured: StreamCard[];
   rail: StreamCard[];

@@ -34,7 +34,10 @@ export default async function DirectLayout({ children }: { children: React.React
       <AppSidebar user={user} balance={balance} unread={unread} />
       <LiveRail items={rail} />
 
-      <div className="min-w-0 grow px-5 pt-4 pb-32 lg:px-7 lg:pt-6 lg:pb-14">{children}</div>
+      {/* Marges plus serrées qu'ailleurs, à dessein : cette page porte une
+          colonne de plus, et lui donner les mêmes marges que l'accueil
+          étranglait la vitrine. */}
+      <div className="min-w-0 grow px-5 pt-4 pb-32 lg:px-7 lg:pt-8 lg:pb-14">{children}</div>
 
       <BottomNav />
     </div>

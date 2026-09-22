@@ -5,7 +5,10 @@ import { WalletStrip } from "@/components/mb/WalletStrip";
 import { VenueCard } from "@/components/mb/VenueCard";
 import { Chip } from "@/components/ui/Chip";
 import { SectionTitle } from "@/components/ui/Card";
-import { ChevronRightIcon, SearchIcon, SlidersIcon } from "@/components/icons";
+import { ChevronRightIcon, MapIcon, SearchIcon, SlidersIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
+import { DirectAccueil } from "@/components/mb/DirectAccueil";
+import { Tile, Tiles } from "@/components/dash/Section";
+import { getDirectsEnCours } from "@/lib/stream";
 import { getBalance, getEvents, getUnreadCount, getVenues } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
 import { f } from "@/lib/format";
@@ -16,11 +19,12 @@ const categories = ["Tout", "Billard", "Vapes", "Soirées"];
 
 export default async function AccueilPage() {
   const user = await requireUser();
-  const [balance, venues, events, unread] = await Promise.all([
+  const [balance, venues, events, unread, encours] = await Promise.all([
     getBalance(user.id),
     getVenues(),
     getEvents(),
     getUnreadCount(user.id),
+    getDirectsEnCours(),
   ]);
   const [featured, tonight] = events;
 
@@ -123,6 +127,19 @@ export default async function AccueilPage() {
           </Chip>
         ))}
       </div>
+
+      {/* Le direct s'annonce lui-même, avant le reste : c'est ce que la
+          plateforme a de particulier, et rien ne le signalait. */}
+      <DirectAccueil initial={encours} />
+
+      {/* Ce que la barre du bas ne peut pas porter tient ici : quatre places
+          en bas, cinq intentions, le reste est à une touche de l'accueil. */}
+      <Tiles>
+        <Tile href="/app/salles" label="Salles" icon={<MapIcon size={17} />} />
+        <Tile href="/app/events" label="Soirées" icon={<TicketIcon size={17} />} />
+        <Tile href="/app/live" label="Scores" icon={<TargetIcon size={17} />} />
+        <Tile href="/app/rewards" label="Rewards" icon={<TrophyIcon size={17} />} />
+      </Tiles>
 
       <div className="flex flex-col gap-2.5 lg:gap-4">
         <SectionTitle title="Salles près de toi" action="Voir toutes" href="/app/salles" />

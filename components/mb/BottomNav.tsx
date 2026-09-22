@@ -3,12 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { CartIcon, HomeIcon, MapIcon, QrIcon, UserIcon } from "@/components/icons";
+import { BoltIcon, CartIcon, HomeIcon, QrIcon, UserIcon } from "@/components/icons";
 import { useCart } from "@/lib/cart";
 
+/**
+ * Cinq places, pour cinq intentions.
+ *
+ * « Direct » n'y figurait pas : la barre latérale l'avait, mais elle est
+ * masquée sous le format bureau — sur un téléphone, la section des matchs
+ * filmés était donc inatteignable autrement qu'en tapant l'adresse. C'est la
+ * vitrine de la plateforme, elle passe devant.
+ *
+ * Les salles, les événements et les scores se rejoignent depuis l'accueil,
+ * qui porte une rangée de raccourcis : rien n'est à plus d'une touche.
+ */
 const left = [
   { href: "/app", label: "Accueil", Icon: HomeIcon },
-  { href: "/app/salles", label: "Salles", Icon: MapIcon },
+  { href: "/direct", label: "Direct", Icon: BoltIcon },
 ];
 const right = [
   { href: "/app/shop", label: "Shop", Icon: CartIcon },

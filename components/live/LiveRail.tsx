@@ -3,7 +3,38 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
+
+/* --------------------------------------------- mémoire du pliage, hors React
+
+   Une préférence d'affichage vit dans le navigateur, pas dans un état de
+   composant : elle doit survivre à la navigation. */
+
+const PLIAGE = "mb.direct.rail";
+const abonnes = new Set<() => void>();
+
+const sAbonner = (prevenir: () => void) => {
+  abonnes.add(prevenir);
+  return () => abonnes.delete(prevenir);
+};
+
+const lirePliage = () => {
+  try {
+    return localStorage.getItem(PLIAGE) === "1";
+  } catch {
+    // Navigation privée ou stockage bloqué : la colonne s'ouvre, sans plus.
+    return false;
+  }
+};
+
+function ecrirePliage(plie: boolean) {
+  try {
+    localStorage.setItem(PLIAGE, plie ? "1" : "0");
+  } catch {
+    /* rien à retenir, tant pis */
+  }
+  abonnes.forEach((prevenir) => prevenir());
+}
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
@@ -26,7 +57,18 @@ const count = (n: number) =>
  * qu'on laisse ouverte pendant qu'on regarde autre chose.
  */
 export function LiveRail({ items }: { items: RailItem[] }) {
-  const [open, setOpen] = useState(true);
+  // Repliée, la colonne doit le rester : elle se rouvrait à chaque direct
+  // ouvert, si bien qu'on la refermait dix fois par soirée et que le contenu
+  // sautait de deux cents pixels à chaque fois. C'est ce qui passait pour un
+  // bug d'affichage.
+  //
+  // Le stockage local est une source extérieure à React : `useSyncExternalStore`
+  // la lit sans passer par un effet, et sans déclencher le rendu en cascade
+  // qu'un `setState` synchrone provoquerait.
+  const plie = useSyncExternalStore(sAbonner, lirePliage, () => false);
+  const open = !plie;
+  const basculer = () => ecrirePliage(!plie);
+
   const pathname = usePathname();
 
   return (
@@ -41,7 +83,7 @@ export function LiveRail({ items }: { items: RailItem[] }) {
           <span className="label-caps text-[11px] text-ink">Salles en direct</span>
         ) : null}
         <button
-          onClick={() => setOpen((v) => !v)}
+          onClick={basculer}
           aria-label={open ? "Replier la colonne" : "Déplier la colonne"}
           className="press grid h-8 w-8 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-ink"
         >
