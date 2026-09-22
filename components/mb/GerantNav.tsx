@@ -1,7 +1,16 @@
 "use client";
 
 import { DashNav, type NavItem } from "@/components/dash/DashNav";
-import { BoltIcon, CalendarIcon, ChartIcon, MapIcon, QrIcon, TableIcon, TargetIcon } from "@/components/icons";
+import {
+  BoltIcon,
+  CalendarIcon,
+  ChartIcon,
+  MapIcon,
+  QrIcon,
+  TableIcon,
+  TargetIcon,
+  TrophyIcon,
+} from "@/components/icons";
 
 /**
  * L'ordre compte : les quatre premières tiennent dans le barreau du bas, le
@@ -14,6 +23,7 @@ const items: NavItem[] = [
   { href: "/gerant/direct", label: "Direct", Icon: BoltIcon },
   { href: "/gerant/evenements", label: "Soirées", Icon: CalendarIcon },
   { href: "/gerant/live", label: "Matchs", Icon: TargetIcon },
+  { href: "/gerant/tournois", label: "Tournois", Icon: TrophyIcon },
   { href: "/gerant/ecrans", label: "Écrans", Icon: MapIcon },
   { href: "/gerant/service", label: "Service", Icon: ChartIcon },
 ];

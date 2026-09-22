@@ -49,7 +49,7 @@ export default async function RechargePage() {
               href="/app"
               className="flex h-12 items-center gap-2 rounded-full bg-gold px-5 text-sm font-semibold text-gold-ink"
             >
-              Retour à l'accueil
+              Retour à l&apos;accueil
               <ArrowRightIcon size={16} />
             </Link>
           )}

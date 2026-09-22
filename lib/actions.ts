@@ -26,6 +26,9 @@ import {
   streams,
   tickets,
   tokens,
+  tournaments,
+  tournamentMatches,
+  tournamentPlayers,
   users,
   venues,
   venueTables,
@@ -44,6 +47,7 @@ import {
   whepUrl,
 } from "@/lib/stream";
 import { refreshPayment, startPayment, type PaymentKind } from "@/lib/payments/service";
+import { DISCIPLINES as DISCIPLINES_LABELS } from "@/lib/tournois";
 import {
   createSession,
   destroySession,
@@ -539,6 +543,24 @@ export async function markNotificationsRead() {
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 const num = (fd: FormData, key: string) => Number(fd.get(key) ?? 0) || 0;
 const bool = (fd: FormData, key: string) => fd.get(key) === "on" || fd.get(key) === "true";
+
+/** Un `<input type="datetime-local">` vide vaut `null`, pas « 1970 ». */
+const date = (fd: FormData, key: string) => {
+  const brut = String(fd.get(key) ?? "").trim();
+  if (!brut) return null;
+  const d = new Date(brut);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+/** Une adresse lisible : accents ôtés, espaces en tirets, rien d'autre. */
+const slugify = (texte: string) =>
+  texte
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 
 export async function saveVenue(formData: FormData) {
   await requireRole("admin");
@@ -1678,4 +1700,369 @@ export async function saveCourse(formData: FormData) {
   revalidatePath("/app/shop");
   revalidatePath("/admin/cours");
   revalidatePath("/vendeur/cours");
+}
+
+/* --------------------------------------------------------------- tournois */
+
+/**
+ * Créer ou modifier un tournoi. Réservé à l'administration et aux gérants.
+ *
+ * Un tournoi vit en double : le tableau des joueurs d'un côté, un événement
+ * jumeau de l'autre. C'est l'événement que le public achète — la billetterie,
+ * le scan à l'entrée et la recette existent déjà pour lui, et les refaire pour
+ * les tournois aurait fait deux caisses au lieu d'une.
+ */
+export async function saveTournament(formData: FormData) {
+  const auteur = await requireRole("admin", "manager");
+  const id = str(formData, "id");
+  const venueId = str(formData, "venueId") || auteur.venueId || "";
+  if (auteur.role === "manager") {
+    if (!auteur.venueId) redirect("/gerant?refus=1");
+    if (venueId !== auteur.venueId) redirect("/gerant?refus=1");
+    if (id) {
+      const actuel = (await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1))[0];
+      if (!actuel || actuel.venueId !== auteur.venueId) redirect("/gerant?refus=1");
+    }
+  }
+
+  const title = str(formData, "title");
+  const slug = str(formData, "slug") || slugify(title);
+  const startsAt = date(formData, "startsAt");
+  const closesAt = date(formData, "closesAt");
+  const image = str(formData, "image") || "/img/table-rack.jpg";
+
+  const values = {
+    slug,
+    title,
+    venueId: venueId || null,
+    discipline: str(formData, "discipline") || "8-ball",
+    size: Math.max(2, num(formData, "size") || 16),
+    raceTo: Math.max(1, num(formData, "raceTo") || 4),
+    entryFee: Math.max(0, num(formData, "entryFee")),
+    prizePool: Math.max(0, num(formData, "prizePool")),
+    prizeSplit: str(formData, "prizeSplit"),
+    rules: str(formData, "rules"),
+    image,
+    startsAt,
+    closesAt,
+  };
+
+  const tournoiId = id || uid();
+  if (id) await db.update(tournaments).set(values).where(eq(tournaments.id, id));
+  else {
+    await db.insert(tournaments).values({
+      ...values,
+      id: tournoiId,
+      organiserId: auteur.id,
+      status: "brouillon",
+    });
+  }
+
+  await syncTwinEvent(tournoiId, formData);
+
+  revalidatePath("/app/tournois");
+  revalidatePath(`/app/tournois/${slug}`);
+  revalidatePath("/admin/tournois");
+  revalidatePath("/gerant/tournois");
+  revalidatePath("/app/events");
+}
+
+/** Le jumeau côté public : c'est par lui que les spectateurs entrent. */
+async function syncTwinEvent(tournamentId: string, formData: FormData) {
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (!t) return;
+
+  const prix = Math.max(0, num(formData, "ticketPrice"));
+  const places = Math.max(1, num(formData, "ticketCapacity") || 100);
+  const jour = t.startsAt
+    ? t.startsAt.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
+    : "Date à confirmer";
+  const heures = str(formData, "hours");
+
+  const commun = {
+    title: t.title,
+    subtitle: `Tournoi ${DISCIPLINES_LABELS[t.discipline] ?? t.discipline} · ${t.size} joueurs`,
+    day: jour,
+    hours: heures,
+    venueId: t.venueId,
+    price: prix,
+    image: t.image,
+    capacity: places,
+    description: t.rules,
+    tags: "tournoi",
+    // Le public ne doit voir la billetterie qu'une fois le tournoi annoncé :
+    // un brouillon ne se vend pas.
+    active: t.status !== "brouillon" && t.status !== "annule",
+  };
+
+  if (t.eventId) {
+    await db.update(events).set(commun).where(eq(events.id, t.eventId));
+    return;
+  }
+
+  const eventId = uid();
+  await db.insert(events).values({ ...commun, id: eventId, slug: `${t.slug}-spectateurs` });
+  await db.update(tournaments).set({ eventId }).where(eq(tournaments.id, tournamentId));
+}
+
+/** Ouvrir les candidatures, les clore, annuler. */
+export async function setTournamentStatus(id: string, status: string) {
+  const auteur = await requireRole("admin", "manager");
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, id)).limit(1))[0];
+  if (!t) return { ok: false as const, error: "Tournoi introuvable." };
+  if (auteur.role === "manager" && t.venueId !== auteur.venueId) redirect("/gerant?refus=1");
+
+  const permis = ["brouillon", "inscriptions", "complet", "annule"];
+  if (!permis.includes(status)) return { ok: false as const, error: "État impossible depuis ici." };
+  if (t.status === "encours" || t.status === "termine") {
+    return { ok: false as const, error: "Le tableau est lancé : on ne revient plus aux inscriptions." };
+  }
+
+  await db.update(tournaments).set({ status }).where(eq(tournaments.id, id));
+
+  // La billetterie spectateurs suit l'état du tournoi.
+  if (t.eventId) {
+    await db
+      .update(events)
+      .set({ active: status !== "brouillon" && status !== "annule" })
+      .where(eq(events.id, t.eventId));
+  }
+
+  revalidatePath("/app/tournois");
+  revalidatePath(`/app/tournois/${t.slug}`);
+  revalidatePath("/admin/tournois");
+  revalidatePath("/gerant/tournois");
+  revalidatePath("/app/events");
+  return { ok: true as const };
+}
+
+export type CandidatureState = { error: string; ok?: false } | { ok: true; error?: never } | null;
+
+/**
+ * Le formulaire du candidat.
+ *
+ * Un spectateur achète un billet ; un joueur, lui, se présente : surnom porté
+ * au tableau, niveau annoncé, numéro auquel on le joint le soir du tirage.
+ * La candidature n'est pas une inscription — l'organisateur accepte ou refuse.
+ */
+export async function postuler(_prev: CandidatureState, formData: FormData): Promise<CandidatureState> {
+  const user = await requireUser();
+  const tournamentId = str(formData, "tournamentId");
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (!t) return { error: "Tournoi introuvable." };
+  if (t.status !== "inscriptions") return { error: "Les candidatures ne sont pas ouvertes." };
+
+  const deja = (
+    await db
+      .select({ id: tournamentPlayers.id, status: tournamentPlayers.status })
+      .from(tournamentPlayers)
+      .where(and(eq(tournamentPlayers.tournamentId, tournamentId), eq(tournamentPlayers.userId, user.id)))
+      .limit(1)
+  )[0];
+  if (deja && deja.status !== "retire") return { error: "Ta candidature est déjà déposée." };
+
+  const nickname = str(formData, "nickname").slice(0, 40);
+  // Le champ est prérempli au format lisible — « 6 77 45 12 08 ». On le remet
+  // en chiffres AVANT de le valider, sinon le formulaire refuse son propre
+  // contenu par défaut.
+  const phone = normalizePhone(str(formData, "phone") || user.phone);
+  if (!isValidPhone(phone)) return { error: "Numéro invalide : 9 chiffres, commençant par 6." };
+
+  const level = str(formData, "level") || "intermediaire";
+  const note = str(formData, "note").slice(0, 400);
+
+  // Le droit d'inscription est figé ici : une dotation revue plus tard ne
+  // rattrape pas ceux qui se sont engagés au tarif annoncé.
+  const champs = {
+    nickname: nickname || user.name,
+    phone,
+    level,
+    note,
+    fee: t.entryFee,
+    status: "candidat",
+    payment: "impaye",
+  };
+
+  if (deja) await db.update(tournamentPlayers).set(champs).where(eq(tournamentPlayers.id, deja.id));
+  else {
+    await db.insert(tournamentPlayers).values({ ...champs, id: uid(), tournamentId, userId: user.id });
+  }
+
+  if (t.organiserId) {
+    await notify(
+      t.organiserId,
+      `Candidature · ${t.title}`,
+      `${champs.nickname} se présente au tableau.`,
+      "event",
+      "/gerant/tournois",
+    );
+  }
+
+  revalidatePath(`/app/tournois/${t.slug}`);
+  revalidatePath("/gerant/tournois");
+  revalidatePath("/admin/tournois");
+  return { ok: true };
+}
+
+/** Le joueur se retire — tant que le tableau n'est pas tiré. */
+export async function retirerCandidature(tournamentId: string) {
+  const user = await requireUser();
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (!t) return { ok: false as const, error: "Tournoi introuvable." };
+  if (t.status === "encours" || t.status === "termine") {
+    return { ok: false as const, error: "Le tableau est tiré : on ne se retire plus." };
+  }
+
+  await db
+    .update(tournamentPlayers)
+    .set({ status: "retire" })
+    .where(and(eq(tournamentPlayers.tournamentId, tournamentId), eq(tournamentPlayers.userId, user.id)));
+
+  revalidatePath(`/app/tournois/${t.slug}`);
+  revalidatePath("/gerant/tournois");
+  return { ok: true as const };
+}
+
+/** L'organisateur retient ou écarte un candidat. */
+export async function deciderCandidat(playerId: string, decision: "accepte" | "refuse") {
+  const auteur = await requireRole("admin", "manager");
+  const ligne = (
+    await db.select().from(tournamentPlayers).where(eq(tournamentPlayers.id, playerId)).limit(1)
+  )[0];
+  if (!ligne) return { ok: false as const, error: "Candidature introuvable." };
+
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, ligne.tournamentId)).limit(1))[0];
+  if (!t) return { ok: false as const, error: "Tournoi introuvable." };
+  if (auteur.role === "manager" && t.venueId !== auteur.venueId) redirect("/gerant?refus=1");
+  if (t.status === "encours" || t.status === "termine") {
+    return { ok: false as const, error: "Le tableau est tiré : la liste est close." };
+  }
+
+  await db.update(tournamentPlayers).set({ status: decision }).where(eq(tournamentPlayers.id, playerId));
+
+  await notify(
+    ligne.userId,
+    decision === "accepte" ? `Retenu · ${t.title}` : `Non retenu · ${t.title}`,
+    decision === "accepte"
+      ? t.entryFee > 0
+        ? `Règle ton droit d'inscription de ${t.entryFee.toLocaleString("fr-FR")} F pour prendre ta place au tableau.`
+        : "Ta place au tableau est retenue."
+      : "Le tableau est complet pour cette édition. Retente à la prochaine.",
+    "event",
+    `/app/tournois/${t.slug}`,
+  );
+
+  revalidatePath(`/app/tournois/${t.slug}`);
+  revalidatePath("/gerant/tournois");
+  revalidatePath("/admin/tournois");
+  return { ok: true as const };
+}
+
+/** Le droit d'inscription, par le même chemin de paiement que le reste. */
+export async function payerInscription(
+  tournamentId: string,
+  method: "om" | "momo",
+  phone: string,
+): Promise<StartResult> {
+  const user = await requireUser();
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (!t) return { ok: false, error: "Tournoi introuvable." };
+
+  const ligne = (
+    await db
+      .select()
+      .from(tournamentPlayers)
+      .where(and(eq(tournamentPlayers.tournamentId, tournamentId), eq(tournamentPlayers.userId, user.id)))
+      .limit(1)
+  )[0];
+  if (!ligne) return { ok: false, error: "Dépose d'abord ta candidature." };
+  if (ligne.status !== "accepte") return { ok: false, error: "L'organisateur n'a pas encore retenu ta candidature." };
+  if (ligne.payment === "paye") return { ok: false, error: "Ton inscription est déjà réglée." };
+  if (ligne.fee <= 0) return { ok: false, error: "Ce tournoi est gratuit pour les joueurs." };
+
+  const started = await startPayment({
+    kind: "tournoi",
+    userId: user.id,
+    amount: ligne.fee,
+    method,
+    phone,
+    description: `Tournoi ${t.title}`,
+    targetId: ligne.id,
+  });
+  if (!started.ok) return started;
+
+  await db
+    .update(tournamentPlayers)
+    .set({ reference: started.reference })
+    .where(eq(tournamentPlayers.id, ligne.id));
+  revalidatePath(`/app/tournois/${t.slug}`);
+  return { ok: true, reference: started.reference, instruction: started.instruction, amount: ligne.fee };
+}
+
+/** Le tirage : les candidatures deviennent un tableau. */
+export async function lancerTableau(tournamentId: string) {
+  const auteur = await requireRole("admin", "manager");
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (!t) return { ok: false as const, error: "Tournoi introuvable." };
+  if (auteur.role === "manager" && t.venueId !== auteur.venueId) redirect("/gerant?refus=1");
+
+  const { tirerLeTableau } = await import("@/lib/tournaments");
+  const res = await tirerLeTableau(tournamentId);
+  if (!res.ok) return res;
+
+  const joueurs = await db
+    .select()
+    .from(tournamentPlayers)
+    .where(and(eq(tournamentPlayers.tournamentId, tournamentId), eq(tournamentPlayers.status, "accepte")));
+
+  for (const j of joueurs) {
+    if (j.seed === null) continue;
+    await notify(
+      j.userId,
+      `Tableau tiré · ${t.title}`,
+      `Tu entres en tête de série n°${j.seed}. Le tableau est en ligne.`,
+      "event",
+      `/app/tournois/${t.slug}`,
+    );
+  }
+
+  revalidatePath(`/app/tournois/${t.slug}`);
+  revalidatePath("/gerant/tournois");
+  revalidatePath("/admin/tournois");
+  return res;
+}
+
+/** Le résultat d'un duel, saisi par l'organisateur. */
+export async function noterDuel(duelId: string, scoreA: number, scoreB: number) {
+  const auteur = await requireRole("admin", "manager");
+  const duel = (
+    await db.select().from(tournamentMatches).where(eq(tournamentMatches.id, duelId)).limit(1)
+  )[0];
+  if (!duel) return { ok: false as const, error: "Duel introuvable." };
+
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, duel.tournamentId)).limit(1))[0];
+  if (!t) return { ok: false as const, error: "Tournoi introuvable." };
+  if (auteur.role === "manager" && t.venueId !== auteur.venueId) redirect("/gerant?refus=1");
+
+  const { noterResultat, getTournamentById } = await import("@/lib/tournaments");
+  const res = await noterResultat(duelId, scoreA, scoreB);
+  if (!res.ok) return res;
+
+  // Le tournoi a pu se refermer sur ce résultat : on prévient le champion.
+  const apres = await getTournamentById(duel.tournamentId);
+  if (apres?.status === "termine" && apres.winnerId) {
+    await notify(
+      apres.winnerId,
+      `Titre · ${apres.title}`,
+      "Tu remportes le tournoi. Les points de classement sont crédités.",
+      "reward",
+      `/app/tournois/${apres.slug}`,
+    );
+  }
+
+  revalidatePath(`/app/tournois/${t.slug}`);
+  revalidatePath("/gerant/tournois");
+  revalidatePath("/admin/tournois");
+  revalidatePath("/app/classement");
+  return res;
 }

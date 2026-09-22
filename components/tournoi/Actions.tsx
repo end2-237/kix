@@ -1,0 +1,239 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { Spinner } from "@/components/ui/Spinner";
+import { useSnackbar } from "@/components/ui/Snackbar";
+import { CheckIcon, TrophyIcon } from "@/components/icons";
+import { deciderCandidat, lancerTableau, noterDuel, setTournamentStatus } from "@/lib/actions";
+import { cn } from "@/lib/cn";
+
+/**
+ * Les gestes de l'organisateur.
+ *
+ * Tous passent par le même chemin : une action serveur, un mot dans la barre
+ * de notification, un rafraîchissement. L'organisateur travaille souvent
+ * debout à côté de la table — il ne doit jamais se demander si son clic a été
+ * pris en compte.
+ */
+
+function useGeste() {
+  const router = useRouter();
+  const { notify } = useSnackbar();
+  const [pending, start] = useTransition();
+
+  const faire = (
+    action: () => Promise<{ ok: boolean; error?: string }>,
+    succes: string,
+    detail?: string,
+  ) =>
+    start(async () => {
+      const res = await action();
+      if (!res.ok) {
+        notify("Impossible", { detail: res.error, tone: "warn" });
+        return;
+      }
+      notify(succes, { detail, tone: "jade" });
+      router.refresh();
+    });
+
+  return { faire, pending };
+}
+
+/** Ouvrir les candidatures, les clore, tirer le tableau, annuler. */
+export function EtatTournoi({
+  id,
+  status,
+  acceptes,
+}: {
+  id: string;
+  status: string;
+  acceptes: number;
+}) {
+  const { faire, pending } = useGeste();
+  const fige = status === "encours" || status === "termine";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {status === "brouillon" || status === "annule" ? (
+        <Bouton
+          accent
+          pending={pending}
+          onClick={() => faire(() => setTournamentStatus(id, "inscriptions"), "Candidatures ouvertes")}
+        >
+          Ouvrir les candidatures
+        </Bouton>
+      ) : null}
+
+      {status === "inscriptions" ? (
+        <Bouton
+          pending={pending}
+          onClick={() => faire(() => setTournamentStatus(id, "complet"), "Candidatures closes")}
+        >
+          Clore les candidatures
+        </Bouton>
+      ) : null}
+
+      {(status === "inscriptions" || status === "complet") && acceptes >= 2 ? (
+        <Bouton
+          accent
+          pending={pending}
+          onClick={() =>
+            faire(() => lancerTableau(id), "Tableau tiré", "Les joueurs sont prévenus de leur place.")
+          }
+        >
+          <TrophyIcon size={15} />
+          Tirer le tableau
+        </Bouton>
+      ) : null}
+
+      {!fige && status !== "annule" ? (
+        <Bouton
+          pending={pending}
+          onClick={() => faire(() => setTournamentStatus(id, "annule"), "Tournoi annulé")}
+        >
+          Annuler
+        </Bouton>
+      ) : null}
+    </div>
+  );
+}
+
+/** Retenir ou écarter un candidat. */
+export function DecisionCandidat({ playerId, status }: { playerId: string; status: string }) {
+  const { faire, pending } = useGeste();
+
+  if (status === "retire") return <span className="text-[11.5px] text-faint">retiré</span>;
+
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <Bouton
+        accent={status !== "accepte"}
+        pending={pending}
+        onClick={() => faire(() => deciderCandidat(playerId, "accepte"), "Candidat retenu")}
+        petit
+      >
+        {status === "accepte" ? <CheckIcon size={13} /> : null}
+        Retenir
+      </Bouton>
+      <Bouton
+        pending={pending}
+        onClick={() => faire(() => deciderCandidat(playerId, "refuse"), "Candidat écarté")}
+        petit
+      >
+        Écarter
+      </Bouton>
+    </div>
+  );
+}
+
+/** La saisie d'un score, duel par duel. */
+export function SaisieScore({
+  duelId,
+  raceTo,
+  nomA,
+  nomB,
+  scoreA,
+  scoreB,
+  termine,
+}: {
+  duelId: string;
+  raceTo: number;
+  nomA: string;
+  nomB: string;
+  scoreA: number;
+  scoreB: number;
+  termine: boolean;
+}) {
+  const { faire, pending } = useGeste();
+  const [a, setA] = useState(scoreA);
+  const [b, setB] = useState(scoreB);
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-panel border border-line bg-surface p-3.5">
+      <span className="text-[12.5px] text-muted">
+        {nomA} <span className="text-faint">contre</span> {nomB}
+        <span className="text-faint"> · course à {raceTo}</span>
+      </span>
+
+      <div className="flex items-center gap-2">
+        <Compteur label={nomA} value={a} onChange={setA} max={raceTo} />
+        <span className="text-[13px] text-faint">—</span>
+        <Compteur label={nomB} value={b} onChange={setB} max={raceTo} />
+
+        <Bouton
+          accent
+          pending={pending}
+          petit
+          onClick={() =>
+            faire(
+              () => noterDuel(duelId, a, b),
+              termine ? "Résultat corrigé" : "Résultat enregistré",
+              `${a} — ${b}`,
+            )
+          }
+        >
+          {termine ? "Corriger" : "Valider"}
+        </Bouton>
+      </div>
+    </div>
+  );
+}
+
+function Compteur({
+  label,
+  value,
+  onChange,
+  max,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+  max: number;
+}) {
+  return (
+    <label className="flex min-w-0 grow items-center gap-2">
+      <span className="sr-only">{label}</span>
+      <input
+        aria-label={label}
+        type="number"
+        min={0}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Math.max(0, Math.min(max, Number(e.target.value) || 0)))}
+        className="h-10 w-full min-w-0 rounded-full border border-line bg-surface-2 px-3 text-center text-[14px] font-semibold tabular-nums"
+      />
+    </label>
+  );
+}
+
+function Bouton({
+  children,
+  onClick,
+  pending,
+  accent,
+  petit,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  pending: boolean;
+  accent?: boolean;
+  petit?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={pending}
+      className={cn(
+        "press flex items-center justify-center gap-1.5 rounded-full font-semibold transition disabled:opacity-50",
+        petit ? "h-9 px-3.5 text-[12px]" : "h-10 px-4 text-[12.5px]",
+        accent
+          ? "bg-gold text-gold-ink hover:brightness-105"
+          : "border border-line text-dim hover:bg-surface-2 hover:text-ink",
+      )}
+    >
+      {pending ? <Spinner size={13} /> : null}
+      {children}
+    </button>
+  );
+}

@@ -31,10 +31,13 @@ const primary = [
   { href: "/direct", label: "Direct", Icon: BoltIcon },
   { href: "/app/live", label: "Scores", Icon: TargetIcon },
   { href: "/app/events", label: "Événements", Icon: TicketIcon },
+  { href: "/app/tournois", label: "Tournois", Icon: TrophyIcon },
   { href: "/app/rewards", label: "Rewards", Icon: TrophyIcon },
 ];
 
 const secondary = [
+  { href: "/app/classement", label: "Classement des joueurs" },
+  { href: "/app/cours", label: "Cours de billard" },
   { href: "/app/reservations", label: "Mes réservations" },
   { href: "/app/commandes", label: "Mes commandes" },
   { href: "/app/billets", label: "Mes billets" },

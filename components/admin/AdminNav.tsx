@@ -10,12 +10,13 @@ import {
   TableIcon,
   TargetIcon,
   TicketIcon,
+  TrophyIcon,
   TruckIcon,
   UserIcon,
 } from "@/components/icons";
 
 /**
- * Neuf pages, quatre places.
+ * Douze pages, quatre places.
  *
  * L'administration les empilait toutes en pastilles au-dessus du contenu :
  * sur un téléphone, la moitié de l'écran partait en navigation avant qu'une
@@ -31,6 +32,7 @@ const items: NavItem[] = [
   { href: "/admin/evenements", label: "Événements", Icon: CalendarIcon },
   { href: "/admin/tables", label: "Tables", Icon: TableIcon },
   { href: "/admin/jetons", label: "Jetons", Icon: TicketIcon },
+  { href: "/admin/tournois", label: "Tournois", Icon: TrophyIcon },
   { href: "/admin/cours", label: "Cours", Icon: TargetIcon },
   { href: "/admin/vendeurs", label: "Vendeurs", Icon: TruckIcon },
   { href: "/admin/utilisateurs", label: "Utilisateurs", Icon: UserIcon },

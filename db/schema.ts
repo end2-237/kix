@@ -201,6 +201,115 @@ export const orderItems = mb.table("order_items", {
 });
 
 /**
+ * Un tournoi.
+ *
+ * Il double toujours un événement : c'est par lui que le public prend sa
+ * place et paie son entrée. Le tournoi, lui, porte ce que l'événement ne sait
+ * pas dire — la discipline, le format du tableau, la distance des courses, la
+ * dotation, et l'arbre.
+ *
+ * Deux inscriptions cohabitent donc : un billet d'événement pour venir voir,
+ * une candidature ici pour venir jouer. Ce ne sont pas les mêmes gens, ni le
+ * même prix, ni le même formulaire.
+ */
+export const tournaments = mb.table("tournaments", {
+  id: id(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  /** L'événement jumeau, par lequel le public achète sa place. */
+  eventId: uuid("event_id").references(() => events.id, { onDelete: "set null" }),
+  venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+  /** Qui l'organise — administration ou gérant, jamais un joueur. */
+  organiserId: uuid("organiser_id").references(() => users.id, { onDelete: "set null" }),
+  // 8-ball | 9-ball | snooker | killer
+  discipline: text("discipline").notNull().default("8-ball"),
+  /** Nombre de places au tableau : 8, 16, 32… Les manquants deviennent des exemptions. */
+  size: integer("size").notNull().default(16),
+  /** Course à N manches gagnantes, au premier tour. Elle s'allonge vers la finale. */
+  raceTo: integer("race_to").notNull().default(4),
+  /** Droit d'inscription d'un joueur, en francs. */
+  entryFee: integer("entry_fee").notNull().default(0),
+  /** La dotation totale annoncée. */
+  prizePool: integer("prize_pool").notNull().default(0),
+  /** Comment elle se partage, en clair : « 60 / 30 / 10 ». */
+  prizeSplit: text("prize_split").notNull().default(""),
+  rules: text("rules").notNull().default(""),
+  image: text("image").notNull().default("/img/table-rack.jpg"),
+  /** brouillon | inscriptions | complet | encours | termine | annule */
+  status: text("status").notNull().default("brouillon"),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  /** Après quoi on ne s'inscrit plus, et le tableau peut être tiré. */
+  closesAt: timestamp("closes_at", { withTimezone: true }),
+  winnerId: uuid("winner_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+});
+
+/**
+ * Une candidature de joueur.
+ *
+ * Elle n'est pas un billet : elle demande un pseudo de tableau, un niveau
+ * déclaré et un téléphone joignable le jour J. L'organisateur accepte ou
+ * refuse — un tournoi n'est pas un guichet.
+ */
+export const tournamentPlayers = mb.table(
+  "tournament_players",
+  {
+    id: id(),
+    tournamentId: uuid("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    /** Le nom porté au tableau : souvent un surnom de salle. */
+    nickname: text("nickname").notNull().default(""),
+    phone: text("phone").notNull().default(""),
+    // debutant | intermediaire | confirme
+    level: text("level").notNull().default("intermediaire"),
+    note: text("note").notNull().default(""),
+    /** Le rang de tête de série, posé au tirage. Nul tant qu'il n'a pas eu lieu. */
+    seed: integer("seed"),
+    // candidat | accepte | refuse | retire
+    status: text("status").notNull().default("candidat"),
+    /** Le droit d'inscription, figé à la candidature. */
+    fee: integer("fee").notNull().default(0),
+    // impaye | paye
+    payment: text("payment").notNull().default("impaye"),
+    reference: text("reference").unique(),
+    /** Le tour atteint, pour les points de classement. */
+    reachedRound: integer("reached_round").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("tp_tournament_idx").on(t.tournamentId), index("tp_user_idx").on(t.userId)],
+);
+
+/** Un duel du tableau. */
+export const tournamentMatches = mb.table(
+  "tournament_matches",
+  {
+    id: id(),
+    tournamentId: uuid("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    round: integer("round").notNull(),
+    slot: integer("slot").notNull(),
+    playerAId: uuid("player_a_id").references(() => tournamentPlayers.id, { onDelete: "set null" }),
+    playerBId: uuid("player_b_id").references(() => tournamentPlayers.id, { onDelete: "set null" }),
+    winnerId: uuid("winner_id").references(() => tournamentPlayers.id, { onDelete: "set null" }),
+    scoreA: integer("score_a").notNull().default(0),
+    scoreB: integer("score_b").notNull().default(0),
+    /** La course de CE duel : elle s'allonge vers la finale. */
+    raceTo: integer("race_to").notNull().default(4),
+    /** Le match arbitré correspondant, quand il est lancé sur une table. */
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    // attente | encours | termine | exempt
+    status: text("status").notNull().default("attente"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("tm_tournament_idx").on(t.tournamentId, t.round)],
+);
+
+/**
  * Les cours de billard.
  *
  * Un cours n'est pas un produit : il a un coach, un niveau, un nombre de
@@ -711,6 +820,9 @@ export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type Tournament = typeof tournaments.$inferSelect;
+export type TournamentPlayer = typeof tournamentPlayers.$inferSelect;
+export type TournamentMatch = typeof tournamentMatches.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type EventRow = typeof events.$inferSelect;

@@ -5,7 +5,7 @@ import { WalletStrip } from "@/components/mb/WalletStrip";
 import { VenueCard } from "@/components/mb/VenueCard";
 import { Chip } from "@/components/ui/Chip";
 import { SectionTitle } from "@/components/ui/Card";
-import { ChevronRightIcon, MapIcon, SearchIcon, SlidersIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
+import { ChartIcon, ChevronRightIcon, MapIcon, SearchIcon, SlidersIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
 import { DirectAccueil } from "@/components/mb/DirectAccueil";
 import { Tile, Tiles } from "@/components/dash/Section";
 import { getDirectsEnCours } from "@/lib/stream";
@@ -137,8 +137,10 @@ export default async function AccueilPage() {
       <Tiles>
         <Tile href="/app/salles" label="Salles" icon={<MapIcon size={17} />} />
         <Tile href="/app/events" label="Soirées" icon={<TicketIcon size={17} />} />
-        <Tile href="/app/live" label="Scores" icon={<TrophyIcon size={17} />} />
+        <Tile href="/app/live" label="Scores" icon={<TargetIcon size={17} />} />
+        <Tile href="/app/tournois" label="Tournois" icon={<TrophyIcon size={17} />} />
         <Tile href="/app/cours" label="Cours" icon={<TargetIcon size={17} />} />
+        <Tile href="/app/classement" label="Classement" icon={<ChartIcon size={17} />} />
       </Tiles>
 
       <div className="flex flex-col gap-2.5 lg:gap-4">

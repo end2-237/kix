@@ -16,6 +16,8 @@ import {
   streams,
   tickets,
   tokens,
+  tournaments,
+  tournamentPlayers,
   venueTables,
   type Payment,
 } from "@/db";
@@ -37,7 +39,7 @@ const fcfa = (n: number) => `${n.toLocaleString("fr-FR")} F`;
  */
 const newReference = () => randomUUID();
 
-export type PaymentKind = "pack" | "order" | "ticket" | "reservation" | "stream" | "course";
+export type PaymentKind = "pack" | "order" | "ticket" | "reservation" | "stream" | "course" | "tournoi";
 
 export type StartInput = {
   kind: PaymentKind;
@@ -168,6 +170,7 @@ async function fulfil(tx: Tx, payment: Payment) {
   if (payment.kind === "reservation") return fulfilReservation(tx, payment);
   if (payment.kind === "stream") return fulfilStreamPass(tx, payment);
   if (payment.kind === "course") return fulfilEnrollment(tx, payment);
+  if (payment.kind === "tournoi") return fulfilTournamentEntry(tx, payment);
 }
 
 async function fulfilPack(tx: Tx, payment: Payment) {
@@ -387,6 +390,36 @@ async function fulfilReservation(tx: Tx, payment: Payment) {
   );
 }
 
+/**
+ * Le droit d'inscription d'un joueur à un tournoi.
+ *
+ * Le montant a été figé sur la candidature : une dotation revue à la hausse
+ * après coup ne doit pas rattraper ceux qui ont déjà payé. On ne touche ni au
+ * statut de la candidature ni au tableau — l'organisateur reste maître de qui
+ * entre.
+ */
+async function fulfilTournamentEntry(tx: Tx, payment: Payment) {
+  const candidat = (
+    await tx.select().from(tournamentPlayers).where(eq(tournamentPlayers.id, payment.targetId!)).limit(1)
+  )[0];
+  if (!candidat || candidat.payment === "paye") return;
+
+  await tx.update(tournamentPlayers).set({ payment: "paye" }).where(eq(tournamentPlayers.id, candidat.id));
+
+  const tournoi = (
+    await tx.select().from(tournaments).where(eq(tournaments.id, candidat.tournamentId)).limit(1)
+  )[0];
+
+  await notify(
+    candidat.userId,
+    `Inscription réglée · ${tournoi?.title ?? "tournoi"}`,
+    `${fcfa(candidat.fee)} par ${methodLabel[payment.method as PaymentMethod]} · réf. ${shortRef(payment.reference)}. Ta place au tableau est retenue.`,
+    "event",
+    tournoi ? `/app/tournois/${tournoi.slug}` : "/app/tournois",
+    tx,
+  );
+}
+
 async function cancelTarget(tx: Tx, payment: Payment, status: "failed" | "expired") {
   if (!payment.targetId) return;
   if (payment.kind === "pack") {
@@ -399,6 +432,14 @@ async function cancelTarget(tx: Tx, payment: Payment, status: "failed" | "expire
     await tx.update(reservations).set({ status: "failed" }).where(eq(reservations.id, payment.targetId));
   } else if (payment.kind === "stream") {
     await tx.update(streamPasses).set({ status: "failed" }).where(eq(streamPasses.id, payment.targetId));
+  } else if (payment.kind === "course") {
+    await tx.update(enrollments).set({ status: "failed" }).where(eq(enrollments.id, payment.targetId));
+  } else if (payment.kind === "tournoi") {
+    // La candidature survit à un paiement manqué : le joueur peut réessayer.
+    await tx
+      .update(tournamentPlayers)
+      .set({ payment: "impaye", reference: null })
+      .where(eq(tournamentPlayers.id, payment.targetId));
   }
 }
 

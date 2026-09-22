@@ -1,4 +1,5 @@
 import { repartirPrix } from "@/lib/tokens";
+import { getBracket, noterResultat, tirerLeTableau } from "@/lib/tournoi-moteur";
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "../lib/password";
 import { createDb } from "./client";
@@ -20,6 +21,8 @@ import {
   streams,
   tickets,
   tokens,
+  tournaments,
+  tournamentPlayers,
   users,
   venues,
   venueTables,
@@ -112,13 +115,37 @@ const passwordHash = await hashPassword(DEMO_PASSWORD);
 const ariel = { id: uid(), passwordHash, name: "Ariel N.", phone: "677451208", avatar: "/img/p-ariel.jpg", role: "client", points: 1240, venueId: null };
 const serge = { id: uid(), passwordHash, name: "Serge M.", phone: "699120345", avatar: "/img/p-gerant.jpg", role: "manager", points: 0, venueId: breakAkwa.id };
 const admin = { id: uid(), passwordHash, name: "Direction MASTER BREAK", phone: "690000000", avatar: null, role: "admin", points: 0, venueId: null };
+const vendeur = { id: uid(), passwordHash, name: "Vapote Douala", phone: "678900011", avatar: null, role: "seller", points: 0, venueId: null };
 const others = [
   { id: uid(), passwordHash, name: "Blaise K.", phone: "670000001", avatar: "/img/p-champion.jpg", role: "client", points: 4020, venueId: null },
   { id: uid(), passwordHash, name: "Yannick T.", phone: "670000002", avatar: "/img/p-yannick.jpg", role: "client", points: 3180, venueId: null },
   { id: uid(), passwordHash, name: "Merline K.", phone: "670000003", avatar: null, role: "client", points: 2610, venueId: null },
   { id: uid(), passwordHash, name: "Duval N.", phone: "670000004", avatar: null, role: "client", points: 2280, venueId: null },
 ];
-await db.insert(users).values([ariel, serge, admin, ...others]);
+
+// Le vivier des tournois : un tableau de douze ne se remplit pas avec cinq
+// comptes, et un classement à cinq lignes ne ressemble à rien.
+const vivier = [
+  { name: "Franck E.", points: 2050 },
+  { name: "Aline M.", points: 1880 },
+  { name: "Cédric B.", points: 1720 },
+  { name: "Nadège T.", points: 1490 },
+  { name: "Roland S.", points: 1310 },
+  { name: "Patrick O.", points: 980 },
+  { name: "Estelle W.", points: 760 },
+  { name: "Ulrich D.", points: 540 },
+].map((j, i) => ({
+  id: uid(),
+  passwordHash,
+  name: j.name,
+  phone: `6700001${String(i + 10).padStart(2, "0")}`,
+  avatar: null,
+  role: "client",
+  points: j.points,
+  venueId: null,
+}));
+
+await db.insert(users).values([ariel, serge, admin, vendeur, ...others, ...vivier]);
 const clients = [ariel, ...others];
 
 /* jetons d'Ariel ---------------------------------------------------------- */
@@ -189,7 +216,7 @@ await db.insert(tokens).values(usedTokens);
 await db.insert(scans).values(scanRows);
 
 /* boutique ---------------------------------------------------------------- */
-const productRows = [
+const productRows: (typeof products.$inferInsert)[] = [
   {
     id: uid(),
     slug: "puff-neon-6000",
@@ -275,6 +302,10 @@ const productRows = [
     stock: 24,
   },
 ];
+// Les deux premiers articles sont vendus par « Vapote Douala » : la place de
+// marché n'a de sens que si au moins une ligne appartient à quelqu'un.
+productRows[0].sellerId = vendeur.id;
+productRows[1].sellerId = vendeur.id;
 await db.insert(products).values(productRows);
 
 /* une commande déjà passée ------------------------------------------------ */
@@ -289,12 +320,12 @@ const order = {
   createdAt: hoursAgo(26),
 };
 await db.insert(orders).values(order);
-await db.insert(orderItems)
-  .values([
-    { id: uid(), orderId: order.id, productId: productRows[0].id, qty: 1, unitPrice: 7000 },
-    { id: uid(), orderId: order.id, productId: productRows[1].id, qty: 1, unitPrice: 22000 },
-  ])
-  ;
+// Chaque ligne porte son vendeur et la commission retenue, figés à la vente :
+// un taux révisé plus tard ne doit pas réécrire ce qui a déjà été dû.
+await db.insert(orderItems).values([
+  { id: uid(), orderId: order.id, productId: productRows[0].id!, sellerId: vendeur.id, qty: 1, unitPrice: 7000, commission: 700 },
+  { id: uid(), orderId: order.id, productId: productRows[1].id!, sellerId: vendeur.id, qty: 1, unitPrice: 22000, commission: 2200 },
+]);
 
 /* événements -------------------------------------------------------------- */
 const eventRows = [
@@ -704,8 +735,202 @@ const courseRows: (typeof courses.$inferInsert)[] = [
 ];
 await db.insert(courses).values(courseRows);
 
+/* tournois ------------------------------------------------------------------
+   Trois états, parce que ce sont les trois écrans qu'on veut pouvoir montrer :
+   un tableau ouvert aux candidatures, un tableau en cours — à douze joueurs,
+   donc avec des exemptions — et un tableau refermé sur son champion.
+
+   Les tableaux ne sont pas écrits à la main : on dépose des candidatures, puis
+   on appelle le vrai tirage et les vrais résultats. Ce que la démonstration
+   montre est donc exactement ce que l'application produit. */
+
+const tousLesJoueurs = [...clients, ...vivier];
+
+/** Un tournoi, son événement jumeau, et ses candidatures. */
+async function semerTournoi(opts: {
+  slug: string;
+  title: string;
+  venueId: string;
+  discipline: string;
+  size: number;
+  raceTo: number;
+  entryFee: number;
+  prizePool: number;
+  prizeSplit: string;
+  rules: string;
+  image: string;
+  status: string;
+  jours: number;
+  joueurs: { user: (typeof tousLesJoueurs)[number]; nickname: string; level: string; status: string }[];
+  ticketPrice: number;
+}) {
+  const debut = new Date(Date.now() + opts.jours * 86_400_000);
+  const eventId = uid();
+  const tournamentId = uid();
+
+  await db.insert(events).values({
+    id: eventId,
+    slug: `${opts.slug}-spectateurs`,
+    title: opts.title,
+    subtitle: `Tournoi ${opts.discipline} · ${opts.size} joueurs`,
+    day: debut.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }),
+    hours: "17:00 → 23:00",
+    checkin: "check-in dès 16:30",
+    venueId: opts.venueId,
+    price: opts.ticketPrice,
+    image: opts.image,
+    capacity: 120,
+    attendees: 0,
+    description: opts.rules,
+    tags: "tournoi",
+    active: opts.status !== "brouillon",
+  });
+
+  await db.insert(tournaments).values({
+    id: tournamentId,
+    slug: opts.slug,
+    title: opts.title,
+    eventId,
+    venueId: opts.venueId,
+    organiserId: serge.id,
+    discipline: opts.discipline,
+    size: opts.size,
+    raceTo: opts.raceTo,
+    entryFee: opts.entryFee,
+    prizePool: opts.prizePool,
+    prizeSplit: opts.prizeSplit,
+    rules: opts.rules,
+    image: opts.image,
+    status: opts.status,
+    startsAt: debut,
+    closesAt: new Date(debut.getTime() - 2 * 86_400_000),
+  });
+
+  await db.insert(tournamentPlayers).values(
+    opts.joueurs.map((j) => ({
+      id: uid(),
+      tournamentId,
+      userId: j.user.id,
+      nickname: j.nickname,
+      phone: j.user.phone,
+      level: j.level,
+      note: "",
+      status: j.status,
+      fee: opts.entryFee,
+      // Un candidat n'a rien réglé : le droit se paie une fois la place tenue.
+      payment: j.status === "accepte" && opts.entryFee > 0 ? "paye" : "impaye",
+    })),
+  );
+
+  return tournamentId;
+}
+
+const surnoms = [
+  "La Craie", "Le Métronome", "Cobra", "Main Froide", "Le Tacticien", "Tonnerre",
+  "Le Patient", "Effet Rétro", "Le Chirurgien", "Bande Arrière", "Le Comptable", "Éclair",
+];
+const nomDeTable = (i: number) => surnoms[i % surnoms.length];
+
+// 1. Candidatures ouvertes : sept dossiers, quatre déjà retenus.
+await semerTournoi({
+  slug: "master-break-open-akwa",
+  title: "Master Break Open · Akwa",
+  venueId: breakAkwa.id,
+  discipline: "8-ball",
+  size: 16,
+  raceTo: 4,
+  entryFee: 2000,
+  prizePool: 150_000,
+  prizeSplit: "60 % au vainqueur, 25 % au finaliste, 15 % partagés entre les demi-finalistes",
+  rules:
+    "8-ball, règles WPA simplifiées. Casse alternée, bille en main sur faute. Course à 4 jusqu'aux quarts, 5 en demi-finale, 6 en finale. Retard de plus de dix minutes : duel perdu.",
+  image: "/img/crowd-lights.jpg",
+  status: "inscriptions",
+  jours: 12,
+  ticketPrice: 1500,
+  joueurs: tousLesJoueurs.slice(0, 7).map((user, i) => ({
+    user,
+    nickname: nomDeTable(i),
+    level: i < 2 ? "confirme" : i < 5 ? "intermediaire" : "debutant",
+    status: i < 4 ? "accepte" : "candidat",
+  })),
+});
+
+// 2. En cours, à douze joueurs : quatre têtes de série passent le premier tour
+//    sans jouer, ce qui est exactement le cas qu'un tableau de seize doit
+//    savoir tenir.
+const enCours = await semerTournoi({
+  slug: "nuit-du-9-ball-zenith",
+  title: "Nuit du 9-ball · Zenith",
+  venueId: zenith.id,
+  discipline: "9-ball",
+  size: 16,
+  raceTo: 5,
+  entryFee: 3000,
+  prizePool: 220_000,
+  prizeSplit: "50 % au vainqueur, 30 % au finaliste, 20 % partagés entre les demi-finalistes",
+  rules:
+    "9-ball, casse gagnante conservée. Course à 5 au premier tour, 6 en demi-finale, 7 en finale. Le 9 sur la casse compte comme une manche.",
+  image: "/img/table-rack.jpg",
+  status: "complet",
+  jours: -1,
+  ticketPrice: 2000,
+  joueurs: tousLesJoueurs.slice(0, 12).map((user, i) => ({
+    user,
+    nickname: nomDeTable(i),
+    level: i < 4 ? "confirme" : "intermediaire",
+    status: "accepte",
+  })),
+});
+
+await tirerLeTableau(db, enCours);
+
+// Le premier tour se joue en entier ; les quarts restent à saisir, pour que la
+// console de l'organisateur ait quelque chose à montrer.
+for (const duel of await getBracket(db, enCours)) {
+  if (duel.round !== 1 || duel.status !== "attente") continue;
+  await noterResultat(db, duel.id, duel.raceTo, duel.raceTo - 2);
+}
+
+// 3. Terminé : un champion, des points distribués, un palmarès qui existe.
+const fini = await semerTournoi({
+  slug: "challenge-de-la-rentree-kata",
+  title: "Challenge de la rentrée · Kata Club",
+  venueId: kata.id,
+  discipline: "8-ball",
+  size: 8,
+  raceTo: 3,
+  entryFee: 0,
+  prizePool: 60_000,
+  prizeSplit: "70 % au vainqueur, 30 % au finaliste",
+  rules: "8-ball, course à 3, tableau de huit. Entrée gratuite pour les joueurs, table offerte par la salle.",
+  image: "/img/hall-dark.jpg",
+  status: "complet",
+  jours: -21,
+  ticketPrice: 0,
+  joueurs: tousLesJoueurs.slice(1, 9).map((user, i) => ({
+    user,
+    nickname: nomDeTable(i + 4),
+    level: "intermediaire",
+    status: "accepte",
+  })),
+});
+
+await tirerLeTableau(db, fini);
+
+// On déroule le tableau jusqu'à la finale : à chaque tour, la tête de série la
+// mieux classée l'emporte. Un favori qui gagne, c'est le résultat le moins
+// surprenant — et le plus lisible sur une démonstration.
+for (let tour = 1; tour <= 3; tour++) {
+  for (const duel of await getBracket(db, fini)) {
+    if (duel.round !== tour || duel.status !== "attente") continue;
+    if (!duel.playerAId || !duel.playerBId) continue;
+    await noterResultat(db, duel.id, duel.raceTo, tour === 3 ? duel.raceTo - 1 : 1);
+  }
+}
+
 console.log(
-  `base remplie : 3 salles, ${tableRows.length} tables, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours`,
+  `base remplie : 3 salles, ${tableRows.length} tables, 16 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours, 3 tournois`,
 );
 }
 

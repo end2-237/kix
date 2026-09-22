@@ -148,6 +148,20 @@
       "when": 1790085710616,
       "tag": "0020_cours_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790092073740,
+      "tag": "0021_tournois",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790092073741,
+      "tag": "0022_tournois_rls",
+      "breakpoints": true
     }
   ]
 }
