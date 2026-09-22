@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ArrowRightIcon, TargetIcon } from "@/components/icons";
 import { NIVEAUX, prixParSeance } from "@/lib/courses";
@@ -51,7 +51,7 @@ function Banniere({ carte }: { carte: CoursCarte }) {
       href={`/app/cours/${course.slug}`}
       className="press relative block h-44 w-[19rem] shrink-0 snap-start overflow-hidden rounded-panel border border-line lg:h-48 lg:w-auto"
     >
-      <Image src={course.image} alt="" fill sizes="(max-width: 1024px) 304px, 480px" className="object-cover" />
+      <Photo src={course.image} alt="" fill sizes="(max-width: 1024px) 304px, 480px" className="object-cover" />
       <span className="absolute inset-0 bg-linear-to-r from-black/92 via-black/65 to-black/25" />
 
       <span className="absolute inset-y-0 left-0 flex max-w-[78%] flex-col justify-center gap-1.5 p-4">

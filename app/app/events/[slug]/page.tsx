@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TicketButton } from "@/components/mb/TicketButton";
@@ -27,7 +28,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   return (
     <div className="-mx-5 -mt-4 pb-40 lg:mx-0 lg:mt-0 lg:pb-0">
       <div className="relative h-80 lg:h-100 lg:overflow-hidden lg:rounded-panel lg:border lg:border-line">
-        <Image src={event.image} alt={event.title} fill sizes="430px" className="object-cover" priority />
+        <Photo src={event.image} alt={event.title} fill sizes="430px" className="object-cover" priority />
         <div className="absolute inset-0 bg-linear-to-b from-black/55 via-black/10 to-bg lg:to-black/70" />
         <div className="absolute inset-x-5 top-4 flex items-center justify-between lg:inset-x-6">
           <Link

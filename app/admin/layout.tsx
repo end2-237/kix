@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { LockIcon, MasterMark } from "@/components/icons";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -34,7 +34,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="flex items-center gap-2 lg:mt-auto lg:flex-col lg:items-stretch lg:gap-3">
           <div className="glass flex items-center gap-2.5 rounded-card p-1.5 lg:p-3">
             {admin.avatar ? (
-              <Image src={admin.avatar} alt={admin.name} width={36} height={36} className="h-8 w-8 rounded-full object-cover lg:h-9 lg:w-9" />
+              <Photo src={admin.avatar} alt={admin.name} width={36} height={36} className="h-8 w-8 rounded-full object-cover lg:h-9 lg:w-9" />
             ) : (
               <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-[11px] font-semibold lg:h-9 lg:w-9">
                 {admin.name.slice(0, 2).toUpperCase()}

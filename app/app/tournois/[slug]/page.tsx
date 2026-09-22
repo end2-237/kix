@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
@@ -96,7 +96,7 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
   return (
     <div className="-mx-5 -mt-4 flex flex-col gap-5 pb-8 lg:mx-0 lg:mt-0">
       <div className="relative h-72 lg:h-88 lg:overflow-hidden lg:rounded-panel lg:border lg:border-line">
-        <Image
+        <Photo
           src={t.image}
           alt={t.title}
           fill

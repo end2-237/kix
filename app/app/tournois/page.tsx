@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Card } from "@/components/ui/Card";
@@ -71,7 +71,7 @@ export default async function TournoisPage() {
               <Card shape="panel" className="flex flex-col gap-3 overflow-hidden p-3.5">
                 <div className="flex gap-3.5">
                   <span className="relative h-18 w-18 shrink-0 overflow-hidden rounded-card">
-                    <Image src={tournament.image} alt="" fill sizes="72px" className="object-cover" />
+                    <Photo src={tournament.image} alt="" fill sizes="72px" className="object-cover" />
                   </span>
                   <span className="flex min-w-0 grow flex-col gap-1">
                     <span className="truncate text-[15px] font-semibold">{tournament.title}</span>

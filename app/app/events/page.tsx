@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Chip } from "@/components/ui/Chip";
@@ -30,7 +30,7 @@ export default async function EventsPage() {
           href={`/app/events/${event.slug}`}
           className="relative block h-40 overflow-hidden rounded-panel border border-line lg:h-72"
         >
-          <Image src={event.image} alt={event.title} fill sizes="430px" className="object-cover" />
+          <Photo src={event.image} alt={event.title} fill sizes="430px" className="object-cover" />
           <div className="absolute inset-0 bg-linear-to-b from-black/10 via-black/45 to-black/95" />
           <div className="absolute inset-x-4 bottom-3.5 flex flex-col gap-1.5 text-white">
             <div className="flex gap-1.5">

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ScreenHeader } from "@/components/mb/AppHeader";
@@ -29,7 +29,7 @@ export default async function VenuePage({ params }: { params: Promise<{ slug: st
       <ScreenHeader title={venue.name} subtitle={`${venue.area}, ${venue.city} · ${km(venue.distanceKm)}`} back="/app/salles" />
 
       <div className="relative h-44 overflow-hidden rounded-panel lg:h-64">
-        <Image src={venue.image} alt={venue.name} fill sizes="100vw" className="object-cover" priority />
+        <Photo src={venue.image} alt={venue.name} fill sizes="100vw" className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/20 to-transparent" />
         <div className="absolute inset-x-4 bottom-4 flex flex-wrap items-center gap-2 text-[11.5px]">
           <span className="flex items-center gap-1.5 rounded-full bg-jade/20 px-3 py-1.5 text-jade-text">

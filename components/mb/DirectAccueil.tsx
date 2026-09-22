@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { useLive } from "@/lib/useLive";
 import { LiveDot } from "@/components/live/LiveDot";
@@ -63,7 +63,7 @@ export function DirectAccueil({ initial }: { initial: Encours }) {
             href={`/direct/${d.id}`}
             className="press relative block h-36 w-60 shrink-0 overflow-hidden rounded-panel border border-line lg:h-40 lg:w-auto"
           >
-            <Image src={d.image} alt="" fill sizes="(max-width: 1024px) 240px, 320px" className="object-cover" />
+            <Photo src={d.image} alt="" fill sizes="(max-width: 1024px) 240px, 320px" className="object-cover" />
             <span className="absolute inset-0 bg-linear-to-t from-black/90 via-black/35 to-black/10" />
 
             <span className="absolute top-2.5 left-2.5">

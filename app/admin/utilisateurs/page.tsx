@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { PageHead, Pill, Table, Td } from "@/components/admin/AdminUI";
 import { setUserRole } from "@/lib/actions";
 import { getAllUsers, getAllVenues } from "@/lib/queries";
@@ -26,7 +26,7 @@ export default async function AdminUsers() {
             <Td>
               <span className="flex items-center gap-3">
                 {user.avatar ? (
-                  <Image src={user.avatar} alt={user.name} width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
+                  <Photo src={user.avatar} alt={user.name} width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
                 ) : (
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-[11px] font-semibold">
                     {user.name.slice(0, 2).toUpperCase()}

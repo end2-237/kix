@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { ConvertButton } from "@/components/mb/ConvertButton";
@@ -139,7 +139,7 @@ export default async function RewardsPage() {
                 )}
               >
                 {player.avatar ? (
-                  <Image
+                  <Photo
                     src={player.avatar}
                     alt={player.name}
                     width={first ? 52 : 44}
@@ -182,7 +182,7 @@ export default async function RewardsPage() {
           <div className="flex items-center gap-3 rounded-none border-[1.5px] border-gold/45 bg-gold/12 px-3.5 py-2.5">
             <span className="w-6 text-sm font-bold text-gold-text">{rank}</span>
             {user.avatar ? (
-              <Image
+              <Photo
                 src={user.avatar}
                 alt={user.name}
                 width={32}

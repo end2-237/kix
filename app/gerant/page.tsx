@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { and, eq } from "drizzle-orm";
 import { db, tokens } from "@/db";
 import { ScanConsole } from "@/components/mb/ScanConsole";
@@ -130,7 +130,7 @@ export default async function GerantPage() {
             {recent.map(({ scan, user, venue: scanVenue }) => (
               <div key={scan.id} className="flex items-center gap-3 rounded-none bg-surface px-3.5 py-3 transition hover:bg-surface-2">
                 {user?.avatar ? (
-                  <Image
+                  <Photo
                     src={user.avatar}
                     alt={user.name}
                     width={38}

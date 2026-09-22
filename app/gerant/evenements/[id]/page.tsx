@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -39,7 +39,7 @@ export default async function GerantEvenement({ params }: { params: Promise<{ id
 
       <div className="flex gap-3.5">
         <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-panel">
-          <Image src={event.image} alt="" fill sizes="80px" className="object-cover" />
+          <Photo src={event.image} alt="" fill sizes="80px" className="object-cover" />
         </span>
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-[19px] leading-tight lg:text-[26px]">{event.title}</h1>

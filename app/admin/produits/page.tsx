@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { Drawer, Field, PageHead, Pill, Select, SubmitButton, Table, Td, TextArea } from "@/components/admin/AdminUI";
 import { ImageField } from "@/components/admin/ImageField";
 import { deleteProduct, saveProduct } from "@/lib/actions";
@@ -48,7 +48,7 @@ export default async function AdminProducts() {
           <tr key={product.id}>
             <Td>
               <span className="flex items-center gap-3">
-                <Image
+                <Photo
                   src={product.image}
                   alt={product.name}
                   width={40}

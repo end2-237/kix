@@ -8,11 +8,11 @@ import { cn } from "@/lib/cn";
 /**
  * Le champ image des fiches.
  *
- * On y tapait un chemin vers `public/img` : ajouter une salle supposait donc
- * un déploiement, et tout le monde finissait par réutiliser les six mêmes
- * photos livrées avec le code. On téléverse maintenant, et c'est l'adresse
- * déposée qui part en base — le champ texte reste dessous, parce qu'une URL
- * déjà connue doit pouvoir être collée sans détour.
+ * Deux chemins, également valables : téléverser un fichier, ou coller
+ * l'adresse d'une image qui existe déjà quelque part. C'est le champ texte
+ * qui part en base dans les deux cas — le téléversement ne fait que le
+ * remplir. Quand le stockage n'est pas joignable, le second chemin reste
+ * ouvert, et c'est lui qu'on montre plutôt qu'un bouton qui échouera.
  */
 export function ImageField({
   label = "Image",
@@ -33,6 +33,10 @@ export function ImageField({
   const [valeur, setValeur] = useState(defaultValue ?? "");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string>();
+
+  // L'aperçu ne doit pas faire tomber le formulaire : une adresse à moitié
+  // tapée n'est pas une image, et `next/image` refuse ce qu'il ne sait pas lire.
+  const apercu = valeur.startsWith("/") || /^https?:\/\/\S+$/i.test(valeur) ? valeur : "";
 
   async function deposer(f: File) {
     setErreur(undefined);
@@ -70,8 +74,16 @@ export function ImageField({
             envoi && "pointer-events-none",
           )}
         >
-          {valeur ? (
-            <Image src={valeur} alt="" fill sizes="80px" className="object-cover" unoptimized />
+          {apercu ? (
+            <Image
+              key={apercu}
+              src={apercu}
+              alt=""
+              fill
+              sizes="80px"
+              className="object-cover"
+              unoptimized
+            />
           ) : (
             <span className="px-1 text-[10px] leading-tight text-muted">Choisir une image</span>
           )}
@@ -102,13 +114,18 @@ export function ImageField({
             name={name}
             value={valeur}
             onChange={(e) => setValeur(e.target.value)}
-            placeholder="/img/hall-dark.jpg ou une adresse complète"
+            placeholder="https://… ou /img/hall-dark.jpg"
+            spellCheck={false}
             className="h-11 rounded-none border border-line bg-surface px-3 text-[12.5px] text-ink outline-none focus:border-gold"
           />
           <span className="text-[11px] text-muted">
-            {envoi ? "Envoi en cours…" : "JPEG, PNG, WebP, AVIF ou GIF — 5 Mo maximum."}
+            {envoi
+              ? "Envoi en cours…"
+              : "Clique la vignette pour envoyer un fichier (5 Mo max), ou colle ici l'adresse d'une image."}
           </span>
-          {erreur ? <span className="text-[11.5px] text-warn">{erreur}</span> : null}
+          {erreur ? (
+            <span className="text-[11.5px] text-pretty text-warn">{erreur}</span>
+          ) : null}
         </div>
       </div>
     </div>

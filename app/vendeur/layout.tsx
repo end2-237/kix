@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { VendeurNav } from "@/components/vendeur/VendeurNav";
 import { MasterMark } from "@/components/icons";
@@ -34,7 +34,7 @@ export default async function VendeurLayout({ children }: { children: React.Reac
         <div className="mt-auto flex flex-col gap-3">
           <div className="glass flex items-center gap-2.5 rounded-card p-3">
             {vendeur.avatar ? (
-              <Image
+              <Photo
                 src={vendeur.avatar}
                 alt={vendeur.name}
                 width={36}

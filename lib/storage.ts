@@ -105,13 +105,49 @@ export async function deposerImage(fichier: File, dossier = "divers"): Promise<D
     body: new Uint8Array(await fichier.arrayBuffer()),
   });
 
-  if (!reponse.ok) {
-    const detail = await reponse.text().catch(() => "");
-    const lu = detail.slice(0, 160);
-    return { ok: false, error: `Dépôt refusé (${reponse.status})${lu ? ` — ${lu}` : ""}` };
-  }
+  if (!reponse.ok) return { ok: false, error: await expliquer(reponse, cfg) };
 
   return { ok: true, url: `${cfg.url}/storage/v1/object/public/${BUCKET}/${nom}` };
+}
+
+/**
+ * Pourquoi le dépôt a échoué, en une phrase qu'on peut suivre.
+ *
+ * On renvoyait les cent soixante premiers caractères de la réponse : quand
+ * l'adresse configurée n'est pas un Supabase, cela veut dire une page HTML
+ * déversée dans l'interface, et personne n'y lit la cause. Une page de
+ * navigateur à cet endroit ne dit qu'une chose, et il faut la dire.
+ */
+async function expliquer(reponse: Response, cfg: Config): Promise<string> {
+  const type = reponse.headers.get("content-type") ?? "";
+  const corps = await reponse.text().catch(() => "");
+  const html = type.includes("text/html") || corps.trimStart().startsWith("<");
+
+  if (html) {
+    return (
+      `L'adresse ${cfg.url} répond une page web, pas un Supabase Storage. ` +
+      `Vérifie SUPABASE_URL sur le serveur : elle doit pointer sur ton Supabase, ` +
+      `pas sur le site. En attendant, colle l'adresse d'une image dans le champ.`
+    );
+  }
+
+  // Supabase répond du JSON : son message est bien plus utile que le nôtre.
+  const message = (() => {
+    try {
+      const j = JSON.parse(corps) as { message?: string; error?: string };
+      return j.message || j.error || "";
+    } catch {
+      return corps.slice(0, 140);
+    }
+  })();
+
+  if (reponse.status === 401 || reponse.status === 403) {
+    return `Dépôt refusé (${reponse.status}) : la clé de service est absente ou périmée. ${message}`.trim();
+  }
+  if (reponse.status === 404) {
+    return `Le seau « ${BUCKET} » n'existe pas et n'a pas pu être créé. ${message}`.trim();
+  }
+  return `Dépôt refusé (${reponse.status})${message ? ` — ${message}` : ""}`;
 }
 
 /** L'hôte de stockage, pour que `next/image` accepte d'en servir les images. */

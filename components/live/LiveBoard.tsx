@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { useState } from "react";
 import { LiveDot } from "@/components/live/LiveDot";
 import { Card } from "@/components/ui/Card";
@@ -149,7 +149,7 @@ function Line({
   return (
     <div className="flex items-center gap-2.5">
       {side.avatar ? (
-        <Image
+        <Photo
           src={side.avatar}
           alt={side.name}
           width={28}

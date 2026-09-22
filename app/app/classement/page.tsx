@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Card } from "@/components/ui/Card";
@@ -51,7 +51,7 @@ export default async function ClassementPage() {
                 )}
               >
                 {joueur.avatar ? (
-                  <Image
+                  <Photo
                     src={joueur.avatar}
                     alt={joueur.name}
                     width={premier ? 52 : 44}
@@ -130,7 +130,7 @@ export default async function ClassementPage() {
             >
               <span className="w-7 shrink-0 text-[12.5px] text-faint tabular-nums">{i + 1}</span>
               {joueur.avatar ? (
-                <Image
+                <Photo
                   src={joueur.avatar}
                   alt={joueur.name}
                   width={32}

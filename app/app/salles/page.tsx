@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Chip } from "@/components/ui/Chip";
@@ -30,7 +30,7 @@ export default async function SallesPage() {
           href={`/app/salles/${venue.slug}`}
           className="glass lift zoom flex gap-3 overflow-hidden rounded-card p-3"
         >
-          <Image
+          <Photo
             src={venue.image}
             alt={venue.name}
             width={92}

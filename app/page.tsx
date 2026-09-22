@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { DotGrid } from "@/components/site/DotGrid";
 import { Marquee } from "@/components/site/Marquee";
@@ -182,7 +183,7 @@ export default async function LandingPage() {
                 key={coach.name}
                 className="lift zoom group relative h-100 overflow-hidden rounded-panel border border-line lg:h-115"
               >
-                <Image
+                <Photo
                   src={coach.image}
                   alt={coach.name}
                   fill
@@ -278,7 +279,7 @@ export default async function LandingPage() {
                   href="/app/salles"
                   className="zoom relative h-20 w-28 overflow-hidden border border-white/25 transition hover:border-gold lg:h-24 lg:w-36"
                 >
-                  <Image src={venue.image} alt={venue.name} fill sizes="144px" className="object-cover" />
+                  <Photo src={venue.image} alt={venue.name} fill sizes="144px" className="object-cover" />
                   <span className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-[10px] text-white">
                     {venue.name}
                   </span>

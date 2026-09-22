@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { Drawer, Field, Select, SubmitButton, Switch, TextArea } from "@/components/admin/AdminUI";
 import { ImageField } from "@/components/admin/ImageField";
 import { Card } from "@/components/ui/Card";
@@ -56,7 +56,7 @@ export default async function VendeurArticles() {
             <Card key={product.id} shape="panel" className="flex flex-col gap-3 p-3.5">
               <div className="flex gap-3">
                 <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-card">
-                  <Image src={product.image} alt="" fill sizes="56px" className="object-cover" />
+                  <Photo src={product.image} alt="" fill sizes="56px" className="object-cover" />
                 </span>
                 <span className="flex min-w-0 grow flex-col gap-0.5">
                   <span className="flex items-center gap-2">

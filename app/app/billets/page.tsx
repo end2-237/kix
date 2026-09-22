@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { QrCode } from "@/components/mb/QrCode";
@@ -44,7 +44,7 @@ export default async function BilletsPage() {
       {tickets.map(({ ticket, event }) => (
         <Card key={ticket.id} shape="panel" className="overflow-hidden">
           <div className="relative h-32">
-            <Image src={event.image} alt={event.title} fill sizes="430px" className="object-cover" />
+            <Photo src={event.image} alt={event.title} fill sizes="430px" className="object-cover" />
             <div className="absolute inset-0 bg-linear-to-t from-black/85 to-black/20" />
             <div className="absolute inset-x-4 bottom-3 flex items-end justify-between text-white">
               <span className="flex flex-col">

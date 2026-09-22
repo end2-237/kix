@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { AppHeader } from "@/components/mb/AppHeader";
 import { WalletStrip } from "@/components/mb/WalletStrip";
@@ -103,7 +104,7 @@ export default async function AccueilPage() {
             href={`/app/events/${tonight.slug}`}
             className="glass flex items-center gap-3 rounded-card p-3 transition hover:bg-surface-2 lg:h-full lg:flex-col lg:items-stretch lg:justify-between lg:gap-4 lg:rounded-panel lg:p-4"
           >
-            <Image
+            <Photo
               src={tonight.image}
               alt={tonight.title}
               width={320}

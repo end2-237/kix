@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { LiveDot } from "@/components/live/LiveDot";
 import { cn } from "@/lib/cn";
 
@@ -116,7 +116,7 @@ function Player({
     >
       <span className="relative shrink-0">
         {side.avatar ? (
-          <Image
+          <Photo
             src={side.avatar}
             alt={side.name}
             width={size}

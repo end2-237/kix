@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { Drawer, Field, Select, SubmitButton, TextArea } from "@/components/admin/AdminUI";
 import { ImageField } from "@/components/admin/ImageField";
 import { EtatTournoi } from "@/components/tournoi/Actions";
@@ -165,7 +165,7 @@ export function ListeTournois({ lignes, base }: { lignes: LigneTournoi[]; base: 
         <Card key={tournament.id} shape="panel" className="flex flex-col gap-3 p-3.5">
           <div className="flex gap-3.5">
             <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-card">
-              <Image src={tournament.image} alt="" fill sizes="64px" className="object-cover" />
+              <Photo src={tournament.image} alt="" fill sizes="64px" className="object-cover" />
             </span>
             <span className="flex min-w-0 grow flex-col gap-1">
               <span className="truncate text-[15px] font-semibold">{tournament.title}</span>

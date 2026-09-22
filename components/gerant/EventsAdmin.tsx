@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { ArrowRightIcon, CalendarIcon, TicketIcon } from "@/components/icons";
@@ -67,7 +67,7 @@ export function EventsAdmin({ rows }: { rows: EventRowView[] }) {
             <Card shape="panel" className="flex flex-col gap-3.5 overflow-hidden p-3.5">
               <div className="flex gap-3.5">
                 <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-card">
-                  <Image src={row.image} alt="" fill sizes="64px" className="object-cover" />
+                  <Photo src={row.image} alt="" fill sizes="64px" className="object-cover" />
                 </span>
 
                 <span className="flex min-w-0 grow flex-col gap-1">

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ScreenHeader } from "@/components/mb/AppHeader";
@@ -35,7 +35,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       <div className="grid gap-3.5 lg:grid-cols-2 lg:items-start lg:gap-10">
       <div className="relative h-64 overflow-hidden rounded-panel border border-line lg:sticky lg:top-8 lg:h-125">
-        <Image src={product.image} alt={product.name} fill sizes="430px" className="object-cover" priority />
+        <Photo src={product.image} alt={product.name} fill sizes="430px" className="object-cover" priority />
         {product.badgeLabel ? (
           <span
             className={cn(
@@ -90,7 +90,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 className="glass w-40 shrink-0 overflow-hidden rounded-card lg:w-full"
               >
                 <div className="relative h-24 lg:h-40">
-                  <Image src={other.image} alt={other.name} fill sizes="160px" className="object-cover" />
+                  <Photo src={other.image} alt={other.name} fill sizes="160px" className="object-cover" />
                 </div>
                 <div className="flex flex-col gap-1 px-3 py-2.5">
                   <span className="line-clamp-2 text-[12px] leading-4 font-semibold">{other.name}</span>

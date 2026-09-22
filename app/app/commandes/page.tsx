@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Card } from "@/components/ui/Card";
@@ -66,7 +66,7 @@ export default async function CommandesPage() {
             <div className="flex flex-col gap-2">
               {order.items.map(({ item, product }) => (
                 <div key={item.id} className="flex items-center gap-3">
-                  <Image
+                  <Photo
                     src={product.image}
                     alt={product.name}
                     width={44}

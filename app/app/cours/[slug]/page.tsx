@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq, and } from "drizzle-orm";
@@ -41,7 +41,7 @@ export default async function CoursFiche({ params }: { params: Promise<{ slug: s
   return (
     <div className="-mx-5 -mt-4 pb-40 lg:mx-0 lg:mt-0 lg:pb-0">
       <div className="relative h-72 lg:h-96 lg:overflow-hidden lg:rounded-panel lg:border lg:border-line">
-        <Image src={course.image} alt={course.title} fill sizes="(max-width: 1024px) 100vw, 900px" className="object-cover" priority />
+        <Photo src={course.image} alt={course.title} fill sizes="(max-width: 1024px) 100vw, 900px" className="object-cover" priority />
         <div className="absolute inset-0 bg-linear-to-b from-black/50 via-black/15 to-bg lg:to-black/75" />
 
         <Link

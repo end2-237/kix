@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { GerantNav } from "@/components/mb/GerantNav";
 import { MasterMark, ChevronDownIcon } from "@/components/icons";
@@ -35,7 +35,7 @@ export default async function GerantLayout({ children }: { children: React.React
 
         <div className="glass flex items-center gap-2.5 rounded-card p-3">
           {venue ? (
-            <Image
+            <Photo
               src={venue.image}
               alt={venue.name}
               width={36}
@@ -57,7 +57,7 @@ export default async function GerantLayout({ children }: { children: React.React
         <div className="mt-auto flex flex-col gap-3">
           <div className="glass flex items-center gap-2.5 rounded-card p-3">
             {manager.avatar ? (
-              <Image
+              <Photo
                 src={manager.avatar}
                 alt={manager.name}
                 width={36}

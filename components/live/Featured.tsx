@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { useState } from "react";
 import { StreamPlayer } from "@/components/live/StreamPlayer";
@@ -47,7 +47,7 @@ export function Featured({ cards }: { cards: CardData[] }) {
           {/* La fiche du direct, à droite comme sur une page de chaîne. */}
           <aside className="flex shrink-0 flex-col gap-3 rounded-card border border-line bg-surface p-4 lg:w-64">
             <div className="flex items-center gap-2.5">
-              <Image
+              <Photo
                 src={card.image}
                 alt=""
                 width={40}

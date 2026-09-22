@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -111,7 +111,7 @@ export function CartClient({
         {lines.map(({ product, qty }) => (
           <div key={product.id} className="glass lift flex items-center gap-3 rounded-card p-3">
             <Link href={`/app/shop/${product.slug}`}>
-              <Image
+              <Photo
                 src={product.image}
                 alt={product.name}
                 width={64}

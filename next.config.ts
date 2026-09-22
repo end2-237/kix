@@ -36,6 +36,29 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: hote ? [{ ...hote, pathname: "/storage/v1/object/public/**" }] : [],
   },
+
+  /**
+   * Le préfixe exact des images que l'optimiseur accepte.
+   *
+   * `<Photo>` s'en sert pour trancher : nos propres images passent par
+   * l'optimiseur, une adresse collée à la main est servie telle quelle —
+   * l'optimiseur n'accepte que ce qui est déclaré ci-dessus, et lui ouvrir un
+   * hôte de plus ferait de lui un relais d'images public.
+   *
+   * C'est bien le préfixe entier qu'on compare, et non le seul nom d'hôte :
+   * deux services sur la même machine ne diffèrent que par leur port, et une
+   * comparaison de nom d'hôte les confondrait — ma première version le
+   * faisait, et envoyait une image étrangère à l'optimiseur, qui l'aurait
+   * refusée en production.
+   *
+   * Rien de secret ici : ce préfixe figure déjà dans l'adresse de chaque
+   * image téléversée.
+   */
+  env: {
+    NEXT_PUBLIC_MB_STORAGE_PREFIX: hote
+      ? `${hote.protocol}://${hote.hostname}${hote.port ? `:${hote.port}` : ""}/storage/v1/object/public/`
+      : "",
+  },
 };
 
 export default nextConfig;

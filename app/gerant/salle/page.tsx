@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { FloorPlan } from "@/components/mb/FloorPlan";
 import { Card, StatBlock } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -83,7 +83,7 @@ export default async function SallePage() {
                 return (
                   <div key={reservation.id} className="flex items-center gap-3 rounded-none bg-surface px-3.5 py-3">
                     {client.avatar ? (
-                      <Image
+                      <Photo
                         src={client.avatar}
                         alt={client.name}
                         width={36}

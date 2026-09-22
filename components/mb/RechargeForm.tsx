@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -72,7 +72,7 @@ export function RechargeForm({ packs, venues, phone }: { packs: Pack[]; venues: 
                 v.id === venue.id ? "glass-gold border-[1.5px] border-gold" : "glass hover:bg-surface-2",
               )}
             >
-              <Image
+              <Photo
                 src={v.image}
                 alt={v.name}
                 width={44}

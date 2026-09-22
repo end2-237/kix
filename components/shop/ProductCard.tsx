@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { AddToCartButton } from "@/components/shop/AddToCartButton";
 import { cn } from "@/lib/cn";
@@ -9,7 +9,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <div className="glass lift zoom flex flex-col overflow-hidden rounded-card">
       <Link href={`/app/shop/${product.slug}`} className="relative block h-27 overflow-hidden lg:h-52">
-        <Image src={product.image} alt={product.name} fill sizes="180px" className="object-cover" />
+        <Photo src={product.image} alt={product.name} fill sizes="180px" className="object-cover" />
         {product.badgeLabel ? (
           <span
             className={cn(

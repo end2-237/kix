@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import { StreamCard, type CardData } from "@/components/live/StreamCard";
 import { ChevronRightIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
@@ -76,7 +76,7 @@ export function Rubrics({ items }: { items: Rubric[] }) {
         {items.map((item) => (
           <Link key={item.id} href={`/direct?rayon=${item.id}`} className="group flex flex-col gap-2">
             <div className="relative aspect-[3/4] overflow-hidden rounded-card bg-surface-2">
-              <Image
+              <Photo
                 src={item.image}
                 alt=""
                 fill

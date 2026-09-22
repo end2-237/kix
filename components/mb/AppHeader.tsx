@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { BellIcon, ChevronDownIcon, ChevronLeftIcon, MasterMark, PinIcon } from "@/components/icons";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -65,7 +65,7 @@ export function AppHeader({
         </Link>
         <Link href="/app/rewards" aria-label="Mon profil">
           {user.avatar ? (
-            <Image
+            <Photo
               src={user.avatar}
               alt={user.name}
               width={44}

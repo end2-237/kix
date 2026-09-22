@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
@@ -106,7 +106,7 @@ export function LiveRail({ items }: { items: RailItem[] }) {
               )}
             >
               <span className="relative shrink-0">
-                <Image
+                <Photo
                   src={item.image}
                   alt=""
                   width={32}

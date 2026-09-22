@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -130,7 +130,7 @@ export function AppSidebar({ user, balance, unread }: { user: User; balance: num
 
         <Link href="/app/rewards" className="glass lift mt-auto flex items-center gap-3 rounded-card p-3">
           {user.avatar ? (
-            <Image
+            <Photo
               src={user.avatar}
               alt={user.name}
               width={38}

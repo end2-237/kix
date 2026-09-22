@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { LockIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
@@ -29,7 +29,7 @@ export function StreamCard({ card, className }: { card: CardData; className?: st
   return (
     <Link href={`/direct/${card.id}`} className={cn("group flex flex-col gap-2", className)}>
       <div className="relative aspect-video overflow-hidden rounded-card bg-black">
-        <Image
+        <Photo
           src={card.poster}
           alt=""
           fill
@@ -67,7 +67,7 @@ export function StreamCard({ card, className }: { card: CardData; className?: st
       </div>
 
       <div className="flex gap-2.5">
-        <Image
+        <Photo
           src={card.image}
           alt=""
           width={34}
