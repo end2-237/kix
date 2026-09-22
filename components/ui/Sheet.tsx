@@ -1,11 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 
 /**
  * Panneau modal : feuille qui remonte du bas sur téléphone, carte centrée
  * au-delà de 640 px. Ferme à l'Échap et au clic sur le fond.
+ *
+ * La feuille est déposée dans `document.body`, jamais rendue sur place.
+ * Le conteneur des pages porte `.stagger`, dont l'animation d'entrée laisse
+ * un `transform` posé — et un élément transformé ouvre un contexte
+ * d'empilement : le `z-50` de la feuille ne valait alors que dans la page, si
+ * bien que la barre de navigation, pourtant en `z-30` mais posée à la racine,
+ * passait par-dessus et cachait le bas du formulaire. Sortir la feuille de
+ * l'arbre de la page est le seul remède : régler les z-index les uns contre
+ * les autres ne répare pas un contexte d'empilement, il le déplace.
  */
 export function Sheet({
   open,
@@ -20,6 +30,8 @@ export function Sheet({
   children: React.ReactNode;
   className?: string;
 }) {
+  const surLeClient = useSurLeClient();
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -32,9 +44,9 @@ export function Sheet({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !surLeClient) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         aria-label="Fermer"
@@ -65,6 +77,22 @@ export function Sheet({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
+
+/**
+ * Vrai une fois le navigateur aux commandes.
+ *
+ * `createPortal` a besoin d'un `document` : le rendu serveur n'en a pas. On
+ * le demande à `useSyncExternalStore` plutôt qu'à un effet — un effet qui
+ * appelle `setState` rejoue un rendu pour rien, et React le signale.
+ */
+const jamais = () => () => {};
+const useSurLeClient = () =>
+  useSyncExternalStore(
+    jamais,
+    () => true,
+    () => false,
+  );
