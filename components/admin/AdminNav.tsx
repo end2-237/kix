@@ -8,6 +8,7 @@ import {
   CoinIcon,
   MapIcon,
   TableIcon,
+  TargetIcon,
   TicketIcon,
   TruckIcon,
   UserIcon,
@@ -30,6 +31,7 @@ const items: NavItem[] = [
   { href: "/admin/evenements", label: "Événements", Icon: CalendarIcon },
   { href: "/admin/tables", label: "Tables", Icon: TableIcon },
   { href: "/admin/jetons", label: "Jetons", Icon: TicketIcon },
+  { href: "/admin/cours", label: "Cours", Icon: TargetIcon },
   { href: "/admin/vendeurs", label: "Vendeurs", Icon: TruckIcon },
   { href: "/admin/utilisateurs", label: "Utilisateurs", Icon: UserIcon },
 ];

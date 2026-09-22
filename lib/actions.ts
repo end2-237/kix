@@ -7,6 +7,8 @@ import { and, eq, inArray, lt, sql } from "drizzle-orm";
 import type { Match, User } from "@/db";
 import {
   db,
+  courses,
+  enrollments,
   events,
   notifications,
   matchEvents,
@@ -1570,4 +1572,110 @@ export async function removeScreen(screenId: string) {
   await db.delete(screens).where(and(eq(screens.id, screenId), eq(screens.venueId, manager.venueId)));
   revalidatePath("/gerant/ecrans");
   return { ok: true as const };
+}
+
+/* ------------------------------------------------------- cours de billard */
+
+/**
+ * S'inscrire à un cours.
+ *
+ * Le prix est figé sur l'inscription au moment où elle naît : un tarif révisé
+ * en cours de trimestre ne doit pas réécrire ce qu'un élève déjà inscrit a
+ * payé. Les places sont recomptées à la confirmation du paiement, pas ici —
+ * le cours peut se remplir pendant que l'élève valide sur son téléphone.
+ */
+export async function startEnrollment(
+  courseId: string,
+  method: "om" | "momo",
+  phone: string,
+): Promise<StartResult> {
+  const user = await requireUser();
+  const cours = (await db.select().from(courses).where(eq(courses.id, courseId)).limit(1))[0];
+  if (!cours || !cours.active) return { ok: false, error: "Ce cours n'est plus proposé." };
+
+  const deja = (
+    await db
+      .select({ id: enrollments.id })
+      .from(enrollments)
+      .where(and(eq(enrollments.courseId, courseId), eq(enrollments.userId, user.id), eq(enrollments.status, "paid")))
+      .limit(1)
+  )[0];
+  if (deja) return { ok: false, error: "Tu es déjà inscrit à ce cours." };
+
+  const pris = (
+    await db
+      .select({ n: sql<number>`count(*)` })
+      .from(enrollments)
+      .where(and(eq(enrollments.courseId, courseId), eq(enrollments.status, "paid")))
+  )[0];
+  if (Number(pris?.n ?? 0) >= cours.capacity) return { ok: false, error: "Ce cours est complet." };
+
+  const id = uid();
+  await db.insert(enrollments).values({
+    id,
+    courseId,
+    userId: user.id,
+    price: cours.price,
+    status: "pending",
+  });
+
+  const started = await startPayment({
+    kind: "course",
+    userId: user.id,
+    amount: cours.price,
+    method,
+    phone,
+    description: `Cours ${cours.title}`,
+    targetId: id,
+  });
+  if (!started.ok) return started;
+
+  await db.update(enrollments).set({ reference: started.reference }).where(eq(enrollments.id, id));
+  revalidatePath("/app/cours");
+  return { ok: true, reference: started.reference, instruction: started.instruction, amount: cours.price };
+}
+
+/** Créer ou modifier un cours. Réservé à l'administration et aux coachs. */
+export async function saveCourse(formData: FormData) {
+  const auteur = await requireRole("admin", "seller");
+  const id = str(formData, "id");
+
+  if (auteur.role === "seller" && id) {
+    const actuel = (await db.select().from(courses).where(eq(courses.id, id)).limit(1))[0];
+    if (!actuel || actuel.coachId !== auteur.id) redirect("/vendeur?refus=1");
+  }
+
+  const sessions = Math.max(1, num(formData, "sessions"));
+  const values = {
+    slug: str(formData, "slug") || str(formData, "title").toLowerCase().replace(/\s+/g, "-"),
+    title: str(formData, "title"),
+    coachName: str(formData, "coachName") || auteur.name,
+    venueId: str(formData, "venueId") || null,
+    level: str(formData, "level") || "debutant",
+    format: str(formData, "format") || "forfait",
+    sessions,
+    schedule: str(formData, "schedule"),
+    price: num(formData, "price"),
+    image: str(formData, "image") || "/img/coach-1.jpg",
+    description: str(formData, "description"),
+    capacity: Math.max(1, num(formData, "capacity")),
+    featured: bool(formData, "featured"),
+    active: bool(formData, "active"),
+  };
+
+  // Le coach ne se choisit pas dans un formulaire, comme le vendeur d'un
+  // article : à la création c'est l'auteur, à la modification on n'y touche pas.
+  if (id) await db.update(courses).set(values).where(eq(courses.id, id));
+  else {
+    await db.insert(courses).values({
+      id: uid(),
+      ...values,
+      coachId: auteur.role === "seller" ? auteur.id : null,
+    });
+  }
+
+  revalidatePath("/app/cours");
+  revalidatePath("/app/shop");
+  revalidatePath("/admin/cours");
+  revalidatePath("/vendeur/cours");
 }

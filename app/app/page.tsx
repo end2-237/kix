@@ -137,8 +137,8 @@ export default async function AccueilPage() {
       <Tiles>
         <Tile href="/app/salles" label="Salles" icon={<MapIcon size={17} />} />
         <Tile href="/app/events" label="Soirées" icon={<TicketIcon size={17} />} />
-        <Tile href="/app/live" label="Scores" icon={<TargetIcon size={17} />} />
-        <Tile href="/app/rewards" label="Rewards" icon={<TrophyIcon size={17} />} />
+        <Tile href="/app/live" label="Scores" icon={<TrophyIcon size={17} />} />
+        <Tile href="/app/cours" label="Cours" icon={<TargetIcon size={17} />} />
       </Tiles>
 
       <div className="flex flex-col gap-2.5 lg:gap-4">

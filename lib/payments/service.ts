@@ -2,7 +2,9 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, lt, ne, sql } from "drizzle-orm";
 import {
+  courses,
   db,
+  enrollments,
   events,
   orderItems,
   orders,
@@ -35,7 +37,7 @@ const fcfa = (n: number) => `${n.toLocaleString("fr-FR")} F`;
  */
 const newReference = () => randomUUID();
 
-export type PaymentKind = "pack" | "order" | "ticket" | "reservation" | "stream";
+export type PaymentKind = "pack" | "order" | "ticket" | "reservation" | "stream" | "course";
 
 export type StartInput = {
   kind: PaymentKind;
@@ -165,6 +167,7 @@ async function fulfil(tx: Tx, payment: Payment) {
   if (payment.kind === "ticket") return fulfilTicket(tx, payment);
   if (payment.kind === "reservation") return fulfilReservation(tx, payment);
   if (payment.kind === "stream") return fulfilStreamPass(tx, payment);
+  if (payment.kind === "course") return fulfilEnrollment(tx, payment);
 }
 
 async function fulfilPack(tx: Tx, payment: Payment) {
@@ -223,6 +226,52 @@ async function fulfilOrder(tx: Tx, payment: Payment) {
     }.`,
     "order",
     "/app/commandes",
+    tx,
+  );
+}
+
+/**
+ * Une inscription à un cours, une fois payée.
+ *
+ * Le cours a pu se remplir pendant que l'élève validait sur son téléphone :
+ * on refuse alors plutôt que de vendre une place qui n'existe plus, et on le
+ * dit — un débit sans place est la pire des surprises.
+ */
+async function fulfilEnrollment(tx: Tx, payment: Payment) {
+  const inscription = (
+    await tx.select().from(enrollments).where(eq(enrollments.id, payment.targetId!)).limit(1)
+  )[0];
+  if (!inscription || inscription.status !== "pending") return;
+
+  const cours = (await tx.select().from(courses).where(eq(courses.id, inscription.courseId)).limit(1))[0];
+
+  const places = (
+    await tx
+      .select({ n: sql<number>`count(*)` })
+      .from(enrollments)
+      .where(and(eq(enrollments.courseId, inscription.courseId), eq(enrollments.status, "paid")))
+  )[0];
+
+  if (cours && Number(places?.n ?? 0) >= cours.capacity) {
+    await tx.update(enrollments).set({ status: "failed" }).where(eq(enrollments.id, inscription.id));
+    await notify(
+      inscription.userId,
+      `Complet · ${cours.title}`,
+      "Le cours s'est rempli pendant le paiement. Aucun montant n'a été retenu.",
+      "event",
+      "/app/cours",
+      tx,
+    );
+    return;
+  }
+
+  await tx.update(enrollments).set({ status: "paid" }).where(eq(enrollments.id, inscription.id));
+  await notify(
+    inscription.userId,
+    `Inscrit · ${cours?.title ?? "ton cours"}`,
+    cours ? `${cours.sessions} séance${cours.sessions > 1 ? "s" : ""} avec ${cours.coachName}. ${cours.schedule}` : "",
+    "event",
+    "/app/cours",
     tx,
   );
 }

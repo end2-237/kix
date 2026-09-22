@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { hashPassword } from "../lib/password";
 import { createDb } from "./client";
 import {
+  courses,
   events,
   matchEvents,
   matches,
@@ -644,8 +645,67 @@ const streamRows = [
 ];
 await db.insert(streams).values(streamRows);
 
+/* cours de billard ---------------------------------------------------------
+   Trois offres qui couvrent les trois formats : une séance d'essai, un
+   forfait, un abonnement. Deux en bannière, pour que la boutique ait de quoi
+   montrer sans être saturée. */
+
+const courseRows: (typeof courses.$inferInsert)[] = [
+  {
+    id: uid(),
+    slug: "premiere-queue",
+    title: "Première queue",
+    coachName: "Ariel N.",
+    venueId: breakAkwa.id,
+    level: "debutant",
+    format: "seance",
+    sessions: 1,
+    schedule: "Mercredi · 18h → 19h30",
+    price: 3000,
+    image: "/img/coach-1.jpg",
+    description:
+      "La position, la passe, le premier effet. Une heure et demie pour cesser de pousser la bille et commencer à la jouer.",
+    capacity: 6,
+    featured: true,
+  },
+  {
+    id: uid(),
+    slug: "casse-controlee",
+    title: "La casse contrôlée",
+    coachName: "Yannick T.",
+    venueId: zenith.id,
+    level: "intermediaire",
+    format: "forfait",
+    sessions: 4,
+    schedule: "Samedi · 10h → 12h",
+    price: 18000,
+    image: "/img/coach-2.jpg",
+    description:
+      "Quatre samedis sur la casse, le placement de la blanche et la lecture de table. Pour qui gagne déjà, mais sans savoir pourquoi.",
+    capacity: 8,
+    featured: true,
+  },
+  {
+    id: uid(),
+    slug: "atelier-competition",
+    title: "Atelier compétition",
+    coachName: "Serge M.",
+    venueId: breakAkwa.id,
+    level: "confirme",
+    format: "abonnement",
+    sessions: 8,
+    schedule: "Mardi et jeudi · 19h → 21h",
+    price: 40000,
+    image: "/img/p-champion.jpg",
+    description: "Préparation aux tournois : gestion du temps, sécurités, tactique de fin de rack.",
+    capacity: 5,
+    featured: false,
+  },
+];
+await db.insert(courses).values(courseRows);
+
 console.log(
-  `base remplie : 3 salles, ${tableRows.length} tables, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs`,
+  `base remplie : 3 salles, ${tableRows.length} tables, 7 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours`,
 );
 }
 

@@ -200,6 +200,68 @@ export const orderItems = mb.table("order_items", {
   commission: integer("commission").notNull().default(0),
 });
 
+/**
+ * Les cours de billard.
+ *
+ * Un cours n'est pas un produit : il a un coach, un niveau, un nombre de
+ * séances et un créneau. Le ranger dans `products` aurait demandé cinq
+ * colonnes nulles pour tout le reste du catalogue, et une case « c'est un
+ * cours » à interpréter partout.
+ */
+export const courses = mb.table("courses", {
+  id: id(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  /** Le coach, s'il a un compte : c'est lui qu'on paie. */
+  coachId: uuid("coach_id").references(() => users.id, { onDelete: "set null" }),
+  /** Son nom affiché, même sans compte — un intervenant de passage en a un. */
+  coachName: text("coach_name").notNull().default(""),
+  venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+  // debutant | intermediaire | confirme
+  level: text("level").notNull().default("debutant"),
+  // seance | forfait | abonnement
+  format: text("format").notNull().default("forfait"),
+  /** Nombre de séances du forfait ; 1 pour une séance seule. */
+  sessions: integer("sessions").notNull().default(1),
+  /** Quand ça se passe, en clair : « Samedi · 10h → 12h ». */
+  schedule: text("schedule").notNull().default(""),
+  price: integer("price").notNull().default(0),
+  image: text("image").notNull(),
+  description: text("description").notNull().default(""),
+  capacity: integer("capacity").notNull().default(10),
+  /** Mis en avant en bannière dans la boutique. */
+  featured: boolean("featured").notNull().default(false),
+  active: boolean("active").notNull().default(true),
+  createdAt: createdAt(),
+});
+
+/**
+ * Une inscription à un cours.
+ *
+ * `price` est figé ici : un tarif révisé en cours de trimestre ne doit pas
+ * réécrire ce qu'un élève déjà inscrit a payé. Même règle que les jetons et
+ * les lignes de vente.
+ */
+export const enrollments = mb.table(
+  "enrollments",
+  {
+    id: id(),
+    courseId: uuid("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    /** Ce que l'élève a payé, figé à l'inscription. */
+    price: integer("price").notNull().default(0),
+    // pending | paid | failed | cancelled
+    status: text("status").notNull().default("pending"),
+    reference: text("reference").unique(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("enrollments_course_idx").on(t.courseId), index("enrollments_user_idx").on(t.userId)],
+);
+
 export const events = mb.table("events", {
   id: id(),
   slug: text("slug").notNull().unique(),
@@ -649,6 +711,8 @@ export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type Course = typeof courses.$inferSelect;
+export type Enrollment = typeof enrollments.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
 export type Scan = typeof scans.$inferSelect;

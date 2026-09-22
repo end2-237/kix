@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { AppHeader } from "@/components/mb/AppHeader";
 import { ProductCard } from "@/components/shop/ProductCard";
+import { CoursBannieres, type CoursCarte } from "@/components/mb/CoursBanniere";
 import { CartBar } from "@/components/shop/CartBar";
 import { Chip } from "@/components/ui/Chip";
 import { PinIcon, SearchIcon, TruckIcon } from "@/components/icons";
 import { getProducts, getUnreadCount } from "@/lib/queries";
+import { getCourses } from "@/lib/courses";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/cn";
 import { f } from "@/lib/format";
@@ -21,7 +23,12 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const { cat } = await searchParams;
   const category = cat === "billard" ? "billard" : "vapes";
   const user = await requireUser();
-  const [products, unread] = await Promise.all([getProducts(category), getUnreadCount(user.id)]);
+  const [products, unread, cours] = await Promise.all([
+    getProducts(category),
+    getUnreadCount(user.id),
+    getCourses(true),
+  ]);
+  const cartes: CoursCarte[] = cours.map((c) => ({ ...c, inscrits: Number(c.inscrits) }));
 
   return (
     <>
@@ -57,6 +64,10 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         </span>
       </div>
       </div>
+
+      {/* Les cours en bannière, au-dessus du rayon : un cours ne se cherche
+          pas comme une puff, il se propose. */}
+      <CoursBannieres cartes={cartes} />
 
       <div className={cn("grid gap-3", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5")}>
         {products.map((product) => (

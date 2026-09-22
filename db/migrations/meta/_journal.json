@@ -134,6 +134,20 @@
       "when": 1790039322542,
       "tag": "0018_marketplace_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790085710615,
+      "tag": "0019_cours",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790085710616,
+      "tag": "0020_cours_rls",
+      "breakpoints": true
     }
   ]
 }
