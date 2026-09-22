@@ -2,7 +2,10 @@ import { Hero } from "@/components/dash/Hero";
 import { Section, Tile, Tiles } from "@/components/dash/Section";
 import { Card, StatBlock } from "@/components/ui/Card";
 import { CartIcon, TruckIcon } from "@/components/icons";
-import { getProduitsVendeur, getSoldeVendeur, getVentesVendeur } from "@/lib/seller";
+import { DemandeRetrait } from "@/components/caisse/Retrait";
+import { getProduitsVendeur, getVentesVendeur } from "@/lib/seller";
+import { ETATS_RETRAIT, MOYENS, RETRAIT_MINIMUM, getSoldeRetirableVendeur, mesRetraits } from "@/lib/caisse";
+import { Chip } from "@/components/ui/Chip";
 import { requireRole } from "@/lib/session";
 import { COMMISSION_RATE } from "@/lib/constants";
 import { f, fcfa, group } from "@/lib/format";
@@ -12,10 +15,11 @@ export const metadata = { title: "Mes ventes" };
 
 export default async function VendeurAccueil() {
   const vendeur = await requireRole("seller", "admin");
-  const [solde, articles, ventes] = await Promise.all([
-    getSoldeVendeur(vendeur.id),
+  const [solde, articles, ventes, retraits] = await Promise.all([
+    getSoldeRetirableVendeur(vendeur.id),
     getProduitsVendeur(vendeur.id),
     getVentesVendeur(vendeur.id, 8),
+    mesRetraits(vendeur.id),
   ]);
 
   const actifs = articles.filter(({ product }) => product.active).length;
@@ -35,7 +39,7 @@ export default async function VendeurAccueil() {
       {/* Le solde d'abord : c'est la seule question qu'un vendeur se pose en
           ouvrant l'application. Le brut et la commission suivent, pour que le
           chiffre ne soit pas une affirmation mais un calcul qu'il peut refaire. */}
-      <Hero label="Ce qui te revient" value={group(solde.net)} suffix="FCFA">
+      <Hero label="Ce qui te revient" value={group(solde.disponible)} suffix="FCFA">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted">
           <span>
             <span className="font-semibold text-ink">{fcfa(solde.brut)}</span> encaissés
@@ -44,8 +48,46 @@ export default async function VendeurAccueil() {
             − <span className="font-semibold text-ink">{fcfa(solde.commission)}</span> de commission (
             {Math.round(COMMISSION_RATE * 100)} %)
           </span>
+          {solde.verse > 0 ? (
+            <span>
+              − <span className="font-semibold text-ink">{fcfa(solde.verse)}</span> déjà versés
+            </span>
+          ) : null}
+          {solde.enAttente > 0 ? (
+            <span>
+              − <span className="font-semibold text-ink">{fcfa(solde.enAttente)}</span> en cours de versement
+            </span>
+          ) : null}
+        </div>
+
+        <div className="pt-1 lg:max-w-sm">
+          <DemandeRetrait disponible={solde.disponible} minimum={RETRAIT_MINIMUM} phone={vendeur.phone} />
         </div>
       </Hero>
+
+      {retraits.length > 0 ? (
+        <Section title="Mes versements">
+          <div className="flex flex-col gap-2">
+            {retraits.slice(0, 5).map((r) => (
+              <Card key={r.id} shape="panel" className="flex items-center gap-3 px-3.5 py-3">
+                <span className="flex min-w-0 grow flex-col gap-0.5">
+                  <span className="text-[13.5px] font-semibold tabular-nums">{fcfa(r.amount)}</span>
+                  <span className="truncate text-[11.5px] text-muted">
+                    {MOYENS[r.method] ?? r.method}
+                    {r.reference ? ` · réf. ${r.reference}` : ""}
+                  </span>
+                </span>
+                <Chip
+                  tone={r.status === "paye" ? "jade" : r.status === "refuse" ? "warn" : "neutral"}
+                  className="shrink-0 text-[10.5px]"
+                >
+                  {ETATS_RETRAIT[r.status] ?? r.status}
+                </Chip>
+              </Card>
+            ))}
+          </div>
+        </Section>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <StatBlock label="Articles vendus" value={group(solde.articlesVendus)} hint="depuis toujours" />

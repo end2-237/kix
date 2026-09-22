@@ -5,6 +5,7 @@ import {
   BoltIcon,
   CalendarIcon,
   ChartIcon,
+  CoinIcon,
   MapIcon,
   QrIcon,
   TableIcon,
@@ -26,6 +27,7 @@ const items: NavItem[] = [
   { href: "/gerant/tournois", label: "Tournois", Icon: TrophyIcon },
   { href: "/gerant/ecrans", label: "Écrans", Icon: MapIcon },
   { href: "/gerant/service", label: "Service", Icon: ChartIcon },
+  { href: "/gerant/caisse", label: "Caisse", Icon: CoinIcon },
 ];
 
 export function GerantNav({ mobile = false }: { mobile?: boolean }) {

@@ -6,7 +6,10 @@ import { hashPassword } from "../lib/password";
 import { createDb } from "./client";
 import {
   courses,
+  crewMembers,
+  crews,
   events,
+  friendships,
   matchEvents,
   matches,
   memberPlans,
@@ -1045,8 +1048,69 @@ for (const duel of await duelsDePoule(db, aPoules)) {
   await noterResultat(db, duel.id, gagneA ? duel.raceTo : 2, gagneA ? 2 : duel.raceTo);
 }
 
+/* groupes de billard --------------------------------------------------------
+   Deux bandes, pour que la page ne s'ouvre pas sur un écran vide : celle
+   d'Ariel, et une autre où il n'est pas — on doit voir les deux cas. */
+
+const bandes = [
+  {
+    id: uid(),
+    slug: "les-requins-akwa",
+    name: "Les Requins d'Akwa",
+    devise: "On ne pousse pas la bille, on la joue.",
+    ownerId: ariel.id,
+    venueId: breakAkwa.id,
+    membres: [ariel, ...others.slice(0, 2), ...vivier.slice(0, 2)],
+  },
+  {
+    id: uid(),
+    slug: "nuit-blanche-zenith",
+    name: "Nuit Blanche",
+    devise: "La dernière table éteinte.",
+    ownerId: others[1].id,
+    venueId: zenith.id,
+    membres: [others[1], ...vivier.slice(3, 6)],
+  },
+];
+
+for (const bande of bandes) {
+  await db.insert(crews).values({
+    id: bande.id,
+    slug: bande.slug,
+    name: bande.name,
+    image: "",
+    devise: bande.devise,
+    ownerId: bande.ownerId,
+    venueId: bande.venueId,
+  });
+  await db.insert(crewMembers).values(
+    bande.membres.map((m) => ({
+      id: uid(),
+      crewId: bande.id,
+      userId: m.id,
+      role: m.id === bande.ownerId ? "chef" : "membre",
+      status: "membre",
+    })),
+  );
+}
+
+/* amitiés -------------------------------------------------------------------
+   Sans elles, ni la liste d'amis ni les invitations n'ont rien à montrer, et
+   la notification « ton ami joue » ne part jamais. */
+
+const liens = [
+  [ariel, others[0], "acceptee"],
+  [ariel, others[1], "acceptee"],
+  [ariel, vivier[0], "acceptee"],
+  [others[2], ariel, "attente"],
+] as const;
+
+await db.insert(friendships).values(
+  liens.map(([a, b, status]) => ({ id: uid(), requesterId: a.id, addresseeId: b.id, status })),
+);
+
 console.log(
-  `base remplie : 3 salles, ${tableRows.length} tables, 19 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours, 4 tournois, ${planRows.length} formules d'abonnement`,
+  `base remplie : 3 salles, ${tableRows.length} tables, 19 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours, 4 tournois, ${planRows.length} formules d'abonnement, ${bandes.length} groupes`,
 );
 }
 

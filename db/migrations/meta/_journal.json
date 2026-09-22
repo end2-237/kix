@@ -190,6 +190,20 @@
       "when": 1790114703615,
       "tag": "0026_poules_amis_retraits_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790118042834,
+      "tag": "0027_groupes-invitations",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790118042835,
+      "tag": "0028_groupes_invitations_rls",
+      "breakpoints": true
     }
   ]
 }

@@ -9,8 +9,11 @@ import {
   db,
   courses,
   enrollments,
+  crewMembers,
+  crews,
   events,
   friendships,
+  invitations,
   notifications,
   matchEvents,
   matchOfficials,
@@ -20,6 +23,7 @@ import {
   orderItems,
   orders,
   packs,
+  payouts,
   products,
   purchases,
   reservations,
@@ -2315,4 +2319,314 @@ export async function chercherDesJoueurs(terme: string) {
   const moi = await requireUser();
   const { chercherJoueurs } = await import("@/lib/joueurs");
   return chercherJoueurs(terme, moi.id);
+}
+
+/* ------------------------------------------------------------- retraits */
+
+export type RetraitResult = { ok: true; id: string } | { ok: false; error: string };
+
+/**
+ * Demander un versement.
+ *
+ * Le montant est vérifié côté serveur contre le solde réellement disponible :
+ * un formulaire se bricole, et une demande supérieure à la recette de la
+ * salle passerait sinon en caisse. Une demande en attente bloque son montant
+ * — sans quoi on la déposerait deux fois avant que l'administration ne
+ * regarde.
+ */
+export async function demanderRetrait(formData: FormData): Promise<RetraitResult> {
+  const auteur = await requireRole("admin", "manager", "seller");
+  const montant = Math.max(0, num(formData, "amount"));
+  const method = str(formData, "method") || "momo";
+  const phone = normalizePhone(str(formData, "phone") || auteur.phone);
+  const note = str(formData, "note").slice(0, 300);
+
+  if (method === "momo" || method === "om") {
+    if (!isValidPhone(phone)) return { ok: false, error: "Numéro invalide : 9 chiffres, commençant par 6." };
+  }
+
+  const { RETRAIT_MINIMUM, getRecetteSalle, getSoldeRetirableVendeur } = await import("@/lib/caisse");
+  if (montant < RETRAIT_MINIMUM) {
+    return { ok: false, error: `Le minimum est de ${RETRAIT_MINIMUM.toLocaleString("fr-FR")} F.` };
+  }
+
+  // Un vendeur retire sur son propre solde ; un gérant, sur celui de sa salle.
+  const pourSalle = auteur.role !== "seller";
+  const venueId = pourSalle ? str(formData, "venueId") || auteur.venueId || "" : "";
+  if (pourSalle && !venueId) return { ok: false, error: "Aucune salle rattachée à ce compte." };
+  if (pourSalle && auteur.role === "manager" && venueId !== auteur.venueId) redirect("/gerant?refus=1");
+
+  const disponible = pourSalle
+    ? (await getRecetteSalle(venueId)).disponible
+    : (await getSoldeRetirableVendeur(auteur.id)).disponible;
+
+  if (montant > disponible) {
+    return {
+      ok: false,
+      error: `Tu ne peux retirer que ${disponible.toLocaleString("fr-FR")} F pour l'instant.`,
+    };
+  }
+
+  const id = uid();
+  await db.insert(payouts).values({
+    id,
+    venueId: pourSalle ? venueId : null,
+    userId: auteur.id,
+    amount: montant,
+    method,
+    phone,
+    note,
+    status: "demande",
+  });
+
+  const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+  for (const a of admins) {
+    await notify(
+      a.id,
+      "Demande de retrait",
+      `${auteur.name} demande ${montant.toLocaleString("fr-FR")} F.`,
+      "system",
+      "/admin/retraits",
+    );
+  }
+
+  revalidatePath("/gerant/caisse");
+  revalidatePath("/vendeur");
+  revalidatePath("/admin/retraits");
+  return { ok: true, id };
+}
+
+/** L'administration verse, ou refuse. */
+export async function traiterRetrait(payoutId: string, decision: "paye" | "refuse", reference = "") {
+  const admin = await requireRole("admin");
+  const ligne = (await db.select().from(payouts).where(eq(payouts.id, payoutId)).limit(1))[0];
+  if (!ligne) return { ok: false as const, error: "Demande introuvable." };
+  if (ligne.status !== "demande") return { ok: false as const, error: "Cette demande est déjà traitée." };
+
+  await db
+    .update(payouts)
+    .set({
+      status: decision,
+      reference: reference.trim().slice(0, 80),
+      processedBy: admin.id,
+      paidAt: decision === "paye" ? new Date() : null,
+    })
+    .where(eq(payouts.id, payoutId));
+
+  await notify(
+    ligne.userId,
+    decision === "paye" ? "Retrait versé" : "Retrait refusé",
+    decision === "paye"
+      ? `${ligne.amount.toLocaleString("fr-FR")} F envoyés sur ${displayPhoneServeur(ligne.phone)}.${reference ? ` Réf. ${reference.trim()}.` : ""}`
+      : "Rapproche-toi de l'administration pour en connaître la raison.",
+    decision === "paye" ? "reward" : "system",
+    ligne.venueId ? "/gerant/caisse" : "/vendeur",
+  );
+
+  revalidatePath("/admin/retraits");
+  revalidatePath("/gerant/caisse");
+  revalidatePath("/vendeur");
+  return { ok: true as const };
+}
+
+/** Le numéro tel qu'on l'écrit dans un message : lisible, jamais tronqué. */
+const displayPhoneServeur = (brut: string) => {
+  const d = normalizePhone(brut);
+  return isValidPhone(d) ? `${d[0]} ${d.slice(1, 3)} ${d.slice(3, 5)} ${d.slice(5, 7)} ${d.slice(7)}` : brut;
+};
+
+/* ---------------------------------------------------- groupes de billard */
+
+/** Créer un groupe. Le fondateur en est le chef, et son premier membre. */
+export async function creerGroupe(formData: FormData) {
+  const moi = await requireUser();
+  const name = str(formData, "name").slice(0, 50);
+  if (name.length < 2) return { ok: false as const, error: "Donne un nom à ton groupe." };
+
+  // Le nom se répète volontiers — « Les Requins » existe dans trois quartiers.
+  // On suffixe l'adresse plutôt que de refuser.
+  const base = slugify(name) || "groupe";
+  let slug = base;
+  for (let i = 2; i < 40; i++) {
+    const pris = (await db.select({ id: crews.id }).from(crews).where(eq(crews.slug, slug)).limit(1))[0];
+    if (!pris) break;
+    slug = `${base}-${i}`;
+  }
+
+  const id = uid();
+  await db.insert(crews).values({
+    id,
+    slug,
+    name,
+    image: str(formData, "image"),
+    devise: str(formData, "devise").slice(0, 120),
+    ownerId: moi.id,
+    venueId: str(formData, "venueId") || null,
+  });
+  await db.insert(crewMembers).values({ id: uid(), crewId: id, userId: moi.id, role: "chef", status: "membre" });
+
+  revalidatePath("/app/groupes");
+  return { ok: true as const, slug };
+}
+
+/** Modifier le nom, la photo, la devise ou la salle. Le chef seulement. */
+export async function modifierGroupe(formData: FormData) {
+  const moi = await requireUser();
+  const id = str(formData, "id");
+  const groupe = (await db.select().from(crews).where(eq(crews.id, id)).limit(1))[0];
+  if (!groupe) return { ok: false as const, error: "Groupe introuvable." };
+  if (groupe.ownerId !== moi.id) return { ok: false as const, error: "Seul le chef peut modifier le groupe." };
+
+  await db
+    .update(crews)
+    .set({
+      name: str(formData, "name").slice(0, 50) || groupe.name,
+      image: str(formData, "image"),
+      devise: str(formData, "devise").slice(0, 120),
+      venueId: str(formData, "venueId") || null,
+    })
+    .where(eq(crews.id, id));
+
+  revalidatePath("/app/groupes");
+  revalidatePath(`/app/groupes/${groupe.slug}`);
+  return { ok: true as const };
+}
+
+/** Rejoindre un groupe, ou le quitter. */
+export async function rejoindreGroupe(crewId: string, partir = false) {
+  const moi = await requireUser();
+  const groupe = (await db.select().from(crews).where(eq(crews.id, crewId)).limit(1))[0];
+  if (!groupe) return { ok: false as const, error: "Groupe introuvable." };
+
+  if (partir) {
+    if (groupe.ownerId === moi.id) {
+      return { ok: false as const, error: "Le chef ne quitte pas son groupe : passe la main d'abord." };
+    }
+    await db
+      .delete(crewMembers)
+      .where(and(eq(crewMembers.crewId, crewId), eq(crewMembers.userId, moi.id)));
+  } else {
+    const deja = (
+      await db
+        .select()
+        .from(crewMembers)
+        .where(and(eq(crewMembers.crewId, crewId), eq(crewMembers.userId, moi.id)))
+        .limit(1)
+    )[0];
+    if (deja) await db.update(crewMembers).set({ status: "membre" }).where(eq(crewMembers.id, deja.id));
+    else await db.insert(crewMembers).values({ id: uid(), crewId, userId: moi.id, status: "membre" });
+
+    if (groupe.ownerId !== moi.id) {
+      await notify(
+        groupe.ownerId,
+        `${moi.name} rejoint ${groupe.name}`,
+        "Un joueur de plus dans la bande.",
+        "system",
+        `/app/groupes/${groupe.slug}`,
+      );
+    }
+  }
+
+  revalidatePath("/app/groupes");
+  revalidatePath(`/app/groupes/${groupe.slug}`);
+  return { ok: true as const };
+}
+
+/* ------------------------------------------------------- « rejoins-moi » */
+
+/**
+ * Inviter des amis à venir jouer.
+ *
+ * Une ligne par destinataire, même quand l'invitation part à tout un groupe :
+ * chacun répond pour soi, et l'expéditeur voit qui vient. Les lignes d'un
+ * même envoi partagent un `batchId`, pour n'afficher qu'un envoi de son côté.
+ *
+ * On n'invite que ses amis et les membres de ses groupes. Sans cette règle,
+ * l'invitation deviendrait le moyen d'écrire à n'importe qui — et il n'en
+ * faut pas plus pour transformer une application de salle en boîte à spam.
+ */
+export async function inviterAJouer(formData: FormData) {
+  const moi = await requireUser();
+  const message = str(formData, "message").slice(0, 200);
+  const venueId = str(formData, "venueId") || null;
+  const crewId = str(formData, "crewId") || null;
+  const matchId = str(formData, "matchId") || null;
+
+  const demandes = formData.getAll("amis").map(String).filter(Boolean);
+  const { idsDesAmis } = await import("@/lib/joueurs");
+  const amis = new Set(await idsDesAmis(moi.id));
+
+  // Tout un groupe d'un coup : ses membres s'ajoutent aux destinataires.
+  if (crewId) {
+    const membres = await db
+      .select({ userId: crewMembers.userId })
+      .from(crewMembers)
+      .where(and(eq(crewMembers.crewId, crewId), eq(crewMembers.status, "membre")));
+    for (const m of membres) if (m.userId !== moi.id) amis.add(m.userId);
+    if (demandes.length === 0) for (const m of membres) if (m.userId !== moi.id) demandes.push(m.userId);
+  }
+
+  const destinataires = [...new Set(demandes)].filter((id) => id !== moi.id && amis.has(id));
+  if (destinataires.length === 0) {
+    return { ok: false as const, error: "Choisis au moins un ami — ou rejoins un groupe." };
+  }
+
+  const salle = venueId
+    ? (await db.select().from(venues).where(eq(venues.id, venueId)).limit(1))[0]
+    : undefined;
+  const groupe = crewId ? (await db.select().from(crews).where(eq(crews.id, crewId)).limit(1))[0] : undefined;
+
+  const batchId = uid();
+  await db.insert(invitations).values(
+    destinataires.map((toId) => ({
+      id: uid(),
+      batchId,
+      fromId: moi.id,
+      toId,
+      venueId,
+      matchId,
+      crewId,
+      message,
+      status: "envoyee",
+    })),
+  );
+
+  // Le titre dit qui invite et où : c'est tout ce qu'on lit d'une bulle.
+  const titre = groupe
+    ? `${groupe.name} : rejoins-nous`
+    : destinataires.length > 1
+      ? `${moi.name} vous invite`
+      : `${moi.name} t'invite`;
+  const ou = salle ? ` au ${salle.name}` : "";
+  const corps = message || (matchId ? `On est à la table${ou}. Viens.` : `Rejoins-nous${ou}.`);
+
+  for (const toId of destinataires) {
+    await notify(toId, titre, corps, "system", "/app/amis");
+  }
+
+  revalidatePath("/app/amis");
+  return { ok: true as const, envoyees: destinataires.length };
+}
+
+/** Répondre à une invitation. */
+export async function repondreInvitation(invitationId: string, reponse: "acceptee" | "refusee") {
+  const moi = await requireUser();
+  const ligne = (await db.select().from(invitations).where(eq(invitations.id, invitationId)).limit(1))[0];
+  if (!ligne) return { ok: false as const, error: "Invitation introuvable." };
+  if (ligne.toId !== moi.id) return { ok: false as const, error: "Cette invitation n'est pas pour toi." };
+
+  await db.update(invitations).set({ status: reponse }).where(eq(invitations.id, invitationId));
+
+  if (reponse === "acceptee") {
+    await notify(
+      ligne.fromId,
+      `${moi.name} arrive`,
+      "Il a accepté ton invitation.",
+      "system",
+      "/app/amis",
+    );
+  }
+
+  revalidatePath("/app/amis");
+  return { ok: true as const };
 }

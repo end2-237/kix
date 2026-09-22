@@ -17,7 +17,7 @@ import {
 } from "@/components/icons";
 
 /**
- * Treize pages, quatre places.
+ * Quatorze pages, quatre places.
  *
  * L'administration les empilait toutes en pastilles au-dessus du contenu :
  * sur un téléphone, la moitié de l'écran partait en navigation avant qu'une
@@ -37,6 +37,7 @@ const items: NavItem[] = [
   { href: "/admin/abonnements", label: "Abonnements", Icon: BoltIcon },
   { href: "/admin/cours", label: "Cours", Icon: TargetIcon },
   { href: "/admin/vendeurs", label: "Vendeurs", Icon: TruckIcon },
+  { href: "/admin/retraits", label: "Retraits", Icon: CoinIcon },
   { href: "/admin/utilisateurs", label: "Utilisateurs", Icon: UserIcon },
 ];
 

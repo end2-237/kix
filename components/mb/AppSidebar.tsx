@@ -37,6 +37,7 @@ const primary = [
 
 const secondary = [
   { href: "/app/amis", label: "Mes amis" },
+  { href: "/app/groupes", label: "Les groupes" },
   { href: "/app/abonnement", label: "Abonnement Master Break" },
   { href: "/app/classement", label: "Classement des joueurs" },
   { href: "/app/cours", label: "Cours de billard" },

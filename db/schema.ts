@@ -948,6 +948,82 @@ export const payouts = mb.table(
   (t) => [index("payouts_venue_idx").on(t.venueId), index("payouts_user_idx").on(t.userId)],
 );
 
+/* ------------------------------------------------ groupes et invitations */
+
+/**
+ * Un groupe de billard : une bande qui se donne un nom.
+ *
+ * Rien à voir avec une équipe de tournoi — c'est le groupe d'amis qui se
+ * retrouve le jeudi soir. Le nom et la photo suffisent à le faire exister ;
+ * ce qu'il apportera ensuite se décidera en le voyant vivre.
+ */
+export const crews = mb.table("crews", {
+  id: id(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  image: text("image").notNull().default(""),
+  devise: text("devise").notNull().default(""),
+  /** Le fondateur, qui reste chef tant qu'il ne passe pas la main. */
+  ownerId: uuid("owner_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** La salle où la bande se retrouve, quand elle en a une. */
+  venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+});
+
+export const crewMembers = mb.table(
+  "crew_members",
+  {
+    id: id(),
+    crewId: uuid("crew_id")
+      .notNull()
+      .references(() => crews.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // chef | membre
+    role: text("role").notNull().default("membre"),
+    // invite | membre | parti
+    status: text("status").notNull().default("membre"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("crew_members_paire_idx").on(t.crewId, t.userId), index("crew_members_user_idx").on(t.userId)],
+);
+
+/**
+ * « Rejoins-moi, je joue au Break Akwa. »
+ *
+ * Une ligne par destinataire, même quand l'invitation part à tout un groupe :
+ * chacun répond pour soi, et l'expéditeur voit qui vient. `batchId` les
+ * rassemble, pour n'afficher qu'un envoi côté expéditeur.
+ */
+export const invitations = mb.table(
+  "invitations",
+  {
+    id: id(),
+    /** Tous les destinataires d'un même envoi partagent cet identifiant. */
+    batchId: uuid("batch_id").notNull(),
+    fromId: uuid("from_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    toId: uuid("to_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Où l'on se retrouve. */
+    venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+    /** La partie en cours, quand l'invitation en part. */
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    /** Le groupe au nom duquel elle est lancée. */
+    crewId: uuid("crew_id").references(() => crews.id, { onDelete: "set null" }),
+    message: text("message").notNull().default(""),
+    // envoyee | acceptee | refusee
+    status: text("status").notNull().default("envoyee"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("invitations_to_idx").on(t.toId), index("invitations_batch_idx").on(t.batchId)],
+);
+
 export type Screen = typeof screens.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -965,6 +1041,9 @@ export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type Crew = typeof crews.$inferSelect;
+export type CrewMember = typeof crewMembers.$inferSelect;
+export type Invitation = typeof invitations.$inferSelect;
 export type Friendship = typeof friendships.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type Payout = typeof payouts.$inferSelect;
