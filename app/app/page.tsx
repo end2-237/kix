@@ -16,6 +16,7 @@ import {
   TargetIcon,
   TicketIcon,
   TrophyIcon,
+  UserIcon,
 } from "@/components/icons";
 import { DirectAccueil } from "@/components/mb/DirectAccueil";
 import { Tile, Tiles } from "@/components/dash/Section";
@@ -154,7 +155,7 @@ export default async function AccueilPage() {
         <Tile href="/app/classement" label="Classement" icon={<ChartIcon size={17} />} />
         <Tile href="/app/cours" label="Cours" icon={<TargetIcon size={17} />} />
         <Tile href="/app/abonnement" label="Abonnement" icon={<BoltIcon size={17} />} />
-        <Tile href="/app/billets" label="Mes billets" icon={<TicketIcon size={17} />} />
+        <Tile href="/app/amis" label="Mes amis" icon={<UserIcon size={17} />} />
       </Tiles>
 
       <div className="flex flex-col gap-2.5 lg:gap-4">

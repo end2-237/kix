@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 import type { Match, User } from "@/db";
 import {
   db,
   courses,
   enrollments,
   events,
+  friendships,
   notifications,
   matchEvents,
   matchOfficials,
@@ -1054,8 +1055,42 @@ export async function startMatch(matchId: string) {
     detail: "Coup d'envoi",
   });
 
+  await prevenirLesAmis(match.playerAId, match.playerBId, matchId);
+
   revalidatePath("/gerant/live");
   revalidatePath("/app/live");
+}
+
+/**
+ * Les amis des deux joueurs apprennent que la partie commence.
+ *
+ * C'est tout l'intérêt d'avoir une liste d'amis dans une application de
+ * salle : savoir qu'un proche est à la table maintenant, pas le lendemain.
+ * Un ami des deux n'est prévenu qu'une fois — deux notifications pour le même
+ * match, c'est le genre de détail qui fait couper les notifications.
+ */
+async function prevenirLesAmis(aId: string, bId: string, matchId: string) {
+  const { idsDesAmis } = await import("@/lib/joueurs");
+  const [amisA, amisB, gens] = await Promise.all([
+    idsDesAmis(aId),
+    idsDesAmis(bId),
+    db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, [aId, bId])),
+  ]);
+
+  const nom = (id: string) => gens.find((g) => g.id === id)?.name ?? "Un joueur";
+  const aPrevenir = new Map<string, string>();
+  for (const ami of amisA) if (ami !== bId) aPrevenir.set(ami, nom(aId));
+  for (const ami of amisB) if (ami !== aId && !aPrevenir.has(ami)) aPrevenir.set(ami, nom(bId));
+
+  for (const [qui, lequel] of aPrevenir) {
+    await notify(
+      qui,
+      `${lequel} joue`,
+      `${nom(aId)} contre ${nom(bId)} — la partie vient de commencer.`,
+      "system",
+      `/app/live/${matchId}`,
+    );
+  }
 }
 
 /**
@@ -2183,4 +2218,101 @@ export async function savePlan(formData: FormData) {
 
   revalidatePath("/app/abonnement");
   revalidatePath("/admin/abonnements");
+}
+
+/* ---------------------------------------------------------------- amis */
+
+/**
+ * Demander quelqu'un en ami.
+ *
+ * Un seul lien par paire, quel que soit le sens : si l'autre m'a déjà
+ * demandé, ma demande vaut acceptation. C'est ce que tout le monde attend, et
+ * cela évite deux lignes qui se contredisent.
+ */
+export async function demanderAmi(autreId: string) {
+  const moi = await requireUser();
+  if (autreId === moi.id) return { ok: false as const, error: "On ne se demande pas soi-même." };
+
+  const autre = (await db.select().from(users).where(eq(users.id, autreId)).limit(1))[0];
+  if (!autre || autre.role !== "client") return { ok: false as const, error: "Joueur introuvable." };
+
+  const existant = (
+    await db
+      .select()
+      .from(friendships)
+      .where(
+        or(
+          and(eq(friendships.requesterId, moi.id), eq(friendships.addresseeId, autreId)),
+          and(eq(friendships.requesterId, autreId), eq(friendships.addresseeId, moi.id)),
+        ),
+      )
+      .limit(1)
+  )[0];
+
+  if (existant?.status === "acceptee") return { ok: false as const, error: "Vous êtes déjà amis." };
+  if (existant?.status === "bloquee") return { ok: false as const, error: "Demande impossible." };
+
+  // L'autre m'avait demandé : ma demande vaut réponse.
+  if (existant && existant.addresseeId === moi.id) {
+    await db.update(friendships).set({ status: "acceptee" }).where(eq(friendships.id, existant.id));
+    await notify(autreId, `${moi.name} t'a ajouté`, "Vous êtes amis sur Master Break.", "system", "/app/amis");
+    revalidatePath("/app/amis");
+    revalidatePath(`/app/joueurs/${autreId}`);
+    return { ok: true as const, etat: "amis" as const };
+  }
+
+  if (existant) {
+    await db.update(friendships).set({ status: "attente" }).where(eq(friendships.id, existant.id));
+  } else {
+    await db.insert(friendships).values({
+      id: uid(),
+      requesterId: moi.id,
+      addresseeId: autreId,
+      status: "attente",
+    });
+  }
+
+  await notify(autreId, "Demande d'ami", `${moi.name} veut t'ajouter.`, "system", "/app/amis");
+  revalidatePath("/app/amis");
+  revalidatePath(`/app/joueurs/${autreId}`);
+  return { ok: true as const, etat: "envoyee" as const };
+}
+
+/** Accepter, refuser, ou retirer un lien. */
+export async function repondreAmi(lienId: string, reponse: "acceptee" | "refusee" | "retirer") {
+  const moi = await requireUser();
+  const lien = (await db.select().from(friendships).where(eq(friendships.id, lienId)).limit(1))[0];
+  if (!lien) return { ok: false as const, error: "Demande introuvable." };
+  if (lien.requesterId !== moi.id && lien.addresseeId !== moi.id) {
+    return { ok: false as const, error: "Ce lien ne te concerne pas." };
+  }
+
+  // Seul le destinataire accepte : sinon on s'ajouterait soi-même comme ami.
+  if (reponse === "acceptee" && lien.addresseeId !== moi.id) {
+    return { ok: false as const, error: "À l'autre d'accepter." };
+  }
+
+  if (reponse === "retirer") await db.delete(friendships).where(eq(friendships.id, lienId));
+  else await db.update(friendships).set({ status: reponse }).where(eq(friendships.id, lienId));
+
+  if (reponse === "acceptee") {
+    await notify(
+      lien.requesterId,
+      `${moi.name} a accepté`,
+      "Vous êtes amis : tu sauras quand il joue.",
+      "system",
+      "/app/amis",
+    );
+  }
+
+  revalidatePath("/app/amis");
+  revalidatePath(`/app/joueurs/${lien.requesterId === moi.id ? lien.addresseeId : lien.requesterId}`);
+  return { ok: true as const };
+}
+
+/** Chercher un joueur par son nom, pour l'ajouter en ami. */
+export async function chercherDesJoueurs(terme: string) {
+  const moi = await requireUser();
+  const { chercherJoueurs } = await import("@/lib/joueurs");
+  return chercherJoueurs(terme, moi.id);
 }

@@ -31,8 +31,8 @@ export default async function ClassementPage() {
         title="Classement des joueurs"
         subtitle="Les points de tournoi et de table, tous confondus."
         action={
-          <Link href="/app/tournois" className="press text-[12px] text-gold-text">
-            Tournois
+          <Link href="/app/amis" className="press text-[12px] text-gold-text">
+            Mes amis
           </Link>
         }
       />
@@ -43,10 +43,11 @@ export default async function ClassementPage() {
             const premier = i === 1;
             const rang = i === 1 ? 1 : i === 0 ? 2 : 3;
             return (
-              <div
+              <Link
                 key={joueur.id}
+                href={`/app/joueurs/${joueur.id}`}
                 className={cn(
-                  "flex grow flex-col items-center gap-2 rounded-card px-2 pb-3",
+                  "press flex grow flex-col items-center gap-2 rounded-card px-2 pb-3",
                   premier ? "glass-gold border-[1.5px] border-gold/50 pt-5" : "glass pt-4",
                 )}
               >
@@ -71,7 +72,7 @@ export default async function ClassementPage() {
                 <span className="max-w-full truncate text-[12.5px] font-semibold">{joueur.name}</span>
                 <span className="text-[11px] text-muted tabular-nums">{joueur.points} pts</span>
                 <span className={cn("text-[11px]", premier ? "text-gold-text" : "text-faint")}>#{rang}</span>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -122,8 +123,8 @@ export default async function ClassementPage() {
         <h2 className="text-[15px] font-semibold">Tous les joueurs</h2>
         <div className="flex flex-col gap-1.5">
           {rangs.map((joueur, i) => (
+            <Link key={joueur.id} href={`/app/joueurs/${joueur.id}`} className="press block">
             <Card
-              key={joueur.id}
               shape="panel"
               tone={joueur.id === user.id ? "gold" : "glass"}
               className="flex items-center gap-3 px-3.5 py-2.5"
@@ -152,6 +153,7 @@ export default async function ClassementPage() {
                 {joueur.points}
               </span>
             </Card>
+            </Link>
           ))}
         </div>
       </section>

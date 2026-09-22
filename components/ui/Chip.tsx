@@ -14,13 +14,17 @@ export function Chip({
   tone = "neutral",
   className,
   children,
+  title,
 }: {
   tone?: Tone;
   className?: string;
   children: React.ReactNode;
+  /** L'explication au survol, quand le libellé seul ne suffit pas. */
+  title?: string;
 }) {
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-[13px] leading-none transition hover:brightness-110",
         tones[tone],
