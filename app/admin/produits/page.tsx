@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Drawer, Field, PageHead, Pill, Select, SubmitButton, Table, Td, TextArea } from "@/components/admin/AdminUI";
+import { ImageField } from "@/components/admin/ImageField";
 import { deleteProduct, saveProduct } from "@/lib/actions";
 import { getAllProducts } from "@/lib/queries";
 import { f } from "@/lib/format";
@@ -32,7 +33,7 @@ export default async function AdminProducts() {
           <Field label="Prix (F)" name="price" type="number" defaultValue={5000} />
           <Field label="Stock" name="stock" type="number" defaultValue={10} />
           <Select label="Rayon" name="category" options={categories} />
-          <Field label="Image" name="image" defaultValue="/img/puffs.jpg" />
+          <ImageField name="image" dossier="produits" defaultValue="/img/puffs.jpg" />
           <Field label="Badge" name="badgeLabel" placeholder="Top vente" />
           <Select label="Couleur du badge" name="badgeTone" options={tones} />
           <input type="hidden" name="active" value="on" />
@@ -91,7 +92,7 @@ export default async function AdminProducts() {
                       <Field label="Stock" name="stock" type="number" defaultValue={product.stock} />
                     </div>
                     <Select label="Rayon" name="category" defaultValue={product.category} options={categories} />
-                    <Field label="Image" name="image" defaultValue={product.image} />
+                    <ImageField name="image" dossier="produits" defaultValue={product.image} />
                     <Field label="Badge" name="badgeLabel" defaultValue={product.badgeLabel} />
                     <Select label="Couleur" name="badgeTone" defaultValue={product.badgeTone} options={tones} />
                     <input type="hidden" name="active" value="on" />

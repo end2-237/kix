@@ -1,4 +1,5 @@
 import { Drawer, Field, PageHead, Pill, SubmitButton, Table, Td } from "@/components/admin/AdminUI";
+import { ImageField } from "@/components/admin/ImageField";
 import { deleteVenue, saveVenue } from "@/lib/actions";
 import { getAllVenues } from "@/lib/queries";
 import { f, km } from "@/lib/format";
@@ -22,7 +23,7 @@ export default async function AdminVenues() {
           <Field label="Tables libres" name="freeTables" type="number" defaultValue={0} />
           <Field label="Prix du jeton (F)" name="tokenPrice" type="number" defaultValue={400} />
           <Field label="Distance (km)" name="distanceKm" type="number" defaultValue={1} />
-          <Field label="Image" name="image" defaultValue="/img/hall-dark.jpg" className="lg:col-span-2" />
+          <ImageField name="image" dossier="salles" defaultValue="/img/hall-dark.jpg" className="lg:col-span-2" />
           <input type="hidden" name="active" value="on" />
           <div className="flex items-end">
             <SubmitButton>Créer la salle</SubmitButton>
@@ -65,7 +66,7 @@ export default async function AdminVenues() {
                       <Field label="Jeton (F)" name="tokenPrice" type="number" defaultValue={venue.tokenPrice} />
                       <Field label="Distance" name="distanceKm" type="number" defaultValue={venue.distanceKm} />
                     </div>
-                    <Field label="Image" name="image" defaultValue={venue.image} />
+                    <ImageField name="image" dossier="salles" defaultValue={venue.image} />
                     <input type="hidden" name="address" value={venue.address} />
                     <input type="hidden" name="active" value="on" />
                     <SubmitButton />

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Drawer, Field, Select, SubmitButton, Switch, TextArea } from "@/components/admin/AdminUI";
+import { ImageField } from "@/components/admin/ImageField";
 import { Card } from "@/components/ui/Card";
 import { Section } from "@/components/dash/Section";
 import { deleteProduct, saveProduct } from "@/lib/actions";
@@ -33,7 +34,7 @@ export default async function VendeurArticles() {
           <Field label="Prix (F)" name="price" type="number" min={0} required />
           <Field label="Stock" name="stock" type="number" min={0} defaultValue={0} />
           <Select label="Rayon" name="category" options={RAYONS} />
-          <Field label="Image" name="image" defaultValue="/img/puffs.jpg" />
+          <ImageField name="image" dossier="produits" defaultValue="/img/puffs.jpg" />
           <Field label="Accroche" name="detail" className="sm:col-span-2" />
           <TextArea label="Description" name="description" className="sm:col-span-2" />
           <div className="flex items-center gap-4 sm:col-span-2">
@@ -88,7 +89,7 @@ export default async function VendeurArticles() {
                   <Field label="Prix (F)" name="price" type="number" min={0} defaultValue={product.price} />
                   <Field label="Stock" name="stock" type="number" min={0} defaultValue={product.stock} />
                   <Select label="Rayon" name="category" defaultValue={product.category} options={RAYONS} />
-                  <Field label="Image" name="image" defaultValue={product.image} />
+                  <ImageField name="image" dossier="produits" defaultValue={product.image} />
                   <Field label="Accroche" name="detail" defaultValue={product.detail} className="sm:col-span-2" />
                   <TextArea label="Description" name="description" defaultValue={product.description} className="sm:col-span-2" />
                   <div className="flex items-center gap-4 sm:col-span-2">

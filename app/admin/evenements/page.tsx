@@ -1,4 +1,5 @@
 import { Drawer, Field, PageHead, Pill, Select, SubmitButton, Table, Td, TextArea } from "@/components/admin/AdminUI";
+import { ImageField } from "@/components/admin/ImageField";
 import { deleteEvent, saveEvent } from "@/lib/actions";
 import { getAllEvents, getAllVenues } from "@/lib/queries";
 import { f } from "@/lib/format";
@@ -23,7 +24,7 @@ export default async function AdminEvents() {
           <Select label="Salle" name="venueId" options={venueOptions} />
           <Field label="Prix (F)" name="price" type="number" defaultValue={3000} />
           <Field label="Capacité" name="capacity" type="number" defaultValue={120} />
-          <Field label="Image" name="image" defaultValue="/img/crowd-lights.jpg" />
+          <ImageField name="image" dossier="evenements" defaultValue="/img/crowd-lights.jpg" />
           <Field label="Tags (virgules)" name="tags" placeholder="Tournoi 8-ball,32 joueurs" />
           <Field label="Adresse" name="address" className="lg:col-span-2" />
           <TextArea label="Description" name="description" className="lg:col-span-4" />
@@ -76,7 +77,7 @@ export default async function AdminEvents() {
                     <Select label="Salle" name="venueId" defaultValue={event.venueId} options={venueOptions} />
                     <Field label="Check-in" name="checkin" defaultValue={event.checkin} />
                     <Field label="Tags" name="tags" defaultValue={event.tags} />
-                    <Field label="Image" name="image" defaultValue={event.image} />
+                    <ImageField name="image" dossier="evenements" defaultValue={event.image} />
                     <Field label="Adresse" name="address" defaultValue={event.address} />
                     <TextArea label="Description" name="description" defaultValue={event.description} />
                     <input type="hidden" name="active" value="on" />
