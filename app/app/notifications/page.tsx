@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
+import { ActiverNotifications } from "@/components/mb/Notifications";
 import { Card } from "@/components/ui/Card";
 import { BellIcon, CartIcon, CoinIcon, TicketIcon, TrophyIcon } from "@/components/icons";
 import { markNotificationsRead } from "@/lib/actions";
@@ -25,10 +26,15 @@ function ago(date: Date): string {
   return `il y a ${Math.round(hours / 24)} j`;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function NotificationsPage() {
   const user = await requireUser();
   const list = await getNotifications(user.id);
   const unread = list.filter((n) => !n.read).length;
+  // La clé publique VAPID n'est pas un secret : c'est elle que le navigateur
+  // envoie au service de push pour reconnaître nos envois.
+  const cleVapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
   return (
     <>
@@ -43,6 +49,8 @@ export default async function NotificationsPage() {
           ) : null
         }
       />
+
+      <ActiverNotifications cleVapid={cleVapid} />
 
       {list.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 px-5 py-10 text-center">

@@ -37,4 +37,24 @@ export async function notify(
   exec: Executor = db,
 ) {
   await exec.insert(notifications).values({ id: uid(), userId, title, body, kind, href, read: false });
+  reveiller(userId);
+}
+
+/**
+ * Pousser le signal vers les téléphones du compte.
+ *
+ * Sans `await` : une notification n'est pas le sujet de la requête en cours,
+ * et un service de push lent ne doit pas retarder un paiement. Les erreurs
+ * sont avalées pour la même raison — l'écrit en base, lui, a déjà eu lieu.
+ *
+ * Le push est envoyé même quand il part d'une transaction qui sera annulée :
+ * le téléphone sonnerait alors pour une notification qui n'existe plus, et le
+ * service worker, ne trouvant rien, affiche son message de repli. C'est le
+ * prix d'un envoi hors transaction, et il est plus faible que celui d'une
+ * transaction qui attend un serveur d'Apple.
+ */
+function reveiller(userId: string) {
+  void import("@/lib/push")
+    .then((m) => m.pousser([userId]))
+    .catch(() => {});
 }

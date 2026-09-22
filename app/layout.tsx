@@ -25,10 +25,30 @@ export const metadata: Metadata = {
     "Achète tes jetons de billard depuis ton téléphone, scanne ton QR à la table, commande ton matériel et prends tes billets de tournoi. Douala et Yaoundé.",
   applicationName: "Master Break",
   manifest: "/manifest.webmanifest",
+  // iOS ne lit pas le manifeste pour l'icône de l'écran d'accueil : il lui
+  // faut `apple-touch-icon`, et un PNG opaque — il ne sait pas composer sur
+  // une transparence, qui devient noire.
+  appleWebApp: {
+    capable: true,
+    title: "Master Break",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {
   colorScheme: "dark light",
+  // La barre système suit le fond de l'application une fois installée.
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#071a13" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f1e8" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
