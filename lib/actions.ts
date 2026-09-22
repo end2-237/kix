@@ -14,6 +14,8 @@ import {
   matchEvents,
   matchOfficials,
   matches,
+  memberPlans,
+  memberships,
   orderItems,
   orders,
   packs,
@@ -2065,4 +2067,81 @@ export async function noterDuel(duelId: string, scoreA: number, scoreB: number) 
   revalidatePath("/admin/tournois");
   revalidatePath("/app/classement");
   return res;
+}
+
+/* ----------------------------------------------------------- abonnements */
+
+/**
+ * Souscrire à l'abonnement Master Break.
+ *
+ * Le prix et la durée sont figés sur la souscription : un tarif révisé
+ * pendant que le client valide sur son téléphone ne doit pas changer ce qu'il
+ * a accepté. Rien ne se reconduit tout seul — au Cameroun le paiement mobile
+ * se valide à chaque fois, et un abonnement qui se prélève sans qu'on le
+ * demande n'y a pas sa place.
+ */
+export async function souscrire(
+  planId: string,
+  method: "om" | "momo",
+  phone: string,
+): Promise<StartResult> {
+  const user = await requireUser();
+  const plan = (await db.select().from(memberPlans).where(eq(memberPlans.id, planId)).limit(1))[0];
+  if (!plan || !plan.active) return { ok: false, error: "Cette formule n'est plus proposée." };
+
+  // Une souscription laissée en attente est reprise plutôt que doublée : le
+  // client qui recommence après un échec ne doit pas s'en retrouver deux.
+  const encours = (
+    await db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.userId, user.id), eq(memberships.status, "pending")))
+      .orderBy(sql`${memberships.createdAt} desc`)
+      .limit(1)
+  )[0];
+
+  const id = encours?.id ?? uid();
+  const champs = { planId: plan.id, months: plan.months, price: plan.price, status: "pending" };
+  if (encours) await db.update(memberships).set(champs).where(eq(memberships.id, id));
+  else await db.insert(memberships).values({ id, userId: user.id, ...champs });
+
+  const started = await startPayment({
+    kind: "abonnement",
+    userId: user.id,
+    amount: plan.price,
+    method,
+    phone,
+    description: `Abonnement ${plan.name}`,
+    targetId: id,
+  });
+  if (!started.ok) return started;
+
+  await db.update(memberships).set({ reference: started.reference }).where(eq(memberships.id, id));
+  revalidatePath("/app/abonnement");
+  return { ok: true, reference: started.reference, instruction: started.instruction, amount: plan.price };
+}
+
+/** Créer ou modifier une formule d'abonnement. Administration seule. */
+export async function savePlan(formData: FormData) {
+  await requireRole("admin");
+  const id = str(formData, "id");
+  const name = str(formData, "name");
+
+  const values = {
+    slug: str(formData, "slug") || slugify(name),
+    name,
+    months: Math.max(1, num(formData, "months") || 1),
+    price: Math.max(0, num(formData, "price")),
+    perks: str(formData, "perks"),
+    hint: str(formData, "hint"),
+    badge: str(formData, "badge") || null,
+    sort: num(formData, "sort"),
+    active: bool(formData, "active"),
+  };
+
+  if (id) await db.update(memberPlans).set(values).where(eq(memberPlans.id, id));
+  else await db.insert(memberPlans).values({ id: uid(), ...values });
+
+  revalidatePath("/app/abonnement");
+  revalidatePath("/admin/abonnements");
 }

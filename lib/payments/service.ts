@@ -6,6 +6,8 @@ import {
   db,
   enrollments,
   events,
+  memberPlans,
+  memberships,
   orderItems,
   orders,
   payments,
@@ -18,6 +20,7 @@ import {
   tokens,
   tournaments,
   tournamentPlayers,
+  users,
   venueTables,
   type Payment,
 } from "@/db";
@@ -39,7 +42,15 @@ const fcfa = (n: number) => `${n.toLocaleString("fr-FR")} F`;
  */
 const newReference = () => randomUUID();
 
-export type PaymentKind = "pack" | "order" | "ticket" | "reservation" | "stream" | "course" | "tournoi";
+export type PaymentKind =
+  | "pack"
+  | "order"
+  | "ticket"
+  | "reservation"
+  | "stream"
+  | "course"
+  | "tournoi"
+  | "abonnement";
 
 export type StartInput = {
   kind: PaymentKind;
@@ -171,6 +182,7 @@ async function fulfil(tx: Tx, payment: Payment) {
   if (payment.kind === "stream") return fulfilStreamPass(tx, payment);
   if (payment.kind === "course") return fulfilEnrollment(tx, payment);
   if (payment.kind === "tournoi") return fulfilTournamentEntry(tx, payment);
+  if (payment.kind === "abonnement") return fulfilMembership(tx, payment);
 }
 
 async function fulfilPack(tx: Tx, payment: Payment) {
@@ -420,6 +432,43 @@ async function fulfilTournamentEntry(tx: Tx, payment: Payment) {
   );
 }
 
+/**
+ * L'abonnement Master Break.
+ *
+ * La date de fin se prolonge, elle ne se remplace pas : qui se réabonne trois
+ * jours avant l'échéance garde ces trois jours. C'est le compte qui porte la
+ * date — l'abonnement, lui, garde la trace de ce qui a été payé et quand.
+ */
+async function fulfilMembership(tx: Tx, payment: Payment) {
+  const abo = (
+    await tx.select().from(memberships).where(eq(memberships.id, payment.targetId!)).limit(1)
+  )[0];
+  if (!abo || abo.status !== "pending") return;
+
+  const compte = (await tx.select().from(users).where(eq(users.id, abo.userId)).limit(1))[0];
+  if (!compte) return;
+
+  const { prolonger } = await import("@/lib/membres");
+  const debut = compte.memberUntil && compte.memberUntil.getTime() > Date.now() ? compte.memberUntil : new Date();
+  const fin = prolonger(compte.memberUntil, abo.months);
+
+  await tx.update(memberships).set({ status: "paid", startsAt: debut, endsAt: fin }).where(eq(memberships.id, abo.id));
+  await tx.update(users).set({ memberUntil: fin }).where(eq(users.id, abo.userId));
+
+  const plan = abo.planId
+    ? (await tx.select().from(memberPlans).where(eq(memberPlans.id, abo.planId)).limit(1))[0]
+    : undefined;
+
+  await notify(
+    abo.userId,
+    `Abonné jusqu'au ${fin.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}`,
+    `${plan?.name ?? `${abo.months} mois`} · ${fcfa(abo.price)} par ${methodLabel[payment.method as PaymentMethod]} · réf. ${shortRef(payment.reference)}. Tous les directs te sont ouverts.`,
+    "reward",
+    "/app/abonnement",
+    tx,
+  );
+}
+
 async function cancelTarget(tx: Tx, payment: Payment, status: "failed" | "expired") {
   if (!payment.targetId) return;
   if (payment.kind === "pack") {
@@ -434,6 +483,8 @@ async function cancelTarget(tx: Tx, payment: Payment, status: "failed" | "expire
     await tx.update(streamPasses).set({ status: "failed" }).where(eq(streamPasses.id, payment.targetId));
   } else if (payment.kind === "course") {
     await tx.update(enrollments).set({ status: "failed" }).where(eq(enrollments.id, payment.targetId));
+  } else if (payment.kind === "abonnement") {
+    await tx.update(memberships).set({ status }).where(eq(memberships.id, payment.targetId));
   } else if (payment.kind === "tournoi") {
     // La candidature survit à un paiement manqué : le joueur peut réessayer.
     await tx

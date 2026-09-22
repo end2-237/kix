@@ -803,6 +803,51 @@ export const screens = mb.table(
   (t) => [index("screens_venue_idx").on(t.venueId)],
 );
 
+/* ------------------------------------------------------------ abonnements */
+
+/**
+ * Les formules d'abonnement.
+ *
+ * Une table plutôt que des constantes : un tarif d'abonnement se révise, et
+ * il se révise depuis l'administration, pas depuis un déploiement.
+ */
+export const memberPlans = mb.table("member_plans", {
+  id: id(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  /** Durée achetée, en mois. */
+  months: integer("months").notNull().default(1),
+  price: integer("price").notNull(),
+  /** Ce que la formule apporte, une ligne par avantage, séparées par « | ». */
+  perks: text("perks").notNull().default(""),
+  hint: text("hint").notNull().default(""),
+  badge: text("badge"),
+  sort: integer("sort").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+});
+
+export const memberships = mb.table(
+  "memberships",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    planId: uuid("plan_id").references(() => memberPlans.id, { onDelete: "set null" }),
+    /** Ce que l'abonné a payé et pour combien de mois, figés à l'achat. */
+    months: integer("months").notNull().default(1),
+    price: integer("price").notNull().default(0),
+    // pending | paid | failed | expired
+    status: text("status").notNull().default("pending"),
+    reference: text("reference").unique(),
+    /** Bornes effectives, posées à la confirmation du paiement. */
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("memberships_user_idx").on(t.userId)],
+);
+
 export type Screen = typeof screens.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -820,6 +865,8 @@ export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type MemberPlan = typeof memberPlans.$inferSelect;
+export type Membership = typeof memberships.$inferSelect;
 export type Tournament = typeof tournaments.$inferSelect;
 export type TournamentPlayer = typeof tournamentPlayers.$inferSelect;
 export type TournamentMatch = typeof tournamentMatches.$inferSelect;

@@ -162,6 +162,20 @@
       "when": 1790092073741,
       "tag": "0022_tournois_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790102497598,
+      "tag": "0023_abonnements",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790102497599,
+      "tag": "0024_abonnements_rls",
+      "breakpoints": true
     }
   ]
 }

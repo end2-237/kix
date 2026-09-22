@@ -7,7 +7,7 @@ import { MomoCheckout, type Method } from "@/components/mb/MomoCheckout";
 import { StreamPlayer, type Overlay } from "@/components/live/StreamPlayer";
 import { Card } from "@/components/ui/Card";
 import { useSnackbar } from "@/components/ui/Snackbar";
-import { ArrowRightIcon, LockIcon } from "@/components/icons";
+import { ArrowRightIcon, BoltIcon, LockIcon } from "@/components/icons";
 import { buyStreamPass } from "@/lib/actions";
 import { useLive } from "@/lib/useLive";
 import { fcfa } from "@/lib/format";
@@ -153,9 +153,13 @@ function Locked({
           label={`Prendre mon billet · ${fcfa(price)}`}
         />
       ) : (
-        <p className="text-center text-[13px] text-muted">
-          L&apos;abonnement Master Break arrive. En attendant, demande l&apos;accès à ta salle.
-        </p>
+        <Link
+          href="/app/abonnement"
+          className="press flex h-12 items-center justify-center gap-2 rounded-full bg-gold text-sm font-semibold text-gold-ink transition hover:brightness-105"
+        >
+          <BoltIcon size={18} />
+          Voir l&apos;abonnement Master Break
+        </Link>
       )}
     </Card>
   );

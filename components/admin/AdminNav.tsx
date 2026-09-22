@@ -2,6 +2,7 @@
 
 import { DashNav, type NavItem } from "@/components/dash/DashNav";
 import {
+  BoltIcon,
   CalendarIcon,
   CartIcon,
   ChartIcon,
@@ -16,7 +17,7 @@ import {
 } from "@/components/icons";
 
 /**
- * Douze pages, quatre places.
+ * Treize pages, quatre places.
  *
  * L'administration les empilait toutes en pastilles au-dessus du contenu :
  * sur un téléphone, la moitié de l'écran partait en navigation avant qu'une
@@ -33,6 +34,7 @@ const items: NavItem[] = [
   { href: "/admin/tables", label: "Tables", Icon: TableIcon },
   { href: "/admin/jetons", label: "Jetons", Icon: TicketIcon },
   { href: "/admin/tournois", label: "Tournois", Icon: TrophyIcon },
+  { href: "/admin/abonnements", label: "Abonnements", Icon: BoltIcon },
   { href: "/admin/cours", label: "Cours", Icon: TargetIcon },
   { href: "/admin/vendeurs", label: "Vendeurs", Icon: TruckIcon },
   { href: "/admin/utilisateurs", label: "Utilisateurs", Icon: UserIcon },

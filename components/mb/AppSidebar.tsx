@@ -36,6 +36,7 @@ const primary = [
 ];
 
 const secondary = [
+  { href: "/app/abonnement", label: "Abonnement Master Break" },
   { href: "/app/classement", label: "Classement des joueurs" },
   { href: "/app/cours", label: "Cours de billard" },
   { href: "/app/reservations", label: "Mes réservations" },

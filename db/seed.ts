@@ -1,5 +1,6 @@
 import { repartirPrix } from "@/lib/tokens";
 import { getBracket, noterResultat, tirerLeTableau } from "@/lib/tournoi-moteur";
+import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "../lib/password";
 import { createDb } from "./client";
@@ -8,6 +9,8 @@ import {
   events,
   matchEvents,
   matches,
+  memberPlans,
+  memberships,
   notifications,
   orderItems,
   orders,
@@ -929,8 +932,68 @@ for (let tour = 1; tour <= 3; tour++) {
   }
 }
 
+/* abonnements ---------------------------------------------------------------
+   Trois durées, parce que c'est ainsi qu'on achète un abonnement quand on
+   paie par téléphone : à l'essai, au trimestre, à l'année. Le prix au mois
+   baisse avec la durée — c'est ce qui donne une raison de s'engager. */
+
+const planRows: (typeof memberPlans.$inferInsert)[] = [
+  {
+    id: uid(),
+    slug: "membre-1-mois",
+    name: "Master Break · 1 mois",
+    months: 1,
+    price: 2500,
+    perks: "Tous les directs réservés aux abonnés | Les directs payants sans billet à l'unité | Les rediffusions des soirées",
+    hint: "Sans reconduction automatique.",
+    sort: 1,
+  },
+  {
+    id: uid(),
+    slug: "membre-3-mois",
+    name: "Master Break · 3 mois",
+    months: 3,
+    price: 6000,
+    perks: "Tous les directs réservés aux abonnés | Les directs payants sans billet à l'unité | Les rediffusions des soirées",
+    hint: "Un mois offert par rapport au tarif mensuel.",
+    badge: "Populaire",
+    sort: 2,
+  },
+  {
+    id: uid(),
+    slug: "membre-1-an",
+    name: "Master Break · 1 an",
+    months: 12,
+    price: 20_000,
+    perks: "Tous les directs réservés aux abonnés | Les directs payants sans billet à l'unité | Les rediffusions des soirées | Le tarif gelé pour l'année",
+    hint: "Le meilleur prix au mois.",
+    badge: "Meilleur prix",
+    sort: 3,
+  },
+];
+await db.insert(memberPlans).values(planRows);
+
+// Un abonné en cours : sans lui, ni le mur « abonnés » des directs ni la
+// console d'administration n'ont rien à montrer.
+{
+  const debut = new Date();
+  const fin = new Date(debut);
+  fin.setMonth(fin.getMonth() + 3);
+  await db.insert(memberships).values({
+    id: uid(),
+    userId: ariel.id,
+    planId: planRows[1].id,
+    months: 3,
+    price: planRows[1].price,
+    status: "paid",
+    startsAt: debut,
+    endsAt: fin,
+  });
+  await db.update(users).set({ memberUntil: fin }).where(eq(users.id, ariel.id));
+}
+
 console.log(
-  `base remplie : 3 salles, ${tableRows.length} tables, 16 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours, 3 tournois`,
+  `base remplie : 3 salles, ${tableRows.length} tables, 16 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours, 3 tournois, ${planRows.length} formules d'abonnement`,
 );
 }
 

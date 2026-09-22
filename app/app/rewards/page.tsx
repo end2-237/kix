@@ -4,8 +4,19 @@ import { ScreenHeader } from "@/components/mb/AppHeader";
 import { ConvertButton } from "@/components/mb/ConvertButton";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
-import { BoltIcon, CartIcon, ChartIcon, ClockIcon, TableIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
+import {
+  BoltIcon,
+  CartIcon,
+  ChartIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  TableIcon,
+  TargetIcon,
+  TicketIcon,
+  TrophyIcon,
+} from "@/components/icons";
 import { getLeaderboard, getRank } from "@/lib/queries";
+import { estMembre, joursRestants } from "@/lib/membres";
 import { requireUser } from "@/lib/session";
 import { signOut } from "@/lib/actions";
 import { levelFor, POINTS_PER_FREE_TOKEN } from "@/lib/constants";
@@ -21,10 +32,36 @@ export default async function RewardsPage() {
   const progress = Math.min(100, Math.round((user.points / target) * 100));
   const podium = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3).filter((p) => p.id !== user.id);
+  const membre = estMembre(user);
+  const restants = joursRestants(user);
 
   return (
     <>
       <ScreenHeader title="Master Rank" subtitle="Chaque partie scannée compte des points, chaque tournoi te classe." />
+
+      <Link href="/app/abonnement" className="press block">
+        <Card tone={membre ? "gold" : "dashed"} shape="panel" className="flex items-center gap-3.5 p-4">
+          <span
+            className={cn(
+              "grid h-11 w-11 shrink-0 place-items-center rounded-full",
+              membre ? "bg-gold text-gold-ink" : "bg-surface-2 text-muted",
+            )}
+          >
+            <BoltIcon size={20} />
+          </span>
+          <span className="flex min-w-0 grow flex-col gap-0.5">
+            <span className="truncate text-[14px] font-semibold">
+              {membre ? "Abonné Master Break" : "Abonnement Master Break"}
+            </span>
+            <span className="truncate text-[11.5px] text-muted">
+              {membre
+                ? `${restants} jour${restants > 1 ? "s" : ""} restant${restants > 1 ? "s" : ""}`
+                : "Tous les directs, sans billet à l'unité"}
+            </span>
+          </span>
+          <ChevronRightIcon size={16} className="shrink-0 text-muted" />
+        </Card>
+      </Link>
 
       <div className="grid gap-3.5 lg:grid-cols-2 lg:items-start lg:gap-8">
       <div className="flex flex-col gap-3.5 lg:gap-5">
