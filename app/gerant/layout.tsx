@@ -79,7 +79,7 @@ export default async function GerantLayout({ children }: { children: React.React
         </div>
       </aside>
 
-      <main className="flex min-h-0 grow flex-col gap-5 overflow-hidden p-5 pb-24 lg:p-7 lg:pb-7">{children}</main>
+      <main className="flex min-h-0 min-w-0 grow flex-col gap-5 overflow-hidden p-5 pb-24 lg:p-7 lg:pb-7">{children}</main>
 
       <GerantNav mobile />
     </div>

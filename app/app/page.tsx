@@ -143,7 +143,7 @@ export default async function AccueilPage() {
 
       <div className="flex flex-col gap-2.5 lg:gap-4">
         <SectionTitle title="Salles près de toi" action="Voir toutes" href="/app/salles" />
-        <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:px-0">
+        <div className="-mx-5 flex md:-mx-7 gap-3 overflow-x-auto px-5 md:px-7 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:px-0">
           {venues.map((venue) => (
             <VenueCard key={venue.id} venue={venue} />
           ))}

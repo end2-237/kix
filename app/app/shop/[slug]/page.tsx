@@ -82,7 +82,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       {others.length > 0 ? (
         <div className="flex flex-col gap-2.5 lg:gap-4">
           <h2 className="text-base">Dans le même rayon</h2>
-          <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:px-0">
+          <div className="-mx-5 flex md:-mx-7 gap-3 overflow-x-auto px-5 md:px-7 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:px-0">
             {others.map((other) => (
               <Link
                 key={other.id}

@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Card } from "@/components/ui/Card";
 import { ArrowRightIcon, TargetIcon } from "@/components/icons";
 import { NIVEAUX, prixParSeance } from "@/lib/courses";
 import { f } from "@/lib/format";
@@ -33,7 +32,7 @@ export function CoursBannieres({ cartes }: { cartes: CoursCarte[] }) {
         </Link>
       </div>
 
-      <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:px-0">
+      <div className="-mx-5 flex md:-mx-7 snap-x snap-mandatory gap-3 overflow-x-auto px-5 md:px-7 pb-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:px-0">
         {cartes.map((carte) => (
           <Banniere key={carte.course.id} carte={carte} />
         ))}

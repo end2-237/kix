@@ -62,7 +62,7 @@ export default async function VendeurLayout({ children }: { children: React.Reac
 
       {/* `pb-28` réserve la place du barreau flottant : sans lui, il masquait
           la dernière ligne de chaque liste. */}
-      <main className="stagger flex grow flex-col gap-5 p-5 pb-28 lg:p-8 lg:pb-8">{children}</main>
+      <main className="stagger flex min-w-0 grow flex-col gap-5 p-5 pb-28 lg:p-8 lg:pb-8">{children}</main>
 
       <VendeurNav mobile />
     </div>

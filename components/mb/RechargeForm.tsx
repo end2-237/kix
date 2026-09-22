@@ -62,7 +62,7 @@ export function RechargeForm({ packs, venues, phone }: { packs: Pack[]; venues: 
       <div className="flex flex-col gap-3.5 lg:gap-6">
       <div className="flex flex-col gap-2.5">
         <h2 className="text-base">Où joues-tu ce soir ?</h2>
-        <div className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:px-0">
+        <div className="-mx-5 flex md:-mx-7 gap-2.5 overflow-x-auto px-5 md:px-7 pb-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:px-0">
           {venues.map((v) => (
             <button
               key={v.id}

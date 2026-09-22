@@ -46,7 +46,10 @@ export default async function AdminCours() {
         {cours.map(({ course, venue, inscrits }) => (
           <tr key={course.id}>
             <Td className="font-semibold">{course.title}</Td>
-            <Td>{course.coachName || "—"}</Td>
+            <Td>
+              {course.coachName || "—"}
+              {venue ? <span className="block text-[11px] text-muted">{venue.name}</span> : null}
+            </Td>
             <Td>{NIVEAUX[course.level] ?? course.level}</Td>
             <Td>
               {course.sessions} · {f(prixParSeance(course))}/séance
