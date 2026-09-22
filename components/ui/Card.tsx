@@ -22,13 +22,20 @@ export function Card({
   shape = "card",
   className,
   children,
+  id,
 }: {
   tone?: Tone;
   shape?: Shape;
   className?: string;
   children: React.ReactNode;
+  /** Une ancre, quand la carte doit pouvoir être visée depuis un lien. */
+  id?: string;
 }) {
-  return <div className={cn(shapes[shape], tones[tone], className)}>{children}</div>;
+  return (
+    <div id={id} className={cn(shapes[shape], tones[tone], className)}>
+      {children}
+    </div>
+  );
 }
 
 export function SectionTitle({ title, action, href }: { title: string; action?: string; href?: string }) {

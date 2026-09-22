@@ -7,11 +7,12 @@ import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ArrowRightIcon, TrophyIcon } from "@/components/icons";
 import { saveTournament } from "@/lib/actions";
-import { DISCIPLINES, ETATS } from "@/lib/tournois";
+import { DISCIPLINES, ETATS, FORMATS } from "@/lib/tournois";
 import { f } from "@/lib/format";
 import type { EventRow, Tournament, Venue } from "@/db";
 
 const disciplines = Object.entries(DISCIPLINES).map(([value, label]) => ({ value, label }));
+const formats = Object.entries(FORMATS).map(([value, label]) => ({ value, label }));
 
 /** Les tailles de tableau qu'on rencontre vraiment dans une salle. */
 const tailles = [8, 12, 16, 24, 32, 64].map((n) => ({ value: String(n), label: `${n} joueurs` }));
@@ -64,7 +65,23 @@ export function FormulaireTournoi({
         <Select label="Discipline" name="discipline" defaultValue={tournoi?.discipline} options={disciplines} />
 
         {salles ? <Select label="Salle" name="venueId" defaultValue={tournoi?.venueId} options={salles} /> : null}
+        <Select label="Format" name="format" defaultValue={tournoi?.format} options={formats} />
         <Select label="Tableau" name="size" defaultValue={String(tournoi?.size ?? 16)} options={tailles} />
+        <Field
+          label="Joueurs par poule"
+          name="groupSize"
+          type="number"
+          min={3}
+          defaultValue={tournoi?.groupSize ?? 4}
+          hint="Ignoré en élimination directe."
+        />
+        <Field
+          label="Qualifiés par poule"
+          name="qualifiers"
+          type="number"
+          min={1}
+          defaultValue={tournoi?.qualifiers ?? 2}
+        />
         <Field
           label="Course à (1er tour)"
           name="raceTo"
@@ -170,7 +187,8 @@ export function ListeTournois({ lignes, base }: { lignes: LigneTournoi[]; base: 
             <span className="flex min-w-0 grow flex-col gap-1">
               <span className="truncate text-[15px] font-semibold">{tournament.title}</span>
               <span className="truncate text-[12px] text-muted">
-                {DISCIPLINES[tournament.discipline] ?? tournament.discipline} · {tournament.size} places
+                {DISCIPLINES[tournament.discipline] ?? tournament.discipline} ·{" "}
+                {FORMATS[tournament.format] ?? tournament.format}
                 {venue ? ` · ${venue.name}` : ""}
               </span>
               <span className="text-[12px] text-gold-text">

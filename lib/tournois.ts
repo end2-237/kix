@@ -14,6 +14,12 @@ export const DISCIPLINES: Record<string, string> = {
   killer: "Killer",
 };
 
+/** Comment se joue un tournoi. */
+export const FORMATS: Record<string, string> = {
+  direct: "Élimination directe",
+  poules: "Poules puis tableau",
+};
+
 export const ETATS: Record<string, string> = {
   brouillon: "Brouillon",
   inscriptions: "Inscriptions ouvertes",

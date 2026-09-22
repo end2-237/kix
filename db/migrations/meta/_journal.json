@@ -176,6 +176,20 @@
       "when": 1790102497599,
       "tag": "0024_abonnements_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790114703614,
+      "tag": "0025_poules-amis-retraits",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790114703615,
+      "tag": "0026_poules_amis_retraits_rls",
+      "breakpoints": true
     }
   ]
 }

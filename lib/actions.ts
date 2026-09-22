@@ -1738,6 +1738,9 @@ export async function saveTournament(formData: FormData) {
     title,
     venueId: venueId || null,
     discipline: str(formData, "discipline") || "8-ball",
+    format: str(formData, "format") === "poules" ? "poules" : "direct",
+    groupSize: Math.min(8, Math.max(3, num(formData, "groupSize") || 4)),
+    qualifiers: Math.max(1, num(formData, "qualifiers") || 2),
     size: Math.max(2, num(formData, "size") || 16),
     raceTo: Math.max(1, num(formData, "raceTo") || 4),
     entryFee: Math.max(0, num(formData, "entryFee")),
@@ -2008,8 +2011,9 @@ export async function lancerTableau(tournamentId: string) {
   if (!t) return { ok: false as const, error: "Tournoi introuvable." };
   if (auteur.role === "manager" && t.venueId !== auteur.venueId) redirect("/gerant?refus=1");
 
-  const { tirerLeTableau } = await import("@/lib/tournaments");
-  const res = await tirerLeTableau(tournamentId);
+  const { tirerLeTableau, tirerLesPoules } = await import("@/lib/tournaments");
+  const res =
+    t.format === "poules" ? await tirerLesPoules(tournamentId) : await tirerLeTableau(tournamentId);
   if (!res.ok) return res;
 
   const joueurs = await db
@@ -2019,13 +2023,48 @@ export async function lancerTableau(tournamentId: string) {
 
   for (const j of joueurs) {
     if (j.seed === null) continue;
-    await notify(
-      j.userId,
-      `Tableau tiré · ${t.title}`,
-      `Tu entres en tête de série n°${j.seed}. Le tableau est en ligne.`,
-      "event",
-      `/app/tournois/${t.slug}`,
-    );
+    const place =
+      t.format === "poules" && j.groupe
+        ? `Tu es dans la poule ${String.fromCharCode(64 + j.groupe)}, tête de série n°${j.seed}.`
+        : `Tu entres en tête de série n°${j.seed}.`;
+    await notify(j.userId, `Tirage · ${t.title}`, `${place} Le programme est en ligne.`, "event", `/app/tournois/${t.slug}`);
+  }
+
+  revalidatePath(`/app/tournois/${t.slug}`);
+  revalidatePath("/gerant/tournois");
+  revalidatePath("/admin/tournois");
+  return res;
+}
+
+
+/** Les poules jouées, on ouvre le tableau entre les qualifiés. */
+export async function ouvrirLeTableauFinal(tournamentId: string) {
+  const auteur = await requireRole("admin", "manager");
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (!t) return { ok: false as const, error: "Tournoi introuvable." };
+  if (auteur.role === "manager" && t.venueId !== auteur.venueId) redirect("/gerant?refus=1");
+
+  const { ouvrirLeTableau } = await import("@/lib/tournaments");
+  const res = await ouvrirLeTableau(tournamentId);
+  if (!res.ok) return res;
+
+  const qualifies = await db
+    .select()
+    .from(tournamentMatches)
+    .where(and(eq(tournamentMatches.tournamentId, tournamentId), eq(tournamentMatches.stage, "tableau")));
+
+  const ids = [...new Set(qualifies.flatMap((d) => [d.playerAId, d.playerBId]).filter(Boolean))] as string[];
+  if (ids.length) {
+    const joueurs = await db.select().from(tournamentPlayers).where(inArray(tournamentPlayers.id, ids));
+    for (const j of joueurs) {
+      await notify(
+        j.userId,
+        `Qualifié · ${t.title}`,
+        "Tu sors de ta poule. Le tableau final est en ligne.",
+        "reward",
+        `/app/tournois/${t.slug}`,
+      );
+    }
   }
 
   revalidatePath(`/app/tournois/${t.slug}`);

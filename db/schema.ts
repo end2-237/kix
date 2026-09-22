@@ -223,6 +223,11 @@ export const tournaments = mb.table("tournaments", {
   organiserId: uuid("organiser_id").references(() => users.id, { onDelete: "set null" }),
   // 8-ball | 9-ball | snooker | killer
   discipline: text("discipline").notNull().default("8-ball"),
+  /** direct = élimination directe seule ; poules = phase de groupes puis tableau. */
+  format: text("format").notNull().default("direct"),
+  /** Joueurs par poule, et combien en sortent. Ignorés en élimination directe. */
+  groupSize: integer("group_size").notNull().default(4),
+  qualifiers: integer("qualifiers").notNull().default(2),
   /** Nombre de places au tableau : 8, 16, 32… Les manquants deviennent des exemptions. */
   size: integer("size").notNull().default(16),
   /** Course à N manches gagnantes, au premier tour. Elle s'allonge vers la finale. */
@@ -269,6 +274,8 @@ export const tournamentPlayers = mb.table(
     note: text("note").notNull().default(""),
     /** Le rang de tête de série, posé au tirage. Nul tant qu'il n'a pas eu lieu. */
     seed: integer("seed"),
+    /** La poule, à partir de 1. Nulle en élimination directe. */
+    groupe: integer("groupe"),
     // candidat | accepte | refuse | retire
     status: text("status").notNull().default("candidat"),
     /** Le droit d'inscription, figé à la candidature. */
@@ -291,6 +298,10 @@ export const tournamentMatches = mb.table(
     tournamentId: uuid("tournament_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
+    /** poule | tableau — la phase à laquelle ce duel appartient. */
+    stage: text("stage").notNull().default("tableau"),
+    /** Le numéro de poule, pour un duel de poule. Nul sur le tableau. */
+    groupe: integer("groupe"),
     round: integer("round").notNull(),
     slot: integer("slot").notNull(),
     playerAId: uuid("player_a_id").references(() => tournamentPlayers.id, { onDelete: "set null" }),
@@ -848,6 +859,95 @@ export const memberships = mb.table(
   (t) => [index("memberships_user_idx").on(t.userId)],
 );
 
+/* ----------------------------------------------------------------- amis */
+
+/**
+ * Le lien entre deux joueurs.
+ *
+ * Une seule ligne par paire, orientée par qui a demandé : c'est ce qui permet
+ * de savoir à qui revient la réponse. L'index unique interdit les doublons
+ * dans un sens ; le code vérifie l'autre avant d'insérer.
+ */
+export const friendships = mb.table(
+  "friendships",
+  {
+    id: id(),
+    requesterId: uuid("requester_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    addresseeId: uuid("addressee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // attente | acceptee | refusee | bloquee
+    status: text("status").notNull().default("attente"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("friendships_paire_idx").on(t.requesterId, t.addresseeId),
+    index("friendships_addressee_idx").on(t.addresseeId),
+  ],
+);
+
+/**
+ * Un abonnement Web Push, tel que le navigateur le remet.
+ *
+ * L'endpoint identifie le navigateur : il change à chaque réinstallation, et
+ * un même compte peut en avoir plusieurs — téléphone, ordinateur, tablette.
+ */
+export const pushSubscriptions = mb.table(
+  "push_subscriptions",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent").notNull().default(""),
+    /** Dernier envoi accepté : un endpoint mort finit par être retiré. */
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("push_user_idx").on(t.userId)],
+);
+
+/* -------------------------------------------------------------- retraits */
+
+/**
+ * Une demande de retrait, puis son versement.
+ *
+ * La salle encaisse par la plateforme : les jetons, les billets et les droits
+ * d'inscription arrivent sur le compte Mobile Money de Master Break, pas sur
+ * le sien. Sans cette table, l'argent d'un gérant n'avait aucun chemin de
+ * retour.
+ */
+export const payouts = mb.table(
+  "payouts",
+  {
+    id: id(),
+    /** La salle dont le solde est ponctionné — nul pour un vendeur. */
+    venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+    /** Le bénéficiaire : le gérant qui demande, ou le vendeur. */
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    amount: integer("amount").notNull(),
+    // om | momo | especes | virement
+    method: text("method").notNull().default("momo"),
+    phone: text("phone").notNull().default(""),
+    // demande | paye | refuse
+    status: text("status").notNull().default("demande"),
+    note: text("note").notNull().default(""),
+    /** Référence du versement chez l'opérateur, saisie par l'administration. */
+    reference: text("reference").notNull().default(""),
+    processedBy: uuid("processed_by").references(() => users.id, { onDelete: "set null" }),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("payouts_venue_idx").on(t.venueId), index("payouts_user_idx").on(t.userId)],
+);
+
 export type Screen = typeof screens.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -865,6 +965,9 @@ export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type Friendship = typeof friendships.$inferSelect;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type Payout = typeof payouts.$inferSelect;
 export type MemberPlan = typeof memberPlans.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
 export type Tournament = typeof tournaments.$inferSelect;

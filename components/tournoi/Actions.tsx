@@ -5,7 +5,13 @@ import { useState, useTransition } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { CheckIcon, TrophyIcon } from "@/components/icons";
-import { deciderCandidat, lancerTableau, noterDuel, setTournamentStatus } from "@/lib/actions";
+import {
+  deciderCandidat,
+  lancerTableau,
+  noterDuel,
+  ouvrirLeTableauFinal,
+  setTournamentStatus,
+} from "@/lib/actions";
 import { cn } from "@/lib/cn";
 
 /**
@@ -45,13 +51,21 @@ export function EtatTournoi({
   id,
   status,
   acceptes,
+  format = "direct",
+  poulesFinies = false,
+  tableauOuvert = false,
 }: {
   id: string;
   status: string;
   acceptes: number;
+  format?: string;
+  poulesFinies?: boolean;
+  tableauOuvert?: boolean;
 }) {
   const { faire, pending } = useGeste();
   const fige = status === "encours" || status === "termine";
+  const enPoules = format === "poules";
+  const minimum = enPoules ? 3 : 2;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -74,16 +88,34 @@ export function EtatTournoi({
         </Bouton>
       ) : null}
 
-      {(status === "inscriptions" || status === "complet") && acceptes >= 2 ? (
+      {(status === "inscriptions" || status === "complet") && acceptes >= minimum ? (
         <Bouton
           accent
           pending={pending}
           onClick={() =>
-            faire(() => lancerTableau(id), "Tableau tiré", "Les joueurs sont prévenus de leur place.")
+            faire(
+              () => lancerTableau(id),
+              enPoules ? "Poules tirées" : "Tableau tiré",
+              "Les joueurs sont prévenus de leur place.",
+            )
           }
         >
           <TrophyIcon size={15} />
-          Tirer le tableau
+          {enPoules ? "Tirer les poules" : "Tirer le tableau"}
+        </Bouton>
+      ) : null}
+
+      {/* Les poules jouées, le tableau final s'ouvre entre les qualifiés. */}
+      {enPoules && status === "encours" && poulesFinies && !tableauOuvert ? (
+        <Bouton
+          accent
+          pending={pending}
+          onClick={() =>
+            faire(() => ouvrirLeTableauFinal(id), "Tableau ouvert", "Les qualifiés sont prévenus.")
+          }
+        >
+          <TrophyIcon size={15} />
+          Ouvrir le tableau final
         </Bouton>
       ) : null}
 
@@ -150,7 +182,10 @@ export function SaisieScore({
   const [b, setB] = useState(scoreB);
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-panel border border-line bg-surface p-3.5">
+    <div
+      data-duel={duelId}
+      className="flex flex-col gap-2.5 rounded-panel border border-line bg-surface p-3.5"
+    >
       <span className="text-[12.5px] text-muted">
         {nomA} <span className="text-faint">contre</span> {nomB}
         <span className="text-faint"> · course à {raceTo}</span>

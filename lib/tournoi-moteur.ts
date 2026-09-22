@@ -18,15 +18,37 @@ import {
   pointsDeClassement,
   taillePlateau,
 } from "@/lib/bracket";
+import {
+  classerLaPoule,
+  duelsDeLaPoule,
+  nombreDePoules,
+  ordreDesQualifies,
+  repartirEnPoules,
+  type DuelJoue,
+  type ResultatPoule,
+} from "@/lib/poules";
 
 const uid = () => crypto.randomUUID();
 
+/** Ce que rapporte une phase de poules sans qualification : être venu jouer. */
+const POINTS_DE_POULE = 25;
+
+/** Les duels du tableau. Les poules se lisent par `duelsDePoule`. */
 export function getBracket(db: Db, tournamentId: string) {
   return db
     .select()
     .from(tournamentMatches)
-    .where(eq(tournamentMatches.tournamentId, tournamentId))
+    .where(and(eq(tournamentMatches.tournamentId, tournamentId), eq(tournamentMatches.stage, "tableau")))
     .orderBy(asc(tournamentMatches.round), asc(tournamentMatches.slot));
+}
+
+/** Les duels de poule, dans l'ordre des poules puis du calendrier. */
+export function duelsDePoule(db: Db, tournamentId: string) {
+  return db
+    .select()
+    .from(tournamentMatches)
+    .where(and(eq(tournamentMatches.tournamentId, tournamentId), eq(tournamentMatches.stage, "poule")))
+    .orderBy(asc(tournamentMatches.groupe), asc(tournamentMatches.slot));
 }
 
 /**
@@ -84,6 +106,8 @@ export async function tirerLeTableau(db: Db, tournamentId: string): Promise<{ ok
     duels.map((d) => ({
       id: uid(),
       tournamentId,
+      stage: "tableau" as const,
+      groupe: null,
       round: d.round,
       slot: d.slot,
       playerAId: d.a?.playerId ?? null,
@@ -103,6 +127,187 @@ export async function tirerLeTableau(db: Db, tournamentId: string): Promise<{ ok
   await resoudreExemptions(db, tournamentId);
 
   return { ok: true, duels: duels.length };
+}
+
+
+/* -------------------------------------------------------------- poules */
+
+/** Les inscrits retenus et réglés, dans l'ordre des têtes de série. */
+async function inscritsClasses(db: Db, tournamentId: string) {
+  const tous = await db
+    .select({ player: tournamentPlayers, points: users.points })
+    .from(tournamentPlayers)
+    .innerJoin(users, eq(users.id, tournamentPlayers.userId))
+    .where(and(eq(tournamentPlayers.tournamentId, tournamentId), eq(tournamentPlayers.status, "accepte")))
+    .orderBy(desc(users.points), asc(tournamentPlayers.createdAt));
+
+  return { tous, regles: tous.filter((r) => r.player.fee === 0 || r.player.payment === "paye") };
+}
+
+/**
+ * Le tirage des poules.
+ *
+ * Même principe que le tableau : les têtes de série sortent du classement,
+ * puis on répartit en serpentin pour qu'aucune poule ne concentre les
+ * favoris. Tous les duels de poule sont créés d'un coup — le calendrier de la
+ * soirée doit être lisible avant que la première bille ne bouge.
+ */
+export async function tirerLesPoules(
+  db: Db,
+  tournamentId: string,
+): Promise<{ ok: true; poules: number; duels: number } | { ok: false; error: string }> {
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (!t) return { ok: false, error: "Tournoi introuvable." };
+  if (t.status === "encours" || t.status === "termine") return { ok: false, error: "Le tirage a déjà eu lieu." };
+
+  const { tous, regles } = await inscritsClasses(db, tournamentId);
+  if (regles.length < 3) {
+    return {
+      ok: false,
+      error:
+        tous.length >= 3
+          ? "Moins de trois inscriptions sont réglées. Relance les joueurs ou passe leur droit à zéro."
+          : "Il faut au moins trois joueurs pour des poules.",
+    };
+  }
+
+  const classes = regles.map((r) => r.player.id);
+  const nb = nombreDePoules(classes.length, t.groupSize);
+  const poules = repartirEnPoules(classes, nb);
+
+  await Promise.all(
+    classes.map((id, i) =>
+      db.update(tournamentPlayers).set({ seed: i + 1, groupe: null }).where(eq(tournamentPlayers.id, id)),
+    ),
+  );
+  await db.delete(tournamentMatches).where(eq(tournamentMatches.tournamentId, tournamentId));
+
+  const duels: (typeof tournamentMatches.$inferInsert)[] = [];
+  for (const [i, membres] of poules.entries()) {
+    const groupe = i + 1;
+    await Promise.all(
+      membres.map((id) => db.update(tournamentPlayers).set({ groupe }).where(eq(tournamentPlayers.id, id))),
+    );
+    for (const d of duelsDeLaPoule(groupe, membres)) {
+      duels.push({
+        id: uid(),
+        tournamentId,
+        stage: "poule",
+        groupe,
+        round: 1,
+        slot: d.slot,
+        playerAId: d.a,
+        playerBId: d.b,
+        raceTo: t.raceTo,
+        status: "attente",
+      });
+    }
+  }
+
+  if (duels.length) await db.insert(tournamentMatches).values(duels);
+  await db.update(tournaments).set({ status: "encours" }).where(eq(tournaments.id, tournamentId));
+
+  return { ok: true, poules: poules.length, duels: duels.length };
+}
+
+/** Le classement de chaque poule, dans l'ordre des poules. */
+export async function classementDesPoules(db: Db, tournamentId: string): Promise<ResultatPoule[][]> {
+  const [joueurs, duels] = await Promise.all([
+    db
+      .select()
+      .from(tournamentPlayers)
+      .where(eq(tournamentPlayers.tournamentId, tournamentId))
+      .orderBy(asc(tournamentPlayers.seed)),
+    db
+      .select()
+      .from(tournamentMatches)
+      .where(and(eq(tournamentMatches.tournamentId, tournamentId), eq(tournamentMatches.stage, "poule"))),
+  ]);
+
+  const groupes = [...new Set(joueurs.map((j) => j.groupe).filter((g): g is number => g !== null))].sort(
+    (a, b) => a - b,
+  );
+
+  return groupes.map((g) => {
+    const membres = joueurs.filter((j) => j.groupe === g).map((j) => j.id);
+    const joues: DuelJoue[] = duels
+      .filter((d) => d.groupe === g && d.playerAId && d.playerBId)
+      .map((d) => ({
+        aId: d.playerAId!,
+        bId: d.playerBId!,
+        scoreA: d.scoreA,
+        scoreB: d.scoreB,
+        termine: d.status === "termine",
+      }));
+    return classerLaPoule(membres, joues);
+  });
+}
+
+/** Reste-t-il un duel de poule à jouer ? */
+export async function poulesTerminees(db: Db, tournamentId: string): Promise<boolean> {
+  const restants = await db
+    .select({ id: tournamentMatches.id })
+    .from(tournamentMatches)
+    .where(
+      and(
+        eq(tournamentMatches.tournamentId, tournamentId),
+        eq(tournamentMatches.stage, "poule"),
+        sql`${tournamentMatches.status} <> 'termine'`,
+      ),
+    )
+    .limit(1);
+  return restants.length === 0;
+}
+
+/**
+ * Les poules finies, on ouvre le tableau entre les qualifiés.
+ *
+ * Les têtes de série du tableau ne sont pas celles des poules : c'est le
+ * classement de la poule qui compte, sinon un favori sorti deuxième
+ * repartirait devant le premier d'une autre poule.
+ */
+export async function ouvrirLeTableau(
+  db: Db,
+  tournamentId: string,
+): Promise<{ ok: true; duels: number } | { ok: false; error: string }> {
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (!t) return { ok: false, error: "Tournoi introuvable." };
+  if (!(await poulesTerminees(db, tournamentId))) {
+    return { ok: false, error: "Des duels de poule restent à jouer." };
+  }
+
+  const deja = await db
+    .select({ id: tournamentMatches.id })
+    .from(tournamentMatches)
+    .where(and(eq(tournamentMatches.tournamentId, tournamentId), eq(tournamentMatches.stage, "tableau")))
+    .limit(1);
+  if (deja.length) return { ok: false, error: "Le tableau est déjà ouvert." };
+
+  const classements = await classementDesPoules(db, tournamentId);
+  const qualifies = ordreDesQualifies(classements, Math.max(1, t.qualifiers));
+  if (qualifies.length < 2) return { ok: false, error: "Pas assez de qualifiés pour un tableau." };
+
+  const tours = nombreDeTours(qualifies.length);
+  const plateau = plateauComplet(qualifies);
+
+  await db.insert(tournamentMatches).values(
+    plateau.map((d) => ({
+      id: uid(),
+      tournamentId,
+      stage: "tableau" as const,
+      groupe: null,
+      round: d.round,
+      slot: d.slot,
+      playerAId: d.a?.playerId ?? null,
+      playerBId: d.b?.playerId ?? null,
+      raceTo: courseDuTour(d.round, tours, t.raceTo),
+      status: "attente" as const,
+    })),
+  );
+
+  await db.update(tournaments).set({ size: taillePlateau(qualifies.length) }).where(eq(tournaments.id, tournamentId));
+  await resoudreExemptions(db, tournamentId);
+  return { ok: true, duels: plateau.length };
 }
 
 /** Un duel sans adversaire est gagné d'office : on le propage. */
@@ -132,6 +337,7 @@ async function faireMonter(db: Db, tournamentId: string, round: number, slot: nu
       .where(
         and(
           eq(tournamentMatches.tournamentId, tournamentId),
+          eq(tournamentMatches.stage, "tableau"),
           eq(tournamentMatches.round, suite.round),
           eq(tournamentMatches.slot, suite.slot),
         ),
@@ -177,12 +383,19 @@ export async function noterResultat(
     .set({ scoreA, scoreB, winnerId: vainqueur, status: "termine" })
     .where(eq(tournamentMatches.id, duelId));
 
-  // Le perdant s'arrête ici ; le vainqueur, au moins au tour suivant.
-  await db.update(tournamentPlayers).set({ reachedRound: d.round }).where(eq(tournamentPlayers.id, perdant));
-  await db.update(tournamentPlayers).set({ reachedRound: d.round + 1 }).where(eq(tournamentPlayers.id, vainqueur));
+  // Le perdant s'arrête ici ; le vainqueur, au moins au tour suivant. En
+  // poule on ne touche à rien : personne n'est éliminé avant la fin.
+  if (d.stage === "tableau") {
+    await db.update(tournamentPlayers).set({ reachedRound: d.round }).where(eq(tournamentPlayers.id, perdant));
+    await db.update(tournamentPlayers).set({ reachedRound: d.round + 1 }).where(eq(tournamentPlayers.id, vainqueur));
+  }
 
-  await faireMonter(db, d.tournamentId, d.round, d.slot, vainqueur);
-  await cloreSiFini(db, d.tournamentId);
+  // Un duel de poule ne fait monter personne : c'est le classement de la
+  // poule qui décide, une fois tous ses duels joués.
+  if (d.stage === "tableau") {
+    await faireMonter(db, d.tournamentId, d.round, d.slot, vainqueur);
+    await cloreSiFini(db, d.tournamentId);
+  }
   return { ok: true };
 }
 
@@ -198,10 +411,19 @@ async function cloreSiFini(db: Db, tournamentId: string) {
     .from(tournamentPlayers)
     .where(eq(tournamentPlayers.tournamentId, tournamentId));
 
+  const auTableau = new Set(
+    duels.flatMap((d) => [d.playerAId, d.playerBId]).filter((v): v is string => Boolean(v)),
+  );
+
   for (const j of joueurs) {
     if (j.status !== "accepte") continue;
     const gagne = j.id === finale.winnerId;
-    const points = pointsDeClassement(gagne ? dernierTour : j.reachedRound, dernierTour, gagne);
+    // Sorti en poule : il a joué ses matchs sans atteindre le tableau. Lui
+    // donner les points d'un premier tour serait injuste pour qui s'est
+    // qualifié ; ne rien lui donner le serait pour qui est venu jouer.
+    const points = auTableau.has(j.id)
+      ? pointsDeClassement(gagne ? dernierTour : j.reachedRound, dernierTour, gagne)
+      : POINTS_DE_POULE;
     await db
       .update(users)
       .set({ points: sql`${users.points} + ${points}` })

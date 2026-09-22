@@ -1,13 +1,24 @@
 import Link from "next/link";
 import { DecisionCandidat, EtatTournoi, SaisieScore } from "@/components/tournoi/Actions";
 import { Bracket, type DuelView } from "@/components/tournoi/Bracket";
+import { Poules } from "@/components/tournoi/Poules";
 import { FormulaireTournoi } from "@/components/tournoi/Organisation";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ChevronLeftIcon } from "@/components/icons";
 import { nomDuTour } from "@/lib/bracket";
-import { duree, getBracket, getPlayers, nomsDuTableau, tourEnCours } from "@/lib/tournaments";
-import { CANDIDATURES, DISCIPLINES, ETATS, NIVEAUX } from "@/lib/tournois";
+import {
+  duree,
+  getBracket,
+  getClassementDesPoules,
+  getDuelsDePoule,
+  getPlayers,
+  nomsDuTableau,
+  poulesTerminees,
+  tourEnCours,
+} from "@/lib/tournaments";
+import { vuesDesDuelsDePoule, vuesDesPoules } from "@/lib/tournoi-vues";
+import { CANDIDATURES, DISCIPLINES, ETATS, FORMATS, NIVEAUX } from "@/lib/tournois";
 import { displayPhone } from "@/lib/phone";
 import { f } from "@/lib/format";
 import { db, events } from "@/db";
@@ -34,9 +45,13 @@ export async function ConsoleTournoi({
   /** Fourni à l'administration seule : un gérant n'organise que chez lui. */
   salles?: { value: string; label: string }[];
 }) {
-  const [joueurs, duels, noms, jumeau] = await Promise.all([
+  const enPoules = tournoi.format === "poules";
+  const [joueurs, duels, poules, classements, finies, noms, jumeau] = await Promise.all([
     getPlayers(tournoi.id),
     getBracket(tournoi.id),
+    enPoules ? getDuelsDePoule(tournoi.id) : Promise.resolve([]),
+    enPoules ? getClassementDesPoules(tournoi.id) : Promise.resolve([]),
+    enPoules ? poulesTerminees(tournoi.id) : Promise.resolve(false),
     nomsDuTableau(tournoi.id),
     tournoi.eventId
       ? db.select().from(events).where(eq(events.id, tournoi.eventId)).limit(1)
@@ -53,7 +68,13 @@ export async function ConsoleTournoi({
 
   // Les duels du tour en cours dont les deux joueurs sont connus : ce sont les
   // seuls sur lesquels un organisateur a quelque chose à saisir.
-  const aJouer = duels.filter((d) => d.round === courant && d.playerAId && d.playerBId && d.status !== "exempt");
+  // Les duels sur lesquels l'organisateur a quelque chose à saisir : ceux du
+  // tour en cours sur le tableau, et tous ceux des poules qui restent.
+  const duTableau = duels.filter((d) => d.round === courant && d.playerAId && d.playerBId && d.status !== "exempt");
+  const dePoule = poules.filter((d) => d.status !== "termine" && d.playerAId && d.playerBId);
+  const aJouer = [...(enPoules && !finies ? dePoule : duTableau)].sort(
+    (a, b) => Number(a.status === "termine") - Number(b.status === "termine"),
+  );
 
   const vues: DuelView[] = duels.map((d) => ({
     id: d.id,
@@ -78,14 +99,23 @@ export async function ConsoleTournoi({
         </Link>
         <h1 className="text-xl lg:text-[26px]">{tournoi.title}</h1>
         <p className="text-[13px] text-muted">
-          {DISCIPLINES[tournoi.discipline] ?? tournoi.discipline} · {tournoi.size} places · {duree(tournoi)}
+          {DISCIPLINES[tournoi.discipline] ?? tournoi.discipline} · {FORMATS[tournoi.format] ?? tournoi.format}
+          {enPoules ? ` · poules de ${tournoi.groupSize}, ${tournoi.qualifiers} qualifiés` : ` · ${tournoi.size} places`} ·{" "}
+          {duree(tournoi)}
           {venue ? ` · ${venue.name}` : ""}
         </p>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Chip tone={tournoi.status === "inscriptions" ? "solid" : "neutral"} className="text-[11px]">
             {ETATS[tournoi.status] ?? tournoi.status}
           </Chip>
-          <EtatTournoi id={tournoi.id} status={tournoi.status} acceptes={regles.length} />
+          <EtatTournoi
+            id={tournoi.id}
+            status={tournoi.status}
+            acceptes={regles.length}
+            format={tournoi.format}
+            poulesFinies={finies}
+            tableauOuvert={duels.length > 0}
+          />
         </div>
 
         <FormulaireTournoi
@@ -117,7 +147,7 @@ export async function ConsoleTournoi({
       {aJouer.length > 0 ? (
         <section className="flex flex-col gap-3">
           <h2 className="text-[15px] font-semibold">
-            {nomDuTour(courant, tours)} · à saisir
+            {enPoules && !finies ? "Duels de poule · à saisir" : `${nomDuTour(courant, tours)} · à saisir`}
           </h2>
           <div className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:gap-3">
             {aJouer.map((d) => (
@@ -136,9 +166,22 @@ export async function ConsoleTournoi({
         </section>
       ) : null}
 
+      {classements.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[15px] font-semibold">Les poules</h2>
+          <Poules
+            classements={vuesDesPoules(classements, noms, tournoi.qualifiers)}
+            duels={vuesDesDuelsDePoule(poules, noms)}
+            qualifiesParPoule={tournoi.qualifiers}
+          />
+        </section>
+      ) : null}
+
       {vues.length > 0 ? (
         <section className="flex flex-col gap-3">
-          <h2 className="text-[15px] font-semibold">Le tableau</h2>
+          <h2 className="text-[15px] font-semibold">
+            {enPoules ? "Le tableau final" : "Le tableau"}
+          </h2>
           <Bracket duels={vues} tours={tours} />
         </section>
       ) : null}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
 import { db, events, tickets } from "@/db";
 import { Bracket, type DuelView } from "@/components/tournoi/Bracket";
+import { Poules, Programme } from "@/components/tournoi/Poules";
 import { Inscription, type MaCandidature } from "@/components/tournoi/Inscription";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -12,12 +13,15 @@ import { nombreDeTours } from "@/lib/bracket";
 import {
   duree,
   getBracket,
+  getClassementDesPoules,
+  getDuelsDePoule,
   getPlayers,
   getTournament,
   maCandidature,
   nomsDuTableau,
 } from "@/lib/tournaments";
-import { CANDIDATURES, DISCIPLINES, ETATS, NIVEAUX } from "@/lib/tournois";
+import { programme, vuesDesDuelsDePoule, vuesDesPoules } from "@/lib/tournoi-vues";
+import { CANDIDATURES, DISCIPLINES, ETATS, FORMATS, NIVEAUX } from "@/lib/tournois";
 import { requireUser } from "@/lib/session";
 import { f, fcfa } from "@/lib/format";
 
@@ -36,9 +40,11 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
 
   const { tournament: t, venue } = lu;
 
-  const [joueurs, duels, noms, mienne, billet] = await Promise.all([
+  const [joueurs, duels, poules, classements, noms, mienne, billet] = await Promise.all([
     getPlayers(t.id),
     getBracket(t.id),
+    t.format === "poules" ? getDuelsDePoule(t.id) : Promise.resolve([]),
+    t.format === "poules" ? getClassementDesPoules(t.id) : Promise.resolve([]),
     nomsDuTableau(t.id),
     maCandidature(t.id, user.id),
     t.eventId
@@ -93,6 +99,10 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
 
   const champion = t.winnerId ? joueurs.find((j) => j.user.id === t.winnerId) : undefined;
 
+  const vuesPoules = vuesDesPoules(classements, noms, t.qualifiers);
+  const vuesDuelsPoules = vuesDesDuelsDePoule(poules, noms);
+  const { aVenir, joues } = programme([...poules, ...duels], noms, tours);
+
   return (
     <div className="-mx-5 -mt-4 flex flex-col gap-5 pb-8 lg:mx-0 lg:mt-0">
       <div className="relative h-72 lg:h-88 lg:overflow-hidden lg:rounded-panel lg:border lg:border-line">
@@ -121,6 +131,9 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
             </Chip>
             <Chip tone="neutral" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
               {ETATS[t.status] ?? t.status}
+            </Chip>
+            <Chip tone="neutral" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
+              {FORMATS[t.format] ?? t.format}
             </Chip>
           </div>
           <h1 className="text-[24px] leading-tight lg:text-[32px]">{t.title}</h1>
@@ -184,9 +197,29 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
           </Card>
         ) : null}
 
+        {aVenir.length > 0 || joues.length > 0 ? (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-[15px] font-semibold">Le programme</h2>
+            <Programme aVenir={aVenir} joues={joues} />
+          </section>
+        ) : null}
+
+        {vuesPoules.length > 0 ? (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-[15px] font-semibold">Les poules</h2>
+            <Poules
+              classements={vuesPoules}
+              duels={vuesDuelsPoules}
+              qualifiesParPoule={t.qualifiers}
+            />
+          </section>
+        ) : null}
+
         {vues.length > 0 ? (
           <section className="flex flex-col gap-3">
-            <h2 className="text-[15px] font-semibold">Le tableau</h2>
+            <h2 className="text-[15px] font-semibold">
+              {t.format === "poules" ? "Le tableau final" : "Le tableau"}
+            </h2>
             <Bracket duels={vues} tours={tours} />
           </section>
         ) : null}

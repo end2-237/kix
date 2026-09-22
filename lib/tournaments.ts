@@ -11,7 +11,7 @@ import {
 } from "@/db";
 import * as moteur from "@/lib/tournoi-moteur";
 
-export { CANDIDATURES, DISCIPLINES, ETATS, NIVEAUX } from "@/lib/tournois";
+export { CANDIDATURES, DISCIPLINES, ETATS, FORMATS, NIVEAUX } from "@/lib/tournois";
 
 /* ------------------------------------------------------------- lectures */
 
@@ -54,6 +54,20 @@ export async function getPlayers(tournamentId: string) {
 }
 
 export const getBracket = (tournamentId: string) => moteur.getBracket(db, tournamentId);
+
+/** Les duels de poule, dans l'ordre des poules. */
+export const getDuelsDePoule = (tournamentId: string) => moteur.duelsDePoule(db, tournamentId);
+
+/** Le classement de chaque poule. */
+export const getClassementDesPoules = (tournamentId: string) => moteur.classementDesPoules(db, tournamentId);
+
+export const poulesTerminees = (tournamentId: string) => moteur.poulesTerminees(db, tournamentId);
+
+/** Le tirage des poules, sur la base de l'application. */
+export const tirerLesPoules = (tournamentId: string) => moteur.tirerLesPoules(db, tournamentId);
+
+/** L'ouverture du tableau entre les qualifiés. */
+export const ouvrirLeTableau = (tournamentId: string) => moteur.ouvrirLeTableau(db, tournamentId);
 
 /** Le tirage au sort du tableau, sur la base de l'application. */
 export const tirerLeTableau = (tournamentId: string) => moteur.tirerLeTableau(db, tournamentId);

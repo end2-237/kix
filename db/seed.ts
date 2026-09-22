@@ -1,5 +1,5 @@
 import { repartirPrix } from "@/lib/tokens";
-import { getBracket, noterResultat, tirerLeTableau } from "@/lib/tournoi-moteur";
+import { duelsDePoule, getBracket, noterResultat, tirerLeTableau, tirerLesPoules } from "@/lib/tournoi-moteur";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "../lib/password";
@@ -137,6 +137,9 @@ const vivier = [
   { name: "Patrick O.", points: 980 },
   { name: "Estelle W.", points: 760 },
   { name: "Ulrich D.", points: 540 },
+  { name: "Gaël P.", points: 430 },
+  { name: "Sandrine K.", points: 320 },
+  { name: "Boris A.", points: 180 },
 ].map((j, i) => ({
   id: uid(),
   passwordHash,
@@ -755,6 +758,9 @@ async function semerTournoi(opts: {
   title: string;
   venueId: string;
   discipline: string;
+  format?: string;
+  groupSize?: number;
+  qualifiers?: number;
   size: number;
   raceTo: number;
   entryFee: number;
@@ -797,6 +803,9 @@ async function semerTournoi(opts: {
     venueId: opts.venueId,
     organiserId: serge.id,
     discipline: opts.discipline,
+    format: opts.format ?? "direct",
+    groupSize: opts.groupSize ?? 4,
+    qualifiers: opts.qualifiers ?? 2,
     size: opts.size,
     raceTo: opts.raceTo,
     entryFee: opts.entryFee,
@@ -992,8 +1001,52 @@ await db.insert(memberPlans).values(planRows);
   await db.update(users).set({ memberUntil: fin }).where(eq(users.id, ariel.id));
 }
 
+// 4. À poules : seize joueurs, quatre poules de quatre, deux qualifiés par
+//    poule. Les poules sont jouées, le tableau final reste à ouvrir — c'est
+//    l'écran que l'organisateur voit le soir même.
+const aPoules = await semerTournoi({
+  slug: "coupe-des-salles-akwa",
+  title: "Coupe des salles · Akwa",
+  venueId: breakAkwa.id,
+  discipline: "8-ball",
+  format: "poules",
+  groupSize: 4,
+  qualifiers: 2,
+  size: 16,
+  raceTo: 4,
+  entryFee: 1500,
+  prizePool: 180_000,
+  prizeSplit: "55 % au vainqueur, 25 % au finaliste, 20 % partagés entre les demi-finalistes",
+  rules:
+    "Poules de quatre, tous contre tous, course à 4. Les deux premiers de chaque poule passent en quarts. Classement aux victoires, puis à la différence de manches, puis à la confrontation directe.",
+  image: "/img/crowd-pink.jpg",
+  status: "complet",
+  jours: 2,
+  ticketPrice: 1000,
+  joueurs: tousLesJoueurs.slice(0, 16).map((user, i) => ({
+    user,
+    nickname: nomDeTable(i + 2),
+    level: i < 5 ? "confirme" : i < 12 ? "intermediaire" : "debutant",
+    status: "accepte",
+  })),
+});
+
+await tirerLesPoules(db, aPoules);
+
+// Toutes les poules se jouent : la tête de série la mieux classée l'emporte,
+// ce qui donne un classement lisible sans être uniforme.
+for (const duel of await duelsDePoule(db, aPoules)) {
+  if (duel.status === "termine" || !duel.playerAId || !duel.playerBId) continue;
+  const [a, b] = await Promise.all([
+    db.select().from(tournamentPlayers).where(eq(tournamentPlayers.id, duel.playerAId)).limit(1),
+    db.select().from(tournamentPlayers).where(eq(tournamentPlayers.id, duel.playerBId)).limit(1),
+  ]);
+  const gagneA = (a[0]?.seed ?? 99) < (b[0]?.seed ?? 99);
+  await noterResultat(db, duel.id, gagneA ? duel.raceTo : 2, gagneA ? 2 : duel.raceTo);
+}
+
 console.log(
-  `base remplie : 3 salles, ${tableRows.length} tables, 16 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours, 3 tournois, ${planRows.length} formules d'abonnement`,
+  `base remplie : 3 salles, ${tableRows.length} tables, 19 comptes, 6 produits, 2 événements, 131 jetons, 124 passages, 3 réservations, 4 matchs, ${streamRows.length} directs, ${courseRows.length} cours, 4 tournois, ${planRows.length} formules d'abonnement`,
 );
 }
 
