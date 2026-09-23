@@ -12,7 +12,6 @@ import {
   ChevronRightIcon,
   MapIcon,
   SearchIcon,
-  SlidersIcon,
   TargetIcon,
   TicketIcon,
   TrophyIcon,
@@ -44,18 +43,26 @@ export default async function AccueilPage() {
     <>
       <AppHeader user={user} unread={unread} />
 
-      <div className="flex gap-2.5 lg:max-w-xl">
-        <div className="glass flex h-12 grow items-center gap-2.5 rounded-full px-4 text-muted">
-          <SearchIcon size={17} />
-          <span className="text-sm">Salle, tournoi, puff…</span>
-        </div>
+      {/* Une vraie barre, pas une image de barre : elle envoie vers la
+          recherche, qui fouille salles, soirées, tournois, articles et
+          joueurs. Un simple formulaire GET — ça marche sans JavaScript. */}
+      <form action="/app/recherche" className="flex gap-2.5 lg:max-w-xl">
+        <label className="glass flex h-12 grow items-center gap-2.5 rounded-full px-4">
+          <SearchIcon size={17} className="shrink-0 text-muted" />
+          <span className="sr-only">Rechercher</span>
+          <input
+            name="q"
+            placeholder="Salle, tournoi, puff…"
+            className="h-full w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+          />
+        </label>
         <button
-          aria-label="Filtres"
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-jade/40 bg-jade/15 text-jade-text"
+          aria-label="Rechercher"
+          className="press grid h-12 w-12 shrink-0 place-items-center rounded-full border border-jade/40 bg-jade/15 text-jade-text"
         >
-          <SlidersIcon size={18} />
+          <SearchIcon size={18} />
         </button>
-      </div>
+      </form>
 
       <div className="lg:hidden">
         <WalletStrip balance={balance} />

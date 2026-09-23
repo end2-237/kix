@@ -9,9 +9,14 @@ import { useSyncExternalStore } from "react";
  */
 
 const STORAGE_KEY = "mb.cart.v1";
+const MODE_KEY = "mb.cart.mode.v1";
 type Cart = Record<string, number>;
 
+/** Comment on récupère sa commande : au comptoir, ou chez soi. */
+export type Recuperation = "pickup" | "delivery";
+
 let cart: Cart = {};
+let mode: Recuperation = "pickup";
 let loaded = false;
 const listeners = new Set<() => void>();
 const EMPTY: Cart = {};
@@ -25,10 +30,10 @@ function load() {
   loaded = true;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      cart = JSON.parse(raw) as Cart;
-      emit();
-    }
+    if (raw) cart = JSON.parse(raw) as Cart;
+    const gard = window.localStorage.getItem(MODE_KEY);
+    if (gard === "delivery" || gard === "pickup") mode = gard;
+    if (raw || gard) emit();
   } catch {
     // stockage indisponible : panier volatile
   }
@@ -69,6 +74,33 @@ export function removeFromCart(slug: string) {
 
 export function clearCart() {
   set({});
+}
+
+/**
+ * Le mode de récupération se choisit au rayon comme au panier.
+ *
+ * Les deux pastilles « Retrait en salle » et « Livraison » s'affichaient en
+ * haut de la boutique sans rien faire — on les touchait, rien ne bougeait,
+ * et le choix se refaisait de toute façon au panier. C'est le même réglage :
+ * il vit ici, avec le panier, et se retrouve d'un écran à l'autre.
+ */
+export function setRecuperation(suivant: Recuperation) {
+  mode = suivant;
+  try {
+    window.localStorage.setItem(MODE_KEY, suivant);
+  } catch {
+    // idem
+  }
+  emit();
+}
+
+export function useRecuperation(): { mode: Recuperation; setRecuperation: (m: Recuperation) => void } {
+  const courant = useSyncExternalStore(
+    subscribe,
+    () => mode,
+    () => "pickup" as const,
+  );
+  return { mode: courant, setRecuperation };
 }
 
 export function useCart() {

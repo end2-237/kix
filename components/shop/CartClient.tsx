@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { ArrowRightIcon, CartIcon, CheckIcon, MinusIcon, PinIcon, PlusIcon, TruckIcon } from "@/components/icons";
 import { checkout } from "@/lib/actions";
-import { clearCart, setQty, useCart } from "@/lib/cart";
+import { clearCart, setQty, useCart, useRecuperation } from "@/lib/cart";
 import { cn } from "@/lib/cn";
 import { Counter } from "@/components/ui/Counter";
 import { f, fcfa } from "@/lib/format";
@@ -28,7 +28,8 @@ export function CartClient({
   const { list, count } = useCart();
   const { notify } = useSnackbar();
   const router = useRouter();
-  const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup");
+  // Le mode choisi au rayon se retrouve ici : c'est le même réglage.
+  const { mode: fulfillment, setRecuperation: setFulfillment } = useRecuperation();
   const [method, setMethod] = useState<Method>("momo");
   const [done, setDone] = useState<{ total: number } | null>(null);
 

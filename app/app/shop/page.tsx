@@ -4,13 +4,12 @@ import { ProductCard } from "@/components/shop/ProductCard";
 import { CoursBannieres, type CoursCarte } from "@/components/mb/CoursBanniere";
 import { CartBar } from "@/components/shop/CartBar";
 import { Chip } from "@/components/ui/Chip";
-import { PinIcon, SearchIcon, TruckIcon } from "@/components/icons";
+import { Recuperation } from "@/components/shop/Recuperation";
+import { RechercheBoutique } from "@/components/shop/RechercheBoutique";
 import { getProducts, getUnreadCount } from "@/lib/queries";
 import { getCourses } from "@/lib/courses";
 import { requireUser } from "@/lib/session";
 import { cn } from "@/lib/cn";
-import { f } from "@/lib/format";
-import { DELIVERY_FEE } from "@/lib/constants";
 
 export const metadata = { title: "Master Shop" };
 
@@ -19,12 +18,17 @@ const tabs = [
   { id: "billard", label: "Billard" },
 ];
 
-export default async function ShopPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
-  const { cat } = await searchParams;
+export default async function ShopPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cat?: string; q?: string }>;
+}) {
+  const { cat, q } = await searchParams;
   const category = cat === "billard" ? "billard" : "vapes";
+  const cherche = (q ?? "").trim();
   const user = await requireUser();
   const [products, unread, cours] = await Promise.all([
-    getProducts(category),
+    getProducts(category, cherche),
     getUnreadCount(user.id),
     getCourses(true),
   ]);
@@ -39,10 +43,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           <h1 className="text-[22px]">Master Shop</h1>
           <p className="text-xs text-muted">Vapes &amp; matériel de billard · Douala</p>
         </div>
-        <button aria-label="Rechercher" className="glass grid h-11 w-11 place-items-center rounded-full">
-          <SearchIcon size={18} />
-        </button>
       </div>
+
+      <RechercheBoutique q={cherche} cat={category} />
 
       <div className="flex flex-wrap items-center gap-2 lg:justify-between">
         <div className="flex gap-2">
@@ -53,21 +56,20 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         ))}
       </div>
 
-      <div className="glass flex gap-2.5 rounded-full p-1.5">
-        <span className="flex h-11 grow items-center justify-center gap-1.5 rounded-full border border-gold/40 bg-gold/15 text-xs font-semibold text-gold-text">
-          <PinIcon size={15} />
-          Retrait en salle · gratuit
-        </span>
-        <span className="flex h-11 grow items-center justify-center gap-1.5 rounded-full text-xs text-muted">
-          <TruckIcon size={15} />
-          Livraison · {f(DELIVERY_FEE)}
-        </span>
+      <Recuperation />
       </div>
-      </div>
+
+      {cherche ? (
+        <p className="text-[13px] text-muted">
+          {products.length === 0
+            ? `Rien pour « ${cherche} » — essaie un autre mot.`
+            : `${products.length} article${products.length > 1 ? "s" : ""} pour « ${cherche} », tous rayons confondus.`}
+        </p>
+      ) : null}
 
       {/* Les cours en bannière, au-dessus du rayon : un cours ne se cherche
           pas comme une puff, il se propose. */}
-      <CoursBannieres cartes={cartes} />
+      {cherche ? null : <CoursBannieres cartes={cartes} />}
 
       <div className={cn("grid gap-3", "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5")}>
         {products.map((product) => (

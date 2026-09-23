@@ -48,10 +48,20 @@ export async function getPacks() {
   return db.select().from(packs).where(eq(packs.active, true)).orderBy(packs.sort);
 }
 
-export async function getProducts(category?: string) {
-  const where = category
-    ? and(eq(products.active, true), eq(products.category, category))
-    : eq(products.active, true);
+export async function getProducts(category?: string, q?: string) {
+  // Une recherche traverse les rayons : qui tape « queue » ne veut pas qu'on
+  // lui réponde « rien dans les vapes ». Le rayon ne filtre qu'en l'absence
+  // de recherche.
+  const mots = (q ?? "").trim();
+  const motif = `%${mots.replace(/[%_]/g, "")}%`;
+  const where = mots
+    ? and(
+        eq(products.active, true),
+        sql`(${products.name} ilike ${motif} or ${products.detail} ilike ${motif} or ${products.description} ilike ${motif})`,
+      )
+    : category
+      ? and(eq(products.active, true), eq(products.category, category))
+      : eq(products.active, true);
   return db.select().from(products).where(where).orderBy(products.category, products.name);
 }
 
