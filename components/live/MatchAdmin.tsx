@@ -9,6 +9,8 @@ import { useSnackbar } from "@/components/ui/Snackbar";
 import { CheckIcon, PlusIcon, ShareIcon, UserIcon } from "@/components/icons";
 import { assignOfficial, cancelMatch, createScoringInvite, removeOfficial, setSelfScoring } from "@/lib/actions";
 import { cn } from "@/lib/cn";
+import { jeuCourt, MODES, MODES_OPTIONS, type Mode } from "@/lib/regles";
+import { DISCIPLINES } from "@/lib/tournois";
 
 export type Person = { id: string; name: string; avatar: string | null };
 export type MatchLine = {
@@ -99,7 +101,7 @@ export function MatchAdmin({
                     {m.a.name} <span className="text-muted">vs</span> {m.b.name}
                   </span>
                   <span className="text-[11.5px] text-muted">
-                    {m.label} · {m.kind} · course à {m.target}
+                    {m.label} · {m.kind} · {jeuCourt(m.target)}
                     {m.table ? ` · ${m.table}` : ""}
                   </span>
                 </span>
@@ -218,6 +220,8 @@ export function NewMatchButton({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
+  // La sèche d'abord : c'est le match qu'on joue dans les salles d'ici.
+  const [mode, setMode] = useState<Mode>("seche");
 
   return (
     <>
@@ -262,13 +266,26 @@ export function NewMatchButton({
           <Select
             label="Discipline"
             name="kind"
-            options={["8-ball", "9-ball", "snooker", "killer"].map((k) => ({ value: k, label: k }))}
+            options={Object.entries(DISCIPLINES).map(([value, label]) => ({ value, label }))}
+          />
+          <Select
+            label="Jeu"
+            name="mode"
+            options={MODES_OPTIONS}
+            value={mode}
+            onChange={(v) => setMode(v as Mode)}
           />
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Course à" name="target" type="number" defaultValue="5" />
             <Field label="Intitulé" name="label" defaultValue="Amical" />
+            {/* Une sèche n'a pas de cible à saisir : elle vaut une partie, et
+                demander « course à combien ? » pour un match qui s'arrête à la
+                noire est exactement ce qui rendait la console incompréhensible. */}
+            {mode === "course" ? (
+              <Field label="Parties gagnantes" name="target" type="number" defaultValue="5" />
+            ) : null}
           </div>
+          <p className="text-[11.5px] text-muted">{MODES[mode].resume}</p>
 
           <button
             disabled={pending}
@@ -286,12 +303,26 @@ export function NewMatchButton({
   );
 }
 
-function Select({ label, name, options }: { label: string; name: string; options: { value: string; label: string }[] }) {
+function Select({
+  label,
+  name,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  options: { value: string; label: string }[];
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
   return (
     <label className="flex flex-col gap-1.5">
       <span className="label-caps text-[10.5px] text-muted">{label}</span>
       <select
         name={name}
+        value={value}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         className="h-12 rounded-none border border-line bg-surface px-3 text-[14px] text-ink outline-none focus:border-gold"
       >
         {options.map((o) => (

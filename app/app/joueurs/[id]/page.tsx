@@ -103,7 +103,7 @@ export default async function ProfilJoueur({ params }: { params: Promise<{ id: s
 
       <div className="grid grid-cols-3 gap-2.5">
         <Fait valeur={String(palmares.matchs)} quoi="matchs joués" />
-        <Fait valeur={String(palmares.manches)} quoi="manches gagnées" />
+        <Fait valeur={String(palmares.manches)} quoi="parties gagnées" />
         <Fait valeur={String(palmares.tableaux)} quoi="tournois disputés" />
       </div>
 

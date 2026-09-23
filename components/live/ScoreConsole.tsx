@@ -9,6 +9,7 @@ import { useSnackbar } from "@/components/ui/Snackbar";
 import { CheckIcon, MinusIcon, PlusIcon, TargetIcon } from "@/components/icons";
 import { finishMatch, logMatchEvent, scoreRack, startMatch } from "@/lib/actions";
 import { useLive } from "@/lib/useLive";
+import { modeDuJeu, regleDuJeu } from "@/lib/regles";
 import { cn } from "@/lib/cn";
 import type { LiveState } from "@/components/live/MatchLive";
 
@@ -59,6 +60,9 @@ export function ScoreConsole({
 
   const done = data.status === "done";
   const live = data.status === "live";
+  // Une partie sèche se marque d'un seul geste : celui qui met la noire a
+  // gagné le match, il n'y a pas de manche à compter derrière.
+  const seche = modeDuJeu(data.target) === "seche";
 
   return (
     <div className="flex flex-col gap-4">
@@ -75,6 +79,7 @@ export function ScoreConsole({
           connected={connected}
           label={`${label} · ${venue}${table ? ` · ${table}` : ""}`}
         />
+        <p className="text-center text-[11.5px] text-muted">{regleDuJeu(data.target)}</p>
       </Card>
 
       {/* Le résultat passe avant tout : une fois le match fini, plus personne
@@ -106,9 +111,14 @@ export function ScoreConsole({
         </button>
       ) : live ? (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <Column side={a} tone="gold" pending={pending} matchId={initial.id} run={run} />
-            <Column side={b} tone="jade" pending={pending} matchId={initial.id} run={run} />
+          <div className="flex flex-col gap-2">
+            <span className="label-caps text-center text-[10.5px] text-muted">
+              {seche ? "Qui a mis la noire ?" : "Qui a gagné la partie ?"}
+            </span>
+            <div className="grid grid-cols-2 gap-3">
+              <Column side={a} tone="gold" pending={pending} matchId={initial.id} run={run} seche={seche} />
+              <Column side={b} tone="jade" pending={pending} matchId={initial.id} run={run} seche={seche} />
+            </div>
           </div>
 
           <Card shape="panel" className="flex flex-col gap-3 p-4">
@@ -159,7 +169,7 @@ export function ScoreConsole({
               onClick={() => setConfirmEnd(true)}
               className="press self-center text-[12px] text-muted underline-offset-4 hover:text-ink hover:underline"
             >
-              Terminer le match avant la fin de la course
+              {seche ? "Terminer le match sans la noire" : "Terminer le match avant la fin de la course"}
             </button>
           )}
         </>
@@ -174,19 +184,23 @@ function Column({
   pending,
   matchId,
   run,
+  seche,
 }: {
   side: Side;
   tone: "gold" | "jade";
   pending: boolean;
   matchId: string;
   run: (label: string, fn: () => Promise<unknown>) => void;
+  seche: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
       <button
-        onClick={() => run(`Manche · ${side.name}`, () => scoreRack(matchId, side.id, 1))}
+        onClick={() =>
+          run(seche ? `La noire · ${side.name}` : `Partie · ${side.name}`, () => scoreRack(matchId, side.id, 1))
+        }
         disabled={pending}
-        aria-label={`Manche pour ${side.name}`}
+        aria-label={seche ? `La noire pour ${side.name}` : `Partie pour ${side.name}`}
         className={cn(
           "press flex h-28 flex-col items-center justify-center gap-1.5 rounded-panel font-semibold transition disabled:opacity-50",
           tone === "gold"
@@ -196,16 +210,21 @@ function Column({
       >
         <PlusIcon size={26} />
         <span className="max-w-full truncate px-3 text-[13px]">{side.name}</span>
+        <span className="text-[10.5px] font-normal opacity-70">{seche ? "met la noire" : "gagne la partie"}</span>
       </button>
 
-      <button
-        onClick={() => run("Manche retirée", () => scoreRack(matchId, side.id, -1))}
-        disabled={pending}
-        aria-label={`Retirer une manche à ${side.name}`}
-        className="press flex h-11 items-center justify-center gap-1.5 rounded-full border border-line text-[12px] text-muted transition hover:bg-surface-2 hover:text-ink disabled:opacity-45"
-      >
-        <MinusIcon size={14} /> Retirer
-      </button>
+      {/* En partie sèche il n'y a rien à retirer : le match s'arrête au même
+          geste. Le bouton ne servirait qu'à rouvrir une rencontre finie. */}
+      {seche ? null : (
+        <button
+          onClick={() => run("Partie retirée", () => scoreRack(matchId, side.id, -1))}
+          disabled={pending}
+          aria-label={`Retirer une partie à ${side.name}`}
+          className="press flex h-11 items-center justify-center gap-1.5 rounded-full border border-line text-[12px] text-muted transition hover:bg-surface-2 hover:text-ink disabled:opacity-45"
+        >
+          <MinusIcon size={14} /> Retirer
+        </button>
+      )}
     </div>
   );
 }

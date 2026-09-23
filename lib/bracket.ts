@@ -127,13 +127,16 @@ export function nomDuTour(round: number, tours: number): string {
 }
 
 /**
- * La distance d'une course, par tour.
+ * Le nombre de parties gagnantes, par tour.
  *
- * Au billard, un match se joue en « course à N manches gagnantes ». Les tours
- * avancés se jouent plus longs : une finale en course à 5 se décide sur un
- * coup de chance, ce qu'aucun joueur n'accepte pour un titre.
+ * Un tournoi en course s'allonge vers la fin : une finale au même format
+ * qu'un premier tour se décide sur un coup de chance, ce qu'aucun joueur
+ * n'accepte pour un titre. Un tournoi en parties sèches, lui, ne s'allonge
+ * jamais : la sèche est la règle du tournoi, pas un raccourci qu'on abandonne
+ * en demi-finale.
  */
 export function courseDuTour(round: number, tours: number, base: number): number {
+  if (base <= 1) return 1; // parties sèches, du premier tour à la finale
   const restants = tours - round;
   if (restants === 0) return base + 2; // finale
   if (restants === 1) return base + 1; // demi-finales

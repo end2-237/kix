@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { ChevronRightIcon, PinIcon, TableIcon } from "@/components/icons";
 import { useLive } from "@/lib/useLive";
 import { cn } from "@/lib/cn";
+import { jeuCourt } from "@/lib/regles";
 
 export type BoardMatch = {
   id: string;
@@ -123,7 +124,7 @@ export function MatchRow({ match: m }: { match: BoardMatch }) {
 
       <div className="flex items-center justify-between gap-2 border-t border-line pt-2.5 text-[11px] text-muted">
         <span>
-          {m.kind} · course à {m.target}
+          {m.kind} · {jeuCourt(m.target)}
         </span>
         <span className="flex items-center gap-1 text-gold-text">
           Suivre <ChevronRightIcon size={12} />

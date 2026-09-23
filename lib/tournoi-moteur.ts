@@ -372,7 +372,13 @@ export async function noterResultat(
   if (!d.playerAId || !d.playerBId) return { ok: false, error: "Ce duel attend encore ses deux joueurs." };
   if (scoreA === scoreB) return { ok: false, error: "Un duel ne peut pas finir à égalité." };
   if (Math.max(scoreA, scoreB) < d.raceTo) {
-    return { ok: false, error: `La course est à ${d.raceTo} manches gagnantes.` };
+    return {
+      ok: false,
+      error:
+        d.raceTo <= 1
+          ? "Partie sèche : celui qui met la noire marque 1, l'autre 0."
+          : `La course est à ${d.raceTo} parties gagnantes.`,
+    };
   }
 
   const vainqueur = scoreA > scoreB ? d.playerAId : d.playerBId;

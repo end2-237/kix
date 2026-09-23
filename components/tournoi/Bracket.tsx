@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { nomDuTour } from "@/lib/bracket";
 import { cn } from "@/lib/cn";
+import { jeuCourt } from "@/lib/regles";
 
 export type Place = { nom: string; seed: number | null } | undefined;
 
@@ -84,7 +85,7 @@ function DuelCard({ duel, dernier }: { duel: DuelView; dernier: boolean }) {
       </Card>
 
       <span className="absolute -bottom-2.5 left-2.5 text-[9.5px] text-faint">
-        {exempt ? "exempté" : joue ? `course à ${duel.raceTo}` : `à jouer · course à ${duel.raceTo}`}
+        {exempt ? "exempté" : joue ? jeuCourt(duel.raceTo) : `à jouer · ${jeuCourt(duel.raceTo)}`}
       </span>
 
       {/* Le trait qui relie au tour suivant : il tient dans l'écart entre

@@ -22,6 +22,7 @@ import {
 } from "@/lib/tournaments";
 import { programme, vuesDesDuelsDePoule, vuesDesPoules } from "@/lib/tournoi-vues";
 import { CANDIDATURES, DISCIPLINES, ETATS, FORMATS, NIVEAUX } from "@/lib/tournois";
+import { nomDuJeu, regleDuJeu } from "@/lib/regles";
 import { requireUser } from "@/lib/session";
 import { f, fcfa } from "@/lib/format";
 
@@ -135,6 +136,11 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
             <Chip tone="neutral" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
               {FORMATS[t.format] ?? t.format}
             </Chip>
+            {/* Comment se joue un duel : c'est la première question d'un
+                joueur qui lit l'affiche, avant même la dotation. */}
+            <Chip tone="neutral" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
+              {nomDuJeu(t.raceTo)}
+            </Chip>
           </div>
           <h1 className="text-[24px] leading-tight lg:text-[32px]">{t.title}</h1>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-white/75">
@@ -190,12 +196,17 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
           </Card>
         ) : null}
 
-        {t.rules ? (
-          <Card shape="panel" className="flex flex-col gap-1.5 p-4">
-            <span className="label-caps text-[10px]">Règlement</span>
+        {/* La règle du jeu se dit toujours, même sans règlement écrit : un
+            joueur doit savoir comment on gagne un duel avant de s'inscrire. */}
+        <Card shape="panel" className="flex flex-col gap-1.5 p-4">
+          <span className="label-caps text-[10px]">Règlement</span>
+          <p className="text-[13.5px] leading-6 text-dim">
+            <span className="text-ink">{nomDuJeu(t.raceTo)}.</span> {regleDuJeu(t.raceTo)}
+          </p>
+          {t.rules ? (
             <p className="text-[13.5px] leading-6 whitespace-pre-line text-dim">{t.rules}</p>
-          </Card>
-        ) : null}
+          ) : null}
+        </Card>
 
         {aVenir.length > 0 || joues.length > 0 ? (
           <section className="flex flex-col gap-3">

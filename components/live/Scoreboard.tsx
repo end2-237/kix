@@ -3,6 +3,7 @@
 import { Photo } from "@/components/ui/Photo";
 import { LiveDot } from "@/components/live/LiveDot";
 import { cn } from "@/lib/cn";
+import { jeuCourt } from "@/lib/regles";
 
 export type Side = { id: string; name: string; avatar?: string | null };
 
@@ -80,7 +81,7 @@ export function Scoreboard({
               tv ? "text-[clamp(12px,1.4vw,22px)]" : "text-[10px]",
             )}
           >
-            {status === "done" ? "terminé" : `course à ${target}`}
+            {status === "done" ? "terminé" : jeuCourt(target)}
           </span>
         </div>
 

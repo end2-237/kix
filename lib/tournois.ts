@@ -8,7 +8,7 @@
  */
 
 export const DISCIPLINES: Record<string, string> = {
-  "8-ball": "8-ball",
+  "8-ball": "8-ball · rayés ou pleins",
   "9-ball": "9-ball",
   snooker: "Snooker",
   killer: "Killer",

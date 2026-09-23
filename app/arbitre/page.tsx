@@ -4,6 +4,7 @@ import { LiveDot } from "@/components/live/LiveDot";
 import { ChevronRightIcon, PinIcon, TargetIcon } from "@/components/icons";
 import { getScorableMatches } from "@/lib/live";
 import { requireUser } from "@/lib/session";
+import { jeuCourt } from "@/lib/regles";
 
 export const metadata = { title: "Feuille de match" };
 
@@ -54,7 +55,7 @@ export default async function ArbitrePage() {
                 <span className="flex items-center gap-1.5 text-[11.5px] text-muted">
                   <PinIcon size={12} />
                   {venue.name}
-                  {table ? ` · table ${table}` : ""} · course à {match.target}
+                  {table ? ` · table ${table}` : ""} · {jeuCourt(match.target)}
                 </span>
               </span>
               <span className="shrink-0 text-[22px] font-bold tabular-nums">

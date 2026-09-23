@@ -1021,7 +1021,10 @@ export async function createMatch(formData: FormData): Promise<MatchResult> {
   if (!playerAId || !playerBId) return { ok: false, error: "Il faut deux joueurs" };
   if (playerAId === playerBId) return { ok: false, error: "Un joueur ne peut pas s'affronter lui-même" };
 
-  const target = Math.min(21, Math.max(1, Number(formData.get("target") ?? 5)));
+  // Une partie sèche est une course à une partie : le mode ne se stocke pas,
+  // il se lit dans la cible. Une cible vide ne peut donc pas valoir zéro.
+  const seche = String(formData.get("mode") ?? "") === "seche";
+  const target = seche ? 1 : Math.min(21, Math.max(1, Number(formData.get("target") ?? 5)));
   const id = uid();
 
   await db.insert(matches).values({
@@ -1141,7 +1144,7 @@ export async function scoreRack(matchId: string, playerId: string, delta: 1 | -1
     seq: await nextSeq(matchId),
     scoreA,
     scoreB,
-    detail: delta > 0 ? "Manche remportée" : "Manche retirée",
+    detail: delta > 0 ? "Partie remportée" : "Partie retirée",
   });
 
   if (reached && delta > 0) {
@@ -1788,7 +1791,9 @@ export async function saveTournament(formData: FormData) {
     groupSize: Math.min(8, Math.max(3, num(formData, "groupSize") || 4)),
     qualifiers: Math.max(1, num(formData, "qualifiers") || 2),
     size: Math.max(2, num(formData, "size") || 16),
-    raceTo: Math.max(1, num(formData, "raceTo") || 4),
+    // Sèche = une partie gagnante. Le tournoi entier suit la même règle, du
+    // premier tour à la finale : on ne rallonge pas une sèche en demi-finale.
+    raceTo: str(formData, "mode") === "seche" ? 1 : Math.max(2, num(formData, "raceTo") || 4),
     entryFee: Math.max(0, num(formData, "entryFee")),
     prizePool: Math.max(0, num(formData, "prizePool")),
     prizeSplit: str(formData, "prizeSplit"),

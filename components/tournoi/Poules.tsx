@@ -4,6 +4,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CheckIcon, ClockIcon } from "@/components/icons";
 import { nomDeLaPoule, type ResultatPoule } from "@/lib/poules";
 import { cn } from "@/lib/cn";
+import { jeuCourt } from "@/lib/regles";
 
 export type LignePoule = ResultatPoule & {
   nom: string;
@@ -118,7 +119,7 @@ export function Poules({
                     <span className="min-w-0 grow truncate">
                       {d.nomA} <span className="text-faint">contre</span> {d.nomB}
                     </span>
-                    <span className="shrink-0 text-[10.5px] text-faint">course à {d.raceTo}</span>
+                    <span className="shrink-0 text-[10.5px] text-faint">{jeuCourt(d.raceTo)}</span>
                   </span>
                 ))}
               </div>
@@ -186,7 +187,7 @@ export function Programme({ aVenir, joues }: { aVenir: LigneProgramme[]; joues: 
               <span className="min-w-0 grow truncate text-dim">
                 {d.nomA} <span className="text-faint">contre</span> {d.nomB}
               </span>
-              <span className="shrink-0 text-[10.5px] text-faint">à {d.raceTo}</span>
+              <span className="shrink-0 text-[10.5px] text-faint">{jeuCourt(d.raceTo)}</span>
             </span>
           ))
         )}

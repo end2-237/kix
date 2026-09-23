@@ -30,7 +30,7 @@ export default async function LivePage() {
     <>
       <ScreenHeader
         title="Master Break Live"
-        subtitle="Les scores des salles partenaires, manche par manche, en temps réel."
+        subtitle="Les scores des salles partenaires, partie par partie, en temps réel."
       />
 
       <LiveBoard

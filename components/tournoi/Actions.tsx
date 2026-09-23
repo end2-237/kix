@@ -13,6 +13,7 @@ import {
   setTournamentStatus,
 } from "@/lib/actions";
 import { cn } from "@/lib/cn";
+import { jeuCourt, modeDuJeu } from "@/lib/regles";
 
 /**
  * Les gestes de l'organisateur.
@@ -180,6 +181,7 @@ export function SaisieScore({
   const { faire, pending } = useGeste();
   const [a, setA] = useState(scoreA);
   const [b, setB] = useState(scoreB);
+  const seche = modeDuJeu(raceTo) === "seche";
 
   return (
     <div
@@ -188,29 +190,53 @@ export function SaisieScore({
     >
       <span className="text-[12.5px] text-muted">
         {nomA} <span className="text-faint">contre</span> {nomB}
-        <span className="text-faint"> · course à {raceTo}</span>
+        <span className="text-faint"> · {jeuCourt(raceTo)}</span>
       </span>
 
-      <div className="flex items-center gap-2">
-        <Compteur label={nomA} value={a} onChange={setA} max={raceTo} />
-        <span className="text-[13px] text-faint">—</span>
-        <Compteur label={nomB} value={b} onChange={setB} max={raceTo} />
+      {/* En partie sèche, il n'y a pas de score à saisir : il y a celui qui a
+          mis la noire. Deux boutons disent la rencontre entière. */}
+      {seche ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="label-caps text-[10.5px] text-muted">Qui a mis la noire ?</span>
+          <Bouton
+            accent={!termine || scoreA > scoreB}
+            pending={pending}
+            petit
+            onClick={() => faire(() => noterDuel(duelId, 1, 0), "Vainqueur enregistré", nomA)}
+          >
+            {nomA}
+          </Bouton>
+          <Bouton
+            accent={termine && scoreB > scoreA}
+            pending={pending}
+            petit
+            onClick={() => faire(() => noterDuel(duelId, 0, 1), "Vainqueur enregistré", nomB)}
+          >
+            {nomB}
+          </Bouton>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Compteur label={nomA} value={a} onChange={setA} max={raceTo} />
+          <span className="text-[13px] text-faint">—</span>
+          <Compteur label={nomB} value={b} onChange={setB} max={raceTo} />
 
-        <Bouton
-          accent
-          pending={pending}
-          petit
-          onClick={() =>
-            faire(
-              () => noterDuel(duelId, a, b),
-              termine ? "Résultat corrigé" : "Résultat enregistré",
-              `${a} — ${b}`,
-            )
-          }
-        >
-          {termine ? "Corriger" : "Valider"}
-        </Bouton>
-      </div>
+          <Bouton
+            accent
+            pending={pending}
+            petit
+            onClick={() =>
+              faire(
+                () => noterDuel(duelId, a, b),
+                termine ? "Résultat corrigé" : "Résultat enregistré",
+                `${a} — ${b}`,
+              )
+            }
+          >
+            {termine ? "Corriger" : "Valider"}
+          </Bouton>
+        </div>
+      )}
     </div>
   );
 }

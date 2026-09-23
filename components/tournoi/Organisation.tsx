@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ArrowRightIcon, TrophyIcon } from "@/components/icons";
 import { saveTournament } from "@/lib/actions";
 import { DISCIPLINES, ETATS, FORMATS } from "@/lib/tournois";
+import { modeDuJeu, MODES_OPTIONS } from "@/lib/regles";
 import { f } from "@/lib/format";
 import type { EventRow, Tournament, Venue } from "@/db";
 
@@ -82,13 +83,19 @@ export function FormulaireTournoi({
           min={1}
           defaultValue={tournoi?.qualifiers ?? 2}
         />
+        <Select
+          label="Jeu"
+          name="mode"
+          defaultValue={modeDuJeu(tournoi?.raceTo ?? 1)}
+          options={MODES_OPTIONS}
+        />
         <Field
-          label="Course à (1er tour)"
+          label="Parties gagnantes (1er tour)"
           name="raceTo"
           type="number"
-          min={1}
-          defaultValue={tournoi?.raceTo ?? 4}
-          hint="Elle s'allonge d'une manche en demi-finale, de deux en finale."
+          min={2}
+          defaultValue={tournoi && tournoi.raceTo > 1 ? tournoi.raceTo : 4}
+          hint="En course seulement : +1 en demi-finale, +2 en finale. En partie sèche, tout le tournoi se joue à la noire."
         />
         <Field
           label="Droit d'inscription (F)"

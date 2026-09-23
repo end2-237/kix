@@ -862,7 +862,7 @@ await semerTournoi({
   prizePool: 150_000,
   prizeSplit: "60 % au vainqueur, 25 % au finaliste, 15 % partagés entre les demi-finalistes",
   rules:
-    "8-ball, règles WPA simplifiées. Casse alternée, bille en main sur faute. Course à 4 jusqu'aux quarts, 5 en demi-finale, 6 en finale. Retard de plus de dix minutes : duel perdu.",
+    "8-ball, rayés ou pleins : chaque partie se gagne à la noire. Casse alternée, bille en main sur faute. Course à 4 parties jusqu'aux quarts, 5 en demi-finale, 6 en finale. Retard de plus de dix minutes : duel perdu.",
   image: "/img/crowd-lights.jpg",
   status: "inscriptions",
   jours: 12,
@@ -889,7 +889,7 @@ const enCours = await semerTournoi({
   prizePool: 220_000,
   prizeSplit: "50 % au vainqueur, 30 % au finaliste, 20 % partagés entre les demi-finalistes",
   rules:
-    "9-ball, casse gagnante conservée. Course à 5 au premier tour, 6 en demi-finale, 7 en finale. Le 9 sur la casse compte comme une manche.",
+    "9-ball, casse gagnante conservée. Course à 5 parties au premier tour, 6 en demi-finale, 7 en finale. Le 9 sur la casse compte pour une partie.",
   image: "/img/table-rack.jpg",
   status: "complet",
   jours: -1,
@@ -918,11 +918,14 @@ const fini = await semerTournoi({
   venueId: kata.id,
   discipline: "8-ball",
   size: 8,
-  raceTo: 3,
+  // Parties sèches, du premier tour à la finale : le tournoi du quartier, tel
+  // qu'il se joue vraiment — une partie, la noire, et le suivant sur la table.
+  raceTo: 1,
   entryFee: 0,
   prizePool: 60_000,
   prizeSplit: "70 % au vainqueur, 30 % au finaliste",
-  rules: "8-ball, course à 3, tableau de huit. Entrée gratuite pour les joueurs, table offerte par la salle.",
+  rules:
+    "8-ball en parties sèches, tableau de huit. Rayés ou pleins : le premier qui met la noire passe au tour suivant. Entrée gratuite pour les joueurs, table offerte par la salle.",
   image: "/img/hall-dark.jpg",
   status: "complet",
   jours: -21,
@@ -944,7 +947,10 @@ for (let tour = 1; tour <= 3; tour++) {
   for (const duel of await getBracket(db, fini)) {
     if (duel.round !== tour || duel.status !== "attente") continue;
     if (!duel.playerAId || !duel.playerBId) continue;
-    await noterResultat(db, duel.id, duel.raceTo, tour === 3 ? duel.raceTo - 1 : 1);
+    // En sèche le perdant reste à zéro ; en course il tient la distance en
+    // finale et se fait sortir plus nettement avant.
+    const perdant = duel.raceTo <= 1 ? 0 : tour === 3 ? duel.raceTo - 1 : 1;
+    await noterResultat(db, duel.id, duel.raceTo, perdant);
   }
 }
 
@@ -1025,7 +1031,7 @@ const aPoules = await semerTournoi({
   prizePool: 180_000,
   prizeSplit: "55 % au vainqueur, 25 % au finaliste, 20 % partagés entre les demi-finalistes",
   rules:
-    "Poules de quatre, tous contre tous, course à 4. Les deux premiers de chaque poule passent en quarts. Classement aux victoires, puis à la différence de manches, puis à la confrontation directe.",
+    "Poules de quatre, tous contre tous, course à 4 parties. Les deux premiers de chaque poule passent en quarts. Classement aux victoires, puis à la différence de parties, puis à la confrontation directe.",
   image: "/img/crowd-pink.jpg",
   status: "complet",
   jours: 2,
