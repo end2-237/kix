@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { BellIcon, CheckIcon, PlusIcon } from "@/components/icons";
+import type { ConfigFirebase } from "@/lib/firebase";
 
 /**
  * Activer les notifications, et dire ce qu'il faut faire quand on ne peut pas.
@@ -50,7 +51,16 @@ function lire(): Etat {
   return "prete";
 }
 
-export function ActiverNotifications({ cleVapid }: { cleVapid: string }) {
+export function ActiverNotifications({
+  cleVapid,
+  firebase,
+  cleWebPushFirebase,
+}: {
+  cleVapid: string;
+  /** La configuration Firebase, quand le projet est branché. */
+  firebase?: ConfigFirebase | null;
+  cleWebPushFirebase?: string;
+}) {
   const monte = useMonte();
   const { notify } = useSnackbar();
   const [etat, setEtat] = useState<Etat>("inconnu");
@@ -73,17 +83,32 @@ export function ActiverNotifications({ cleVapid }: { cleVapid: string }) {
       const sw = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
       await navigator.serviceWorker.ready;
 
-      const abonnement =
-        (await sw.pushManager.getSubscription()) ??
-        (await sw.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: b64ToU8(cleVapid),
-        }));
+      // Firebase quand le projet est branché, le protocole standard sinon.
+      // Les deux aboutissent au même service worker et à la même table : ce
+      // qui change, c'est qui achemine le signal.
+      let corps: Record<string, unknown> | null = null;
+
+      if (firebase && cleWebPushFirebase) {
+        const { jetonFcm } = await import("@/components/mb/fcm");
+        const token = await jetonFcm(firebase, cleWebPushFirebase, sw);
+        if (token) corps = { provider: "fcm", endpoint: token };
+      }
+
+      if (!corps) {
+        if (!cleVapid) throw new Error("aucune clé d'envoi configurée");
+        const abonnement =
+          (await sw.pushManager.getSubscription()) ??
+          (await sw.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: b64ToU8(cleVapid),
+          }));
+        corps = { provider: "web", ...abonnement.toJSON() };
+      }
 
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(abonnement.toJSON()),
+        body: JSON.stringify(corps),
       });
       if (!res.ok) throw new Error("refus du serveur");
 
@@ -96,7 +121,8 @@ export function ActiverNotifications({ cleVapid }: { cleVapid: string }) {
     }
   }
 
-  if (!monte || !cleVapid) return null;
+  // Sans aucun chemin d'envoi configuré, la carte n'a rien à proposer.
+  if (!monte || (!cleVapid && !(firebase && cleWebPushFirebase))) return null;
 
   if (courant === "ios") {
     return (

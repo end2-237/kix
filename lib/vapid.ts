@@ -11,10 +11,61 @@ export const TTL = 60 * 60 * 12; // douze heures : au-delà, la notification a v
 
 export type Cles = { publique: string; privee: string };
 
+/**
+ * Une clé publique VAPID fait 65 octets — un point de courbe non compressé,
+ * d'où le préfixe 0x04 et les 87 caractères en base64url. Une clé privée en
+ * fait 32, soit 43 caractères.
+ *
+ * On sait donc reconnaître l'une de l'autre, et c'est indispensable : le
+ * nom `NEXT_PUBLIC_VAPID_PUBLIC_KEY` désigne une variable **inlinée dans le
+ * code envoyé au navigateur**. Y poser la clé privée la publie à tous les
+ * visiteurs, sans le moindre message d'erreur — la signature continuerait
+ * même de fonctionner, ce qui est le pire des cas.
+ */
+export const ressembleAUnePubliqueVapid = (v: string) => {
+  const brut = v.trim();
+  if (!brut) return false;
+  const octets = Buffer.from(brut.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+  return octets.length === 65 && octets[0] === 0x04;
+};
+
+export const ressembleAUnePriveeVapid = (v: string) =>
+  Buffer.from(v.trim().replace(/-/g, "+").replace(/_/g, "/"), "base64").length === 32;
+
 export function cles(): Cles | null {
   const publique = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
   const privee = process.env.VAPID_PRIVATE_KEY?.trim();
-  return publique && privee ? { publique, privee } : null;
+  if (!publique || !privee) return null;
+
+  // Refuser plutôt qu'envoyer : une clé privée déjà partie dans le navigateur
+  // est une clé à changer, et continuer à s'en servir ne ferait que retarder
+  // le moment où on s'en aperçoit.
+  if (ressembleAUnePriveeVapid(publique)) {
+    console.error(
+      "[mb] NEXT_PUBLIC_VAPID_PUBLIC_KEY contient ce qui ressemble à une clé PRIVÉE (32 octets). " +
+        "Cette variable est inlinée dans le navigateur : la clé est donc publiée. " +
+        "Régénère une paire (npm run push:cles), mets la publique — 87 caractères, commençant par B — " +
+        "dans NEXT_PUBLIC_VAPID_PUBLIC_KEY, et la privée dans VAPID_PRIVATE_KEY. Aucun envoi ne partira d'ici là.",
+    );
+    return null;
+  }
+
+  if (!ressembleAUnePubliqueVapid(publique)) {
+    console.error(
+      "[mb] NEXT_PUBLIC_VAPID_PUBLIC_KEY n'est pas une clé publique VAPID valide " +
+        "(65 octets attendus, préfixe 0x04). Les notifications push resteront muettes.",
+    );
+    return null;
+  }
+
+  if (ressembleAUnePubliqueVapid(privee)) {
+    console.error(
+      "[mb] VAPID_PRIVATE_KEY contient une clé publique : les deux variables sont probablement inversées.",
+    );
+    return null;
+  }
+
+  return { publique, privee };
 }
 
 /** Le contact déclaré dans le jeton VAPID : un service de push peut écrire.

@@ -3,8 +3,13 @@ import { createHash } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { db, pushSubscriptions } from "@/db";
 import { cles, jeton, TTL } from "@/lib/vapid";
+import { envoyerFcm, fcmConfigure } from "@/lib/fcm";
 
 export { pushConfigure } from "@/lib/vapid";
+export { fcmConfigure, projetFcm } from "@/lib/fcm";
+
+/** Un chemin d'envoi, quel qu'il soit, est-il ouvert ? */
+export const envoiPossible = () => Boolean(cles()) || fcmConfigure();
 
 /**
  * Web Push, sans dépendance et sans Firebase.
@@ -40,7 +45,9 @@ export type Envoi = { envoyes: number; retires: number; ignores: number };
 export async function pousser(userIds: string[], urgence: "normal" | "high" = "normal"): Promise<Envoi> {
   const cfg = cles();
   const vide: Envoi = { envoyes: 0, retires: 0, ignores: 0 };
-  if (!cfg || userIds.length === 0) return vide;
+  if (userIds.length === 0) return vide;
+  // Aucun des deux chemins n'est configuré : il n'y a rien à tenter.
+  if (!cfg && !fcmConfigure()) return vide;
 
   const abonnements = await db
     .select()
@@ -50,6 +57,21 @@ export async function pousser(userIds: string[], urgence: "normal" | "high" = "n
 
   const resultats = await Promise.allSettled(
     abonnements.map(async (a) => {
+      // Un jeton Firebase passe par FCM, un endpoint par le protocole
+      // standard. Les deux cohabitent : un compte peut avoir été enregistré
+      // d'une façon puis de l'autre, selon ce qui était configuré ce jour-là.
+      if (a.provider === "fcm") {
+        const sortie = await envoyerFcm(a.endpoint, urgence);
+        if (sortie === "mort") {
+          await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, a.id));
+          return "retire" as const;
+        }
+        if (sortie === "ignore") return "ignore" as const;
+        await db.update(pushSubscriptions).set({ lastSeenAt: new Date() }).where(eq(pushSubscriptions.id, a.id));
+        return "envoye" as const;
+      }
+
+      if (!cfg) return "ignore" as const;
       const origine = new URL(a.endpoint).origin;
       const reponse = await fetch(a.endpoint, {
         method: "POST",

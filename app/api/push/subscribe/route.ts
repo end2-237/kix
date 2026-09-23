@@ -17,14 +17,24 @@ export async function POST(request: Request) {
   if (!user) return Response.json({ ok: false, error: "Connecte-toi." }, { status: 401 });
 
   const corps = (await request.json().catch(() => null)) as {
+    provider?: string;
     endpoint?: string;
     keys?: { p256dh?: string; auth?: string };
   } | null;
 
+  // Deux formes d'abonnement : l'endpoint du protocole standard, une URL, et
+  // le jeton d'enregistrement Firebase, qui n'en est pas une. On ne peut donc
+  // pas valider les deux de la même façon.
+  const provider = corps?.provider === "fcm" ? "fcm" : "web";
   const endpoint = corps?.endpoint?.trim();
   const p256dh = corps?.keys?.p256dh?.trim() ?? "";
   const auth = corps?.keys?.auth?.trim() ?? "";
-  if (!endpoint || !endpoint.startsWith("https://")) {
+
+  const valide =
+    provider === "fcm"
+      ? Boolean(endpoint && endpoint.length > 20 && !endpoint.includes(" "))
+      : Boolean(endpoint && endpoint.startsWith("https://"));
+  if (!endpoint || !valide) {
     return Response.json({ ok: false, error: "Abonnement invalide." }, { status: 400 });
   }
 
@@ -34,6 +44,7 @@ export async function POST(request: Request) {
 
   const champs = {
     userId: user.id,
+    provider,
     p256dh,
     auth,
     userAgent: (request.headers.get("user-agent") ?? "").slice(0, 200),

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { ActiverNotifications } from "@/components/mb/Notifications";
+import { cleWebPushFirebase, configFirebase } from "@/lib/firebase";
 import { Card } from "@/components/ui/Card";
 import { BellIcon, CartIcon, CoinIcon, TicketIcon, TrophyIcon } from "@/components/icons";
 import { markNotificationsRead } from "@/lib/actions";
@@ -50,7 +51,11 @@ export default async function NotificationsPage() {
         }
       />
 
-      <ActiverNotifications cleVapid={cleVapid} />
+      <ActiverNotifications
+        cleVapid={cleVapid}
+        firebase={configFirebase()}
+        cleWebPushFirebase={cleWebPushFirebase()}
+      />
 
       {list.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 px-5 py-10 text-center">

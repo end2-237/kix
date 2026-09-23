@@ -901,9 +901,18 @@ export const pushSubscriptions = mb.table(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * Par où passe l'envoi : `web` pour le protocole standard, que l'on signe
+     * nous-mêmes, `fcm` pour un jeton d'enregistrement Firebase. Les deux
+     * cohabitent — un compte peut avoir un téléphone enregistré d'une façon
+     * et un ordinateur de l'autre, selon ce qui était configuré ce jour-là.
+     */
+    provider: text("provider").notNull().default("web"),
+    /** L'adresse de livraison : l'endpoint du navigateur, ou le jeton FCM. */
     endpoint: text("endpoint").notNull().unique(),
-    p256dh: text("p256dh").notNull(),
-    auth: text("auth").notNull(),
+    /** Les clés de chiffrement du protocole standard. Vides pour un jeton FCM. */
+    p256dh: text("p256dh").notNull().default(""),
+    auth: text("auth").notNull().default(""),
     userAgent: text("user_agent").notNull().default(""),
     /** Dernier envoi accepté : un endpoint mort finit par être retiré. */
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),

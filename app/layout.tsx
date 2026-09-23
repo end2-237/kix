@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { BrandDefs } from "@/components/icons";
+import { Analytique } from "@/components/mb/Analytique";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
+import { configFirebase } from "@/lib/firebase";
 import "./globals.css";
 
 const geist = localFont({
@@ -66,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-bg text-ink antialiased">
         <BrandDefs />
         <SnackbarProvider>{children}</SnackbarProvider>
+        <Analytique config={configFirebase()} />
       </body>
     </html>
   );
