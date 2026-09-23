@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
 import type { Match, User } from "@/db";
 import {
   db,
@@ -41,7 +41,7 @@ import {
   venueTables,
 } from "@/db";
 import { COMMISSION_RATE, POINTS_PER_FREE_TOKEN, XP_PER_TOKEN } from "@/lib/constants";
-import { freshCode, notify, uid } from "@/lib/domain";
+import { freshCode, freshUserCode, notify, uid } from "@/lib/domain";
 import { INVITE_TTL, looksLikePass, passUrl, signPass, verifyPass } from "@/lib/pass";
 import { qrShape, type QrShape } from "@/lib/qr";
 import { canScore, getMatch } from "@/lib/live";
@@ -128,7 +128,14 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   if (taken) return { error: "Ce numéro a déjà un compte. Connecte-toi.", field: "phone", values };
 
   const id = uid();
-  await db.insert(users).values({ id, name, phone, passwordHash: await hashPassword(password), role: "client" });
+  await db.insert(users).values({
+    id,
+    name,
+    code: await freshUserCode(),
+    phone,
+    passwordHash: await hashPassword(password),
+    role: "client",
+  });
   await notify(
     id,
     "Bienvenue chez MASTER BREAK",
@@ -2628,5 +2635,132 @@ export async function repondreInvitation(invitationId: string, reponse: "accepte
   }
 
   revalidatePath("/app/amis");
+  return { ok: true as const };
+}
+
+/** Dissoudre un groupe. Le chef seulement, et la bande est prévenue. */
+export async function supprimerGroupe(crewId: string) {
+  const moi = await requireUser();
+  const groupe = (await db.select().from(crews).where(eq(crews.id, crewId)).limit(1))[0];
+  if (!groupe) return { ok: false as const, error: "Groupe introuvable." };
+  if (groupe.ownerId !== moi.id) return { ok: false as const, error: "Seul le chef peut dissoudre le groupe." };
+
+  // Prévenir avant d'effacer : après la suppression, on ne sait plus qui
+  // était dedans, et les gens verraient un groupe disparaître sans un mot.
+  const membres = await db
+    .select({ userId: crewMembers.userId })
+    .from(crewMembers)
+    .where(and(eq(crewMembers.crewId, crewId), ne(crewMembers.userId, moi.id)));
+
+  for (const m of membres) {
+    await notify(m.userId, `${groupe.name} est dissous`, `${moi.name} a fermé le groupe.`, "system", "/app/groupes");
+  }
+
+  await db.delete(crews).where(eq(crews.id, crewId));
+
+  revalidatePath("/app/groupes");
+  return { ok: true as const };
+}
+
+/**
+ * Inviter dans un groupe.
+ *
+ * Trois façons de désigner les gens, parce que ce sont les trois qu'on a en
+ * tête : tout le monde, tout le monde sauf untel, ou une poignée choisie.
+ * La liste « tous mes amis » se recompose sur le serveur à chaque envoi —
+ * calculée dans le navigateur, elle vieillirait entre l'ouverture de la page
+ * et le clic.
+ */
+export async function inviterAuGroupe(formData: FormData) {
+  const moi = await requireUser();
+  const crewId = str(formData, "crewId");
+  const mode = str(formData, "mode") || "tous";
+
+  const groupe = (await db.select().from(crews).where(eq(crews.id, crewId)).limit(1))[0];
+  if (!groupe) return { ok: false as const, error: "Groupe introuvable." };
+
+  const suisMembre = (
+    await db
+      .select({ id: crewMembers.id })
+      .from(crewMembers)
+      .where(and(eq(crewMembers.crewId, crewId), eq(crewMembers.userId, moi.id), eq(crewMembers.status, "membre")))
+      .limit(1)
+  )[0];
+  if (!suisMembre) return { ok: false as const, error: "Il faut être du groupe pour y inviter." };
+
+  const { idsDesAmis } = await import("@/lib/joueurs");
+  const amis = await idsDesAmis(moi.id);
+  const coches = formData.getAll("ids").map(String).filter(Boolean);
+
+  // On n'invite que ses amis : le groupe ne doit pas devenir un moyen
+  // d'atteindre des inconnus.
+  const vises =
+    mode === "tous"
+      ? amis
+      : mode === "sauf"
+        ? amis.filter((id) => !coches.includes(id))
+        : coches.filter((id) => amis.includes(id));
+
+  const dedans = await db
+    .select({ userId: crewMembers.userId })
+    .from(crewMembers)
+    .where(eq(crewMembers.crewId, crewId));
+  const deja = new Set(dedans.map((d) => d.userId));
+
+  const nouveaux = [...new Set(vises)].filter((id) => id !== moi.id && !deja.has(id));
+  if (nouveaux.length === 0) {
+    return {
+      ok: false as const,
+      error: amis.length === 0 ? "Ajoute d'abord des amis." : "Ils sont déjà tous dans le groupe.",
+    };
+  }
+
+  await db.insert(crewMembers).values(
+    nouveaux.map((userId) => ({ id: uid(), crewId, userId, role: "membre", status: "invite" })),
+  );
+
+  for (const userId of nouveaux) {
+    await notify(
+      userId,
+      `${moi.name} t'invite dans ${groupe.name}`,
+      groupe.devise || "Une bande de plus pour tes soirées.",
+      "system",
+      `/app/groupes/${groupe.slug}`,
+    );
+  }
+
+  revalidatePath("/app/groupes");
+  revalidatePath(`/app/groupes/${groupe.slug}`);
+  return { ok: true as const, invites: nouveaux.length };
+}
+
+/** Accepter ou décliner une invitation de groupe. */
+export async function repondreGroupe(crewId: string, reponse: "acceptee" | "refusee") {
+  const moi = await requireUser();
+  const ligne = (
+    await db
+      .select()
+      .from(crewMembers)
+      .where(and(eq(crewMembers.crewId, crewId), eq(crewMembers.userId, moi.id)))
+      .limit(1)
+  )[0];
+  if (!ligne || ligne.status !== "invite") return { ok: false as const, error: "Aucune invitation en cours." };
+
+  if (reponse === "refusee") await db.delete(crewMembers).where(eq(crewMembers.id, ligne.id));
+  else {
+    await db.update(crewMembers).set({ status: "membre" }).where(eq(crewMembers.id, ligne.id));
+    const groupe = (await db.select().from(crews).where(eq(crews.id, crewId)).limit(1))[0];
+    if (groupe) {
+      await notify(
+        groupe.ownerId,
+        `${moi.name} rejoint ${groupe.name}`,
+        "Un joueur de plus dans la bande.",
+        "system",
+        `/app/groupes/${groupe.slug}`,
+      );
+    }
+  }
+
+  revalidatePath("/app/groupes");
   return { ok: true as const };
 }

@@ -10,13 +10,15 @@ import { useSnackbar } from "@/components/ui/Snackbar";
 import { PlusIcon, SearchIcon } from "@/components/icons";
 import { chercherDesJoueurs, demanderAmi } from "@/lib/actions";
 
-export type Trouve = { id: string; name: string; avatar: string | null; points: number };
+export type Trouve = { id: string; name: string; avatar: string | null; points: number; code: string };
 
 /**
- * Chercher quelqu'un par son nom.
+ * Chercher quelqu'un, par son nom ou par son code à six chiffres.
  *
- * Par le nom seulement : chercher par numéro permettrait de savoir si un
- * numéro a un compte chez nous, ce qui n'est l'affaire de personne.
+ * Le code est le bon chemin : « Blaise » remonte cinq homonymes, et rien
+ * n'oblige personne à inscrire son vrai nom. Jamais par numéro de téléphone —
+ * cela dirait si un numéro a un compte chez nous, ce qui n'est l'affaire de
+ * personne.
  */
 export function RechercheJoueur() {
   const router = useRouter();
@@ -42,14 +44,16 @@ export function RechercheJoueur() {
         <input
           value={terme}
           onChange={(e) => lancer(e.target.value)}
-          placeholder="Chercher un joueur par son nom"
+          placeholder="Un nom, ou un code à six chiffres"
           className="h-12 w-full rounded-full border border-line bg-surface pr-4 pl-11 text-[13.5px] text-ink outline-none focus:border-gold"
         />
         {cherche ? <Spinner size={15} className="absolute right-4 text-muted" /> : null}
       </label>
 
       {terme.trim().length >= 2 && resultats.length === 0 && !cherche ? (
-        <p className="px-1 text-[12.5px] text-muted">Personne de ce nom.</p>
+        <p className="px-1 text-[12.5px] text-muted">
+          {/^\d{6}$/.test(terme.trim()) ? "Aucun joueur ne porte ce code." : "Personne de ce nom."}
+        </p>
       ) : null}
 
       {resultats.map((j) => (
@@ -64,7 +68,9 @@ export function RechercheJoueur() {
             )}
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="truncate text-[13.5px] font-semibold">{j.name}</span>
-              <span className="text-[11.5px] text-muted">{j.points} points</span>
+              <span className="text-[11.5px] text-muted">
+                {j.points} points · code {j.code}
+              </span>
             </span>
           </Link>
           <button

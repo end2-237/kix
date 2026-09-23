@@ -14,6 +14,7 @@ import {
   TargetIcon,
   TicketIcon,
   TrophyIcon,
+  UserIcon,
 } from "@/components/icons";
 import { getLeaderboard, getRank } from "@/lib/queries";
 import { estMembre, joursRestants } from "@/lib/membres";
@@ -38,6 +39,23 @@ export default async function RewardsPage() {
   return (
     <>
       <ScreenHeader title="Master Rank" subtitle="Chaque partie scannée compte des points, chaque tournoi te classe." />
+
+      {/* Le code se dicte à la table pour se faire ajouter : il est ici, en
+          grand, plutôt qu'enfoui dans une page de réglages. */}
+      <Card shape="panel" className="flex items-center gap-3.5 p-4">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-2 text-muted">
+          <UserIcon size={19} />
+        </span>
+        <span className="flex min-w-0 grow flex-col gap-0.5">
+          <span className="text-[11.5px] text-muted">Ton code joueur</span>
+          <span className="text-[22px] leading-none font-bold tracking-[0.22em] tabular-nums text-gold-text">
+            {user.code}
+          </span>
+        </span>
+        <Link href="/app/amis" className="press shrink-0 text-[12px] text-gold-text">
+          Mes amis
+        </Link>
+      </Card>
 
       <Link href="/app/abonnement" className="press block">
         <Card tone={membre ? "gold" : "dashed"} shape="panel" className="flex items-center gap-3.5 p-4">

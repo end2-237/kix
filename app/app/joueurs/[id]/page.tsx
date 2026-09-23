@@ -80,6 +80,14 @@ export default async function ProfilJoueur({ params }: { params: Promise<{ id: s
             <p className="text-[12px] text-muted">
               {current.name} · {palmares.user.points} points · joueur depuis {jour(palmares.user.createdAt)}
             </p>
+            {/* Le code se donne de vive voix : on le montre là où on le
+                cherche, et en gros sur son propre profil. */}
+            <p className="flex items-center gap-1.5 text-[12px]">
+              <span className="text-muted">Code joueur</span>
+              <span className="font-semibold tracking-[0.18em] tabular-nums text-gold-text">
+                {palmares.user.code}
+              </span>
+            </p>
           </div>
         </div>
 

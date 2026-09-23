@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { db, notifications, tokens } from "@/db";
+import { db, notifications, tokens, users } from "@/db";
 
 /** Petites règles partagées par les Server Actions et le service de paiement. */
 
@@ -13,6 +13,23 @@ export const uid = () => randomUUID();
  * disparaître avec lui si la transaction est annulée.
  */
 export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Le code à six chiffres d'un joueur, unique.
+ *
+ * Il se donne de vive voix à la table — d'où six chiffres et non un
+ * identifiant : on le lit, on le retient le temps de le taper.
+ */
+export async function freshUserCode(exec: Executor = db): Promise<string> {
+  for (let i = 0; i < 60; i++) {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const pris = await exec.select({ id: users.id }).from(users).where(eq(users.code, code)).limit(1);
+    if (!pris[0]) return code;
+  }
+  // Neuf cent mille codes tous pris, ou un hasard très contrarié : on tombe
+  // sur l'horodatage, qui reste unique à la milliseconde près.
+  return String(Date.now()).slice(-6);
+}
 
 /** Code de secours à 4 chiffres, unique parmi les jetons encore actifs. */
 export async function freshCode(exec: Executor = db): Promise<string> {

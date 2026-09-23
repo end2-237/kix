@@ -118,15 +118,17 @@ await db.insert(packs).values(packRows);
 const DEMO_PASSWORD = process.env.MB_DEMO_PASSWORD ?? "masterbreak";
 const passwordHash = await hashPassword(DEMO_PASSWORD);
 
-const ariel = { id: uid(), passwordHash, name: "Ariel N.", phone: "677451208", avatar: "/img/p-ariel.jpg", role: "client", points: 1240, venueId: null };
-const serge = { id: uid(), passwordHash, name: "Serge M.", phone: "699120345", avatar: "/img/p-gerant.jpg", role: "manager", points: 0, venueId: breakAkwa.id };
-const admin = { id: uid(), passwordHash, name: "Direction MASTER BREAK", phone: "690000000", avatar: null, role: "admin", points: 0, venueId: null };
-const vendeur = { id: uid(), passwordHash, name: "Vapote Douala", phone: "678900011", avatar: null, role: "seller", points: 0, venueId: null };
+const code6 = (() => { const pris = new Set<string>(); return () => { let c = ""; do { c = String(Math.floor(100000 + Math.random() * 900000)); } while (pris.has(c)); pris.add(c); return c; }; })();
+
+const ariel = { id: uid(), code: code6(), passwordHash, name: "Ariel N.", phone: "677451208", avatar: "/img/p-ariel.jpg", role: "client", points: 1240, venueId: null };
+const serge = { id: uid(), code: code6(), passwordHash, name: "Serge M.", phone: "699120345", avatar: "/img/p-gerant.jpg", role: "manager", points: 0, venueId: breakAkwa.id };
+const admin = { id: uid(), code: code6(), passwordHash, name: "Direction MASTER BREAK", phone: "690000000", avatar: null, role: "admin", points: 0, venueId: null };
+const vendeur = { id: uid(), code: code6(), passwordHash, name: "Vapote Douala", phone: "678900011", avatar: null, role: "seller", points: 0, venueId: null };
 const others = [
-  { id: uid(), passwordHash, name: "Blaise K.", phone: "670000001", avatar: "/img/p-champion.jpg", role: "client", points: 4020, venueId: null },
-  { id: uid(), passwordHash, name: "Yannick T.", phone: "670000002", avatar: "/img/p-yannick.jpg", role: "client", points: 3180, venueId: null },
-  { id: uid(), passwordHash, name: "Merline K.", phone: "670000003", avatar: null, role: "client", points: 2610, venueId: null },
-  { id: uid(), passwordHash, name: "Duval N.", phone: "670000004", avatar: null, role: "client", points: 2280, venueId: null },
+  { id: uid(), code: code6(), passwordHash, name: "Blaise K.", phone: "670000001", avatar: "/img/p-champion.jpg", role: "client", points: 4020, venueId: null },
+  { id: uid(), code: code6(), passwordHash, name: "Yannick T.", phone: "670000002", avatar: "/img/p-yannick.jpg", role: "client", points: 3180, venueId: null },
+  { id: uid(), code: code6(), passwordHash, name: "Merline K.", phone: "670000003", avatar: null, role: "client", points: 2610, venueId: null },
+  { id: uid(), code: code6(), passwordHash, name: "Duval N.", phone: "670000004", avatar: null, role: "client", points: 2280, venueId: null },
 ];
 
 // Le vivier des tournois : un tableau de douze ne se remplit pas avec cinq
@@ -145,6 +147,7 @@ const vivier = [
   { name: "Boris A.", points: 180 },
 ].map((j, i) => ({
   id: uid(),
+  code: code6(),
   passwordHash,
   name: j.name,
   phone: `6700001${String(i + 10).padStart(2, "0")}`,
@@ -154,7 +157,8 @@ const vivier = [
   venueId: null,
 }));
 
-await db.insert(users).values([ariel, serge, admin, vendeur, ...others, ...vivier]);
+const comptes: (typeof users.$inferInsert)[] = [ariel, serge, admin, vendeur, ...others, ...vivier];
+await db.insert(users).values(comptes);
 const clients = [ariel, ...others];
 
 /* jetons d'Ariel ---------------------------------------------------------- */

@@ -22,8 +22,9 @@ export default async function GroupesPage() {
   const moi = await requireUser();
   const [groupes, salles] = await Promise.all([getGroupes(moi.id), getVenues()]);
 
+  const invites = groupes.filter((g) => g.invite);
   const miens = groupes.filter((g) => g.estMembre);
-  const autres = groupes.filter((g) => !g.estMembre);
+  const autres = groupes.filter((g) => !g.estMembre && !g.invite);
 
   return (
     <>
@@ -38,6 +39,15 @@ export default async function GroupesPage() {
       />
 
       <FormulaireGroupe salles={salles.map((v) => ({ id: v.id, name: v.name }))} />
+
+      {invites.length > 0 ? (
+        <section className="flex flex-col gap-2.5">
+          <h2 className="text-[15px] font-semibold">On t&apos;invite · {invites.length}</h2>
+          {invites.map((g) => (
+            <Carte key={g.crew.id} groupe={g} />
+          ))}
+        </section>
+      ) : null}
 
       {miens.length > 0 ? (
         <section className="flex flex-col gap-2.5">
@@ -75,7 +85,7 @@ function Carte({ groupe }: { groupe: Awaited<ReturnType<typeof getGroupes>>[numb
   const { crew, venue, membres, estMembre, estChef } = groupe;
   return (
     <Link href={`/app/groupes/${crew.slug}`} className="press block">
-      <Card tone={estMembre ? "gold" : "glass"} shape="panel" className="flex items-center gap-3 p-3.5">
+      <Card tone={estMembre || groupe.invite ? "gold" : "glass"} shape="panel" className="flex items-center gap-3 p-3.5">
         {crew.image ? (
           <Photo src={crew.image} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-full object-cover" />
         ) : (
@@ -94,6 +104,10 @@ function Carte({ groupe }: { groupe: Awaited<ReturnType<typeof getGroupes>>[numb
         {estChef ? (
           <Chip tone="solid" className="shrink-0 text-[10px]">
             Chef
+          </Chip>
+        ) : groupe.invite ? (
+          <Chip tone="gold" className="shrink-0 text-[10px]">
+            Invité
           </Chip>
         ) : null}
         <ArrowRightIcon size={15} className="shrink-0 text-muted" />

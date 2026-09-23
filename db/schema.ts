@@ -50,6 +50,14 @@ export const users = mb.table(
     /** Compte GoTrue correspondant (auth.users.id) quand Supabase Auth gère la connexion. */
     authId: uuid("auth_id").unique(),
     name: text("name").notNull(),
+    /**
+     * Le code à six chiffres qu'on donne de vive voix.
+     *
+     * Chercher par le nom fait remonter dix homonymes, et personne n'est
+     * obligé d'inscrire son vrai nom. Le code désigne une personne et une
+     * seule — c'est ce qu'on se dit à la table pour s'ajouter.
+     */
+    code: text("code").notNull(),
     phone: text("phone").notNull(),
     /** scrypt, format `scrypt$<sel>$<empreinte>` — nul si la connexion passe par GoTrue. */
     passwordHash: text("password_hash"),
@@ -62,7 +70,7 @@ export const users = mb.table(
     memberUntil: timestamp("member_until", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("users_phone_idx").on(t.phone)],
+  (t) => [uniqueIndex("users_phone_idx").on(t.phone), uniqueIndex("users_code_idx").on(t.code)],
 );
 
 export const packs = mb.table("packs", {

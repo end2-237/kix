@@ -1,10 +1,17 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { CheckIcon, ClockIcon } from "@/components/icons";
 import { nomDeLaPoule, type ResultatPoule } from "@/lib/poules";
 import { cn } from "@/lib/cn";
 
-export type LignePoule = ResultatPoule & { nom: string; seed: number | null; qualifie: boolean };
+export type LignePoule = ResultatPoule & {
+  nom: string;
+  seed: number | null;
+  /** Le compte derrière le nom : la ligne mène à son profil. */
+  userId: string | null;
+  qualifie: boolean;
+};
 
 export type DuelDePoule = {
   id: string;
@@ -79,7 +86,13 @@ export function Poules({
                   >
                     <td className="py-2 tabular-nums">{rang + 1}</td>
                     <td className="max-w-0 truncate py-2 pr-2">
-                      <span className={cn("truncate", l.qualifie && "font-semibold")}>{l.nom}</span>
+                      {l.userId ? (
+                        <Link href={`/app/joueurs/${l.userId}`} className="press truncate underline-offset-2 hover:underline">
+                          <span className={cn(l.qualifie && "font-semibold")}>{l.nom}</span>
+                        </Link>
+                      ) : (
+                        <span className={cn("truncate", l.qualifie && "font-semibold")}>{l.nom}</span>
+                      )}
                       {l.seed ? <span className="ml-1.5 text-[10px] text-faint">#{l.seed}</span> : null}
                     </td>
                     <td className="py-2 text-right tabular-nums">{l.joues}</td>

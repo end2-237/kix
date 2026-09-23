@@ -244,7 +244,8 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
               {joueurs
                 .filter((j) => j.player.status !== "retire")
                 .map(({ player, user: joueur }) => (
-                  <Card key={player.id} shape="panel" className="flex items-center gap-3 px-3.5 py-3">
+                  <Link key={player.id} href={`/app/joueurs/${joueur.id}`} className="press block">
+                  <Card shape="panel" className="flex items-center gap-3 px-3.5 py-3">
                     <span className="w-8 shrink-0 text-[12px] text-faint tabular-nums">
                       {player.seed ? `#${player.seed}` : "—"}
                     </span>
@@ -263,6 +264,7 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
                       {CANDIDATURES[player.status] ?? player.status}
                     </Chip>
                   </Card>
+                  </Link>
                 ))}
             </div>
           )}

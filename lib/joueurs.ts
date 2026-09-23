@@ -29,7 +29,7 @@ import { levelFor } from "@/lib/constants";
  */
 
 export type Palmares = {
-  user: Pick<User, "id" | "name" | "avatar" | "points" | "createdAt">;
+  user: Pick<User, "id" | "name" | "avatar" | "points" | "createdAt" | "code">;
   rang: number;
   matchs: number;
   victoires: number;
@@ -78,6 +78,7 @@ export async function getJoueur(id: string): Promise<Palmares | null> {
       avatar: compte.avatar,
       points: compte.points,
       createdAt: compte.createdAt,
+      code: compte.code,
     },
     rang: devant + 1,
     matchs: joues.length,
@@ -244,16 +245,34 @@ export async function idsDesAmis(moi: string): Promise<string[]> {
 }
 
 /**
- * Chercher un joueur par son nom.
+ * Chercher un joueur, par son code à six chiffres ou par son nom.
  *
- * Par le nom seulement : chercher par numéro permettrait de vérifier si un
- * numéro a un compte, ce qui n'est l'affaire de personne.
+ * Le code d'abord, et c'est lui qui compte : chercher « Blaise » remonte cinq
+ * homonymes, et rien n'oblige quiconque à inscrire son vrai nom. Le code se
+ * donne de vive voix à la table et désigne une personne exactement.
+ *
+ * Jamais par numéro de téléphone : cela permettrait de vérifier si un numéro
+ * a un compte chez nous, ce qui n'est l'affaire de personne.
  */
 export async function chercherJoueurs(terme: string, saufMoi: string, limite = 12) {
   const propre = terme.trim();
+
+  // Six chiffres : c'est un code, la réponse est unique ou vide.
+  if (/^\d{6}$/.test(propre)) {
+    return db
+      .select({ id: users.id, name: users.name, avatar: users.avatar, points: users.points, code: users.code })
+      .from(users)
+      .where(and(eq(users.role, "client"), ne(users.id, saufMoi), eq(users.code, propre)))
+      .limit(1);
+  }
+
+  // Des chiffres, mais pas six : on attend la suite plutôt que de chercher un
+  // nom qui n'en est pas un.
+  if (/^\d+$/.test(propre)) return [];
   if (propre.length < 2) return [];
+
   return db
-    .select({ id: users.id, name: users.name, avatar: users.avatar, points: users.points })
+    .select({ id: users.id, name: users.name, avatar: users.avatar, points: users.points, code: users.code })
     .from(users)
     .where(
       and(

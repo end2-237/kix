@@ -13,7 +13,7 @@ import type { TournamentMatch } from "@/db";
  * finale.
  */
 
-export type Noms = Map<string, { nom: string; seed: number | null }>;
+export type Noms = Map<string, { nom: string; seed: number | null; userId: string }>;
 
 const quiEst = (noms: Noms, id: string | null) => (id ? (noms.get(id)?.nom ?? "—") : "à désigner");
 
@@ -27,6 +27,7 @@ export function vuesDesPoules(
       ...l,
       nom: noms.get(l.playerId)?.nom ?? "—",
       seed: noms.get(l.playerId)?.seed ?? null,
+      userId: noms.get(l.playerId)?.userId ?? null,
       qualifie: rang < qualifiesParPoule,
     })),
   );

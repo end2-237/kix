@@ -6,7 +6,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Spinner } from "@/components/ui/Spinner";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { CheckIcon, PlusIcon } from "@/components/icons";
-import { creerGroupe, modifierGroupe, rejoindreGroupe } from "@/lib/actions";
+import { creerGroupe, modifierGroupe, rejoindreGroupe, repondreGroupe, supprimerGroupe } from "@/lib/actions";
 import { ChampImage } from "@/components/joueur/ChampImage";
 
 export type SalleChoix = { id: string; name: string };
@@ -125,8 +125,18 @@ export function FormulaireGroupe({
   );
 }
 
-/** Rejoindre la bande, ou la quitter. */
-export function BoutonGroupe({ crewId, membre, chef }: { crewId: string; membre: boolean; chef: boolean }) {
+/** Rejoindre la bande, la quitter, ou répondre à une invitation. */
+export function BoutonGroupe({
+  crewId,
+  membre,
+  chef,
+  invite = false,
+}: {
+  crewId: string;
+  membre: boolean;
+  chef: boolean;
+  invite?: boolean;
+}) {
   const router = useRouter();
   const { notify } = useSnackbar();
   const [pending, start] = useTransition();
@@ -136,6 +146,40 @@ export function BoutonGroupe({ crewId, membre, chef }: { crewId: string; membre:
       <span className="flex h-11 items-center justify-center gap-2 rounded-full border border-gold/45 bg-gold/15 px-4 text-[13px] font-semibold text-gold-text">
         Tu es le chef
       </span>
+    );
+  }
+
+  // Invité : on répond, on ne « rejoint » pas — quelqu'un a fait le premier pas.
+  if (invite) {
+    const repondre = (reponse: "acceptee" | "refusee") =>
+      start(async () => {
+        const res = await repondreGroupe(crewId, reponse);
+        if (!res.ok) notify("Impossible", { detail: res.error, tone: "warn" });
+        else {
+          notify(reponse === "acceptee" ? "Bienvenue dans la bande" : "Invitation déclinée", {
+            tone: reponse === "acceptee" ? "jade" : undefined,
+          });
+          router.refresh();
+        }
+      });
+
+    return (
+      <div className="flex gap-2">
+        <button
+          onClick={() => repondre("acceptee")}
+          disabled={pending}
+          className="press flex h-11 items-center justify-center gap-2 rounded-full bg-gold px-5 text-[13px] font-semibold text-gold-ink transition hover:brightness-105 disabled:opacity-50"
+        >
+          {pending ? <Spinner size={15} /> : <CheckIcon size={16} />} Rejoindre la bande
+        </button>
+        <button
+          onClick={() => repondre("refusee")}
+          disabled={pending}
+          className="press flex h-11 items-center rounded-full border border-line px-4 text-[13px] text-muted hover:text-ink disabled:opacity-50"
+        >
+          Non merci
+        </button>
+      </div>
     );
   }
 
@@ -163,5 +207,61 @@ export function BoutonGroupe({ crewId, membre, chef }: { crewId: string; membre:
       {pending ? <Spinner size={15} /> : null}
       {membre ? "Quitter le groupe" : "Rejoindre"}
     </button>
+  );
+}
+
+/**
+ * Dissoudre le groupe.
+ *
+ * Deux touches plutôt qu'une : effacer une bande de quinze personnes ne doit
+ * pas tenir dans un clic maladroit. Le second bouton dit ce qui va disparaître.
+ */
+export function SupprimerGroupe({ crewId, nom, membres }: { crewId: string; nom: string; membres: number }) {
+  const router = useRouter();
+  const { notify } = useSnackbar();
+  const [demande, setDemande] = useState(false);
+  const [pending, start] = useTransition();
+
+  if (!demande) {
+    return (
+      <button
+        onClick={() => setDemande(true)}
+        className="press flex h-10 items-center gap-2 rounded-full border border-line px-4 text-[12.5px] text-muted transition hover:border-warn/50 hover:text-warn"
+      >
+        Dissoudre le groupe
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[12px] text-warn">
+        Dissoudre « {nom} » et ses {membres} membre{membres > 1 ? "s" : ""} ?
+      </span>
+      <button
+        onClick={() =>
+          start(async () => {
+            const res = await supprimerGroupe(crewId);
+            if (!res.ok) {
+              notify("Impossible", { detail: res.error, tone: "warn" });
+              return;
+            }
+            notify("Groupe dissous", { detail: "La bande a été prévenue." });
+            router.push("/app/groupes");
+          })
+        }
+        disabled={pending}
+        className="press flex h-10 items-center gap-1.5 rounded-full border border-warn/50 bg-warn/12 px-4 text-[12.5px] font-semibold text-warn disabled:opacity-50"
+      >
+        {pending ? <Spinner size={14} /> : null} Oui, dissoudre
+      </button>
+      <button
+        onClick={() => setDemande(false)}
+        disabled={pending}
+        className="press flex h-10 items-center rounded-full border border-line px-4 text-[12.5px] text-muted hover:text-ink"
+      >
+        Annuler
+      </button>
+    </div>
   );
 }

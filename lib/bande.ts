@@ -28,6 +28,8 @@ export type GroupeVue = {
   membres: number;
   estMembre: boolean;
   estChef: boolean;
+  /** Une invitation en attente de réponse. */
+  invite: boolean;
 };
 
 export async function getGroupes(userId: string): Promise<GroupeVue[]> {
@@ -39,6 +41,8 @@ export async function getGroupes(userId: string): Promise<GroupeVue[]> {
                              where m.crew_id = mb.crews.id and m.status = 'membre')`,
       mien: sql<number>`(select count(*) from mb.crew_members m
                           where m.crew_id = mb.crews.id and m.user_id = ${userId} and m.status = 'membre')`,
+      invite: sql<number>`(select count(*) from mb.crew_members m
+                            where m.crew_id = mb.crews.id and m.user_id = ${userId} and m.status = 'invite')`,
     })
     .from(crews)
     .leftJoin(venues, eq(venues.id, crews.venueId))
@@ -50,6 +54,7 @@ export async function getGroupes(userId: string): Promise<GroupeVue[]> {
     membres: Number(r.membres),
     estMembre: Number(r.mien) > 0,
     estChef: r.crew.ownerId === userId,
+    invite: Number(r.invite) > 0,
   }));
 }
 
@@ -63,14 +68,40 @@ export async function getGroupe(slug: string) {
   return rows[0] ?? null;
 }
 
-/** Les membres d'un groupe, le chef en tête. */
+/** Les membres d'un groupe, le chef en tête, puis les invités en attente. */
 export async function membresDuGroupe(crewId: string) {
   return db
     .select({ membre: crewMembers, user: users })
     .from(crewMembers)
     .innerJoin(users, eq(users.id, crewMembers.userId))
     .where(and(eq(crewMembers.crewId, crewId), ne(crewMembers.status, "parti")))
-    .orderBy(sql`case when ${crewMembers.role} = 'chef' then 0 else 1 end`, desc(users.points));
+    .orderBy(
+      sql`case when ${crewMembers.status} = 'invite' then 1 else 0 end`,
+      sql`case when ${crewMembers.role} = 'chef' then 0 else 1 end`,
+      desc(users.points),
+    );
+}
+
+/** Les amis qu'on peut encore inviter dans un groupe donné. */
+export async function amisInvitables(userId: string, crewId: string) {
+  const { idsDesAmis } = await import("@/lib/joueurs");
+  const amis = await idsDesAmis(userId);
+  if (amis.length === 0) return [];
+
+  const dedans = await db
+    .select({ userId: crewMembers.userId })
+    .from(crewMembers)
+    .where(eq(crewMembers.crewId, crewId));
+  const deja = new Set(dedans.map((d) => d.userId));
+
+  const restants = amis.filter((id) => !deja.has(id));
+  if (restants.length === 0) return [];
+
+  return db
+    .select({ id: users.id, name: users.name, avatar: users.avatar, code: users.code })
+    .from(users)
+    .where(inArray(users.id, restants))
+    .orderBy(users.name);
 }
 
 /** Mes groupes, pour choisir au moment d'inviter. */

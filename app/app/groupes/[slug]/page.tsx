@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Photo } from "@/components/ui/Photo";
-import { BoutonGroupe, FormulaireGroupe } from "@/components/joueur/Groupe";
+import { BoutonGroupe, FormulaireGroupe, SupprimerGroupe } from "@/components/joueur/Groupe";
+import { InviterAuGroupe } from "@/components/joueur/InviterAuGroupe";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ChevronLeftIcon, PinIcon } from "@/components/icons";
-import { getGroupe, membresDuGroupe } from "@/lib/bande";
+import { amisInvitables, getGroupe, membresDuGroupe } from "@/lib/bande";
 import { getVenues } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
 
@@ -23,9 +24,16 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
   if (!lu) notFound();
 
   const { crew, venue } = lu;
-  const [membres, salles] = await Promise.all([membresDuGroupe(crew.id), getVenues()]);
+  const [membres, salles, invitables] = await Promise.all([
+    membresDuGroupe(crew.id),
+    getVenues(),
+    amisInvitables(moi.id, crew.id),
+  ]);
 
-  const suisMembre = membres.some((m) => m.user.id === moi.id && m.membre.status === "membre");
+  const dedans = membres.filter((m) => m.membre.status === "membre");
+  const attendus = membres.filter((m) => m.membre.status === "invite");
+  const suisMembre = dedans.some((m) => m.user.id === moi.id);
+  const suisInvite = attendus.some((m) => m.user.id === moi.id);
   const suisChef = crew.ownerId === moi.id;
 
   return (
@@ -60,7 +68,7 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
             <h1 className="truncate text-[22px] leading-tight">{crew.name}</h1>
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
               <span>
-                {membres.length} membre{membres.length > 1 ? "s" : ""}
+                {dedans.length} membre{dedans.length > 1 ? "s" : ""}
               </span>
               {venue ? (
                 <span className="flex items-center gap-1.5">
@@ -74,7 +82,10 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
         {crew.devise ? <p className="text-[13.5px] text-pretty italic">« {crew.devise} »</p> : null}
 
         <div className="flex flex-wrap items-center gap-2">
-          <BoutonGroupe crewId={crew.id} membre={suisMembre} chef={suisChef} />
+          <BoutonGroupe crewId={crew.id} membre={suisMembre} chef={suisChef} invite={suisInvite} />
+          {suisMembre || suisChef ? (
+            <InviterAuGroupe crewId={crew.id} nomDuGroupe={crew.name} amis={invitables} />
+          ) : null}
           {suisChef ? (
             <FormulaireGroupe
               salles={salles.map((v) => ({ id: v.id, name: v.name }))}
@@ -88,11 +99,13 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
             />
           ) : null}
         </div>
+
+        {suisChef ? <SupprimerGroupe crewId={crew.id} nom={crew.name} membres={dedans.length} /> : null}
       </Card>
 
       <section className="flex flex-col gap-2.5">
         <h2 className="text-[15px] font-semibold">La bande</h2>
-        {membres.map(({ membre, user }) => (
+        {dedans.map(({ membre, user }) => (
           <Link key={membre.id} href={`/app/joueurs/${user.id}`} className="press block">
             <Card shape="panel" className="flex items-center gap-3 px-3.5 py-3">
               {user.avatar ? (
@@ -121,6 +134,23 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
           </Link>
         ))}
       </section>
+
+      {attendus.length > 0 ? (
+        <section className="flex flex-col gap-2.5">
+          <h2 className="text-[15px] font-semibold">Invitations en attente · {attendus.length}</h2>
+          {attendus.map(({ membre, user }) => (
+            <Card key={membre.id} tone="dashed" shape="panel" className="flex items-center gap-3 px-3.5 py-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-[12px] font-semibold">
+                {user.name.slice(0, 2).toUpperCase()}
+              </span>
+              <span className="flex min-w-0 grow flex-col gap-0.5">
+                <span className="truncate text-[13.5px]">{user.name}</span>
+                <span className="text-[11.5px] text-muted">n&apos;a pas encore répondu</span>
+              </span>
+            </Card>
+          ))}
+        </section>
+      ) : null}
 
       <p className="text-[11.5px] leading-5 text-muted">
         Un groupe sert d&apos;abord à inviter tout le monde d&apos;un coup depuis la page des amis. Ce

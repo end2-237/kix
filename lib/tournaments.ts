@@ -90,12 +90,20 @@ export async function maCandidature(tournamentId: string, userId: string) {
 /** Les noms des joueurs d'un tableau, pour l'affichage. */
 export async function nomsDuTableau(tournamentId: string) {
   const rows = await db
-    .select({ id: tournamentPlayers.id, nickname: tournamentPlayers.nickname, seed: tournamentPlayers.seed, nom: users.name })
+    .select({
+      id: tournamentPlayers.id,
+      userId: tournamentPlayers.userId,
+      nickname: tournamentPlayers.nickname,
+      seed: tournamentPlayers.seed,
+      nom: users.name,
+    })
     .from(tournamentPlayers)
     .innerJoin(users, eq(users.id, tournamentPlayers.userId))
     .where(eq(tournamentPlayers.tournamentId, tournamentId));
 
-  return new Map(rows.map((r) => [r.id, { nom: r.nickname || r.nom, seed: r.seed }]));
+  // Le compte est porté avec le nom : c'est lui qui mène au profil, et un
+  // nom de tableau sans lien est la première chose qu'on essaie de toucher.
+  return new Map(rows.map((r) => [r.id, { nom: r.nickname || r.nom, seed: r.seed, userId: r.userId }]));
 }
 
 /** Les tournois auxquels un joueur a postulé, avec l'état de sa candidature. */
