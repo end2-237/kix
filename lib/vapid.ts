@@ -35,7 +35,33 @@ export const ressembleAUnePriveeVapid = (v: string) =>
 export function cles(): Cles | null {
   const publique = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
   const privee = process.env.VAPID_PRIVATE_KEY?.trim();
+
+  // Une clé publique seule est le piège silencieux de cette configuration :
+  // le navigateur s'abonne avec elle, l'abonnement se range en base, la page
+  // affiche « activées » — et rien ne part jamais, faute de pouvoir signer.
+  // Mieux vaut le dire au démarrage que le chercher un mois plus tard.
+  if (publique && !privee) {
+    console.error(
+      "[mb] NEXT_PUBLIC_VAPID_PUBLIC_KEY est posée mais VAPID_PRIVATE_KEY manque. " +
+        "Les navigateurs s'abonneront sans que rien ne puisse leur être envoyé. " +
+        "Génère la paire avec `npm run push:cles` et pose les deux moitiés — " +
+        "la publique doit être présente à la construction.",
+    );
+    return null;
+  }
   if (!publique || !privee) return null;
+
+  // La clé du certificat Web Push de Firebase est une AUTRE paire que la
+  // nôtre : s'en servir pour l'abonnement standard produit des abonnements
+  // que nous ne saurons jamais signer.
+  const firebase = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY?.trim();
+  if (firebase && firebase === publique) {
+    console.error(
+      "[mb] NEXT_PUBLIC_VAPID_PUBLIC_KEY et NEXT_PUBLIC_FIREBASE_VAPID_KEY portent la même valeur. " +
+        "Ce sont deux paires distinctes : celle de Firebase vient de sa console, la nôtre de " +
+        "`npm run push:cles`. Tant qu'elles sont confondues, les envois directs seront refusés.",
+    );
+  }
 
   // Refuser plutôt qu'envoyer : une clé privée déjà partie dans le navigateur
   // est une clé à changer, et continuer à s'en servir ne ferait que retarder
