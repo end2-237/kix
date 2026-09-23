@@ -18,7 +18,9 @@ import {
   orderItems,
   orders,
   packs,
+  productImages,
   products,
+  productVariants,
   purchases,
   reservations,
   scans,
@@ -55,7 +57,7 @@ function code(taken: Set<string>) {
 
 // on vide dans l'ordre des dépendances
 export async function seed() {
-for (const table of [notifications, streamPasses, streams, matchEvents, matches, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, products, packs, sessions, users, venues]) {
+for (const table of [notifications, streamPasses, streams, matchEvents, matches, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, productVariants, productImages, products, packs, sessions, users, venues]) {
   await db.delete(table);
 }
 
@@ -320,6 +322,31 @@ const productRows: (typeof products.$inferInsert)[] = [
 productRows[0].sellerId = vendeur.id;
 productRows[1].sellerId = vendeur.id;
 await db.insert(products).values(productRows);
+
+/* galerie et déclinaisons --------------------------------------------------
+   Une puff ne se vend pas en un seul parfum, et une fiche n'a pas qu'une
+   photo. Le semis en montre un exemplaire complet — quatre saveurs, dont une
+   épuisée, parce que c'est l'état qu'on a vraiment un vendredi soir. */
+
+const puff = productRows[0].id!;
+const pod = productRows[1].id!;
+
+await db.insert(productImages).values([
+  { id: uid(), productId: puff, url: "/img/vape-pod.jpg", sort: 1 },
+  { id: uid(), productId: puff, url: "/img/balls-glow.jpg", sort: 2 },
+  { id: uid(), productId: pod, url: "/img/puffs.jpg", sort: 1 },
+]);
+
+await db.insert(productVariants).values([
+  { id: uid(), productId: puff, name: "Mangue glacée", price: null, stock: 18, sort: 1 },
+  { id: uid(), productId: puff, name: "Menthe polaire", price: null, stock: 22, sort: 2 },
+  { id: uid(), productId: puff, name: "Fruits rouges", price: 7500, stock: 8, sort: 3 },
+  // Épuisée : elle reste affichée, barrée. Savoir qu'elle existe et qu'elle
+  // est finie vaut mieux que de croire qu'elle n'existe pas.
+  { id: uid(), productId: puff, name: "Pastèque", price: null, stock: 0, sort: 4 },
+  { id: uid(), productId: pod, name: "Noir", price: null, stock: 7, sort: 1 },
+  { id: uid(), productId: pod, name: "Bleu nuit", price: null, stock: 5, sort: 2 },
+]);
 
 /* une commande déjà passée ------------------------------------------------ */
 const order = {

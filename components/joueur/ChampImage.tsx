@@ -12,7 +12,17 @@ import { cn } from "@/lib/cn";
  * adresse — mais sans l'habillage de l'administration : ici c'est un joueur
  * qui choisit la photo de sa bande sur son téléphone.
  */
-export function ChampImage({ name, defaultValue = "" }: { name: string; defaultValue?: string }) {
+export function ChampImage({
+  name,
+  defaultValue = "",
+  dossier = "groupes",
+  label = "Photo du groupe",
+}: {
+  name: string;
+  defaultValue?: string;
+  dossier?: string;
+  label?: string;
+}) {
   const fichier = useRef<HTMLInputElement>(null);
   const [valeur, setValeur] = useState(defaultValue);
   const [envoi, setEnvoi] = useState(false);
@@ -26,7 +36,7 @@ export function ChampImage({ name, defaultValue = "" }: { name: string; defaultV
     try {
       const corps = new FormData();
       corps.set("fichier", f);
-      corps.set("dossier", "groupes");
+      corps.set("dossier", dossier);
       const res = await fetch("/api/upload", { method: "POST", body: corps });
       const lu = (await res.json()) as { ok: boolean; url?: string; error?: string };
       if (!lu.ok || !lu.url) setErreur(lu.error ?? "Dépôt impossible.");
@@ -41,7 +51,7 @@ export function ChampImage({ name, defaultValue = "" }: { name: string; defaultV
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="label-caps text-[10px]">Photo du groupe</span>
+      <span className="label-caps text-[10px]">{label}</span>
       <div className="flex items-start gap-3">
         <label
           className={cn(

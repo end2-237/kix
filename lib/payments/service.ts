@@ -13,6 +13,7 @@ import {
   payments,
   reservations,
   products,
+  productVariants,
   purchases,
   streamPasses,
   streams,
@@ -231,6 +232,14 @@ async function fulfilOrder(tx: Tx, payment: Payment) {
       .update(products)
       .set({ stock: sql`greatest(0, ${products.stock} - ${line.qty})` })
       .where(eq(products.id, line.productId));
+    // La déclinaison tient son propre stock : vendre trois mangues ne doit pas
+    // entamer les menthes, et le total de l'article suit quand même.
+    if (line.variantId) {
+      await tx
+        .update(productVariants)
+        .set({ stock: sql`greatest(0, ${productVariants.stock} - ${line.qty})` })
+        .where(eq(productVariants.id, line.variantId));
+    }
   }
 
   await notify(

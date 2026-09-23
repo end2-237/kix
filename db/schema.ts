@@ -163,6 +163,60 @@ export const products = mb.table("products", {
   createdAt: createdAt(),
 });
 
+/**
+ * Les images d'un article, au-delà de la première.
+ *
+ * Une puff se vend sur sa photo : une seule image, prise de face, ne dit ni la
+ * taille, ni la contenance, ni ce qu'il y a dans la boîte. `products.image`
+ * reste la vignette — celle des listes et du panier —, et cette table porte la
+ * galerie de la fiche, dans l'ordre choisi par le vendeur.
+ */
+export const productImages = mb.table(
+  "product_images",
+  {
+    id: id(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    sort: integer("sort").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("product_images_product_idx").on(t.productId, t.sort)],
+);
+
+/**
+ * Les déclinaisons d'un article : une saveur, une contenance, une couleur.
+ *
+ * Un vendeur de puffs n'a pas dix articles, il en a un en dix parfums — et
+ * chacun a son propre stock, parfois son propre prix. Sans cette table, il
+ * fallait créer dix fiches, ou mentir sur le stock.
+ *
+ * Le prix est porté ici en entier plutôt qu'en écart : un écart se relit mal
+ * six mois plus tard, et une promotion sur une seule saveur devient un calcul
+ * mental. Une déclinaison sans prix propre reprend celui de l'article.
+ */
+export const productVariants = mb.table(
+  "product_variants",
+  {
+    id: id(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    /** Ce qui la distingue, en clair : « Mangue glacée », « 50 cl », « Bleu ». */
+    name: text("name").notNull(),
+    /** Le prix de cette déclinaison. Nul : on prend celui de l'article. */
+    price: integer("price"),
+    stock: integer("stock").notNull().default(0),
+    /** Sa propre photo, quand la couleur change tout. */
+    image: text("image"),
+    sort: integer("sort").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [index("product_variants_product_idx").on(t.productId, t.sort)],
+);
+
 export const orders = mb.table(
   "orders",
   {
@@ -192,6 +246,15 @@ export const orderItems = mb.table("order_items", {
   productId: uuid("product_id")
     .notNull()
     .references(() => products.id),
+  /**
+   * La déclinaison vendue, et son nom figé.
+   *
+   * Le nom est recopié ici : une saveur renommée, ou retirée du catalogue, ne
+   * doit pas réécrire une commande d'hier — c'est la même règle que le prix
+   * unitaire juste en dessous.
+   */
+  variantId: uuid("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+  variantLabel: text("variant_label").notNull().default(""),
   qty: integer("qty").notNull().default(1),
   unitPrice: integer("unit_price").notNull(),
   /**
@@ -1066,6 +1129,8 @@ export type Stream = typeof streams.$inferSelect;
 export type StreamPass = typeof streamPasses.$inferSelect;
 export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;
+export type ProductImage = typeof productImages.$inferSelect;
+export type ProductVariant = typeof productVariants.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Crew = typeof crews.$inferSelect;

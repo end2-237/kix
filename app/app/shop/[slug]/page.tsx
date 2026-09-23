@@ -2,15 +2,13 @@ import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ScreenHeader } from "@/components/mb/AppHeader";
-import { AddToCartButton } from "@/components/shop/AddToCartButton";
+import { FicheArticle } from "@/components/shop/FicheArticle";
 import { CartBar } from "@/components/shop/CartBar";
 import { Card } from "@/components/ui/Card";
-import { Chip } from "@/components/ui/Chip";
 import { CheckIcon, PinIcon, TruckIcon } from "@/components/icons";
-import { getProduct, getProducts } from "@/lib/queries";
+import { getFicheProduit, getProduct, getProducts } from "@/lib/queries";
 import { f } from "@/lib/format";
 import { DELIVERY_FEE } from "@/lib/constants";
-import { cn } from "@/lib/cn";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -20,8 +18,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = await getProduct(slug);
-  if (!product || !product.active) notFound();
+  const fiche = await getFicheProduit(slug);
+  if (!fiche || !fiche.produit.active) notFound();
+  const { produit: product, galerie, declinaisons } = fiche;
 
   const others = (await getProducts(product.category)).filter((p) => p.id !== product.id).slice(0, 3);
 
@@ -33,51 +32,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         back="/app/shop"
       />
 
-      <div className="grid gap-3.5 lg:grid-cols-2 lg:items-start lg:gap-10">
-      <div className="relative h-64 overflow-hidden rounded-panel border border-line lg:sticky lg:top-8 lg:h-125">
-        <Photo src={product.image} alt={product.name} fill sizes="430px" className="object-cover" priority />
-        {product.badgeLabel ? (
-          <span
-            className={cn(
-              "absolute top-3 left-3 rounded-full px-3 py-1.5 text-[10px] font-semibold tracking-[0.06em] uppercase",
-              product.badgeTone === "gold" ? "bg-gold text-gold-ink" : "bg-jade text-white",
-            )}
-          >
-            {product.badgeLabel}
-          </span>
-        ) : null}
-      </div>
-
-      <div className="flex flex-col gap-3.5 lg:gap-5">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-[26px] leading-7 lg:text-[34px] lg:leading-9">{product.name}</h1>
-          <span className="shrink-0 text-[22px] font-bold tracking-[-0.03em] text-gold-text lg:text-[28px]">{f(product.price)}</span>
-        </div>
-        <p className="text-[13px] text-muted">{product.detail}</p>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Chip tone={product.stock > 0 ? "gold" : "warn"}>
-          {product.stock > 0 ? `${product.stock} en stock` : "Rupture"}
-        </Chip>
-        <Chip tone="neutral">Retrait gratuit en salle</Chip>
-        <Chip tone="neutral">Livraison {f(DELIVERY_FEE)}</Chip>
-      </div>
-
-      <p className="text-[14px] leading-6 text-dim text-pretty">{product.description}</p>
+      <FicheArticle produit={product} galerie={galerie} declinaisons={declinaisons} />
 
       <Card shape="square" className="flex flex-col divide-y divide-line">
         <Row icon={<PinIcon size={17} />} title="Retrait en salle" detail="Prêt sous 2 h au Break Akwa, gratuit." />
         <Row icon={<TruckIcon size={17} />} title="Livraison Douala" detail={`${f(DELIVERY_FEE)} · le soir même avant 20 h.`} />
         <Row icon={<CheckIcon size={17} />} title="Paiement Mobile Money" detail="Orange Money ou MTN MoMo à la commande." />
       </Card>
-
-      <div className="hidden lg:flex">
-        <AddToCartButton slug={product.slug} name={product.name} price={product.price} full />
-      </div>
-      </div>
-      </div>
 
       {others.length > 0 ? (
         <div className="flex flex-col gap-2.5 lg:gap-4">
@@ -102,11 +63,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </div>
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-24 z-20 mx-auto flex w-full max-w-[430px] gap-3 px-5 lg:hidden">
-        <AddToCartButton slug={product.slug} name={product.name} price={product.price} full />
-      </div>
+      {/* Le bouton d'achat flotte au-dessus du contenu sur téléphone : sans
+          cette réserve, la dernière section — et le choix des saveurs sur une
+          fiche courte — se retrouve coincée dessous, intouchable. */}
+      <div className="h-32 lg:hidden" aria-hidden />
 
-      <CartBar />
+      {/* Le panier flottant reste sur grand écran, où il vit dans un coin ;
+          sur téléphone il ferait doublon avec la barre d'achat de la fiche. */}
+      <div className="hidden lg:block">
+        <CartBar />
+      </div>
     </>
   );
 }

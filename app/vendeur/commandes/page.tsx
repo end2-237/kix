@@ -46,6 +46,7 @@ export default async function VendeurCommandes() {
                   <span className="flex min-w-0 grow flex-col gap-0.5">
                     <span className="truncate text-[14.5px] font-semibold">
                       {item.qty} × {product.name}
+                      {item.variantLabel ? <span className="text-muted"> · {item.variantLabel}</span> : null}
                     </span>
                     <span className="truncate text-[12px] text-muted">
                       {client.name} · {displayPhone(client.phone)}

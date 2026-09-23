@@ -2,6 +2,7 @@ import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { ConvertButton } from "@/components/mb/ConvertButton";
+import { MaPhoto } from "@/components/joueur/MaPhoto";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import {
@@ -39,6 +40,8 @@ export default async function RewardsPage() {
   return (
     <>
       <ScreenHeader title="Master Rank" subtitle="Chaque partie scannée compte des points, chaque tournoi te classe." />
+
+      <MaPhoto nom={user.name} avatar={user.avatar} />
 
       {/* Le code se dicte à la table pour se faire ajouter : il est ici, en
           grand, plutôt qu'enfoui dans une page de réglages. */}

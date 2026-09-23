@@ -25,7 +25,9 @@ import {
   packs,
   payments,
   payouts,
+  productImages,
   products,
+  productVariants,
   purchases,
   reservations,
   scans,
@@ -401,7 +403,7 @@ export async function rotatePass(): Promise<{ id: string; code: string; shape: Q
 
 /* ---------------------------------------------------------------- boutique */
 
-export type CheckoutItem = { slug: string; qty: number };
+export type CheckoutItem = { slug: string; qty: number; variantId?: string | null };
 export type CheckoutResult =
   | { ok: true; reference: string; orderId: string; total: number; instruction?: string }
   | { ok: false; error: string };
@@ -427,21 +429,37 @@ export async function checkout(
       ),
     );
 
+  // Les déclinaisons commandées, relues en base : le prix d'une saveur ne se
+  // prend jamais dans le navigateur, qui peut dire n'importe quoi.
+  const idsVariantes = items.map((i) => i.variantId).filter((v): v is string => Boolean(v));
+  const variantes = idsVariantes.length
+    ? await db.select().from(productVariants).where(inArray(productVariants.id, idsVariantes))
+    : [];
+
   let total = fulfillment === "delivery" ? 1000 : 0;
   const lines = items
     .map((item) => {
       const product = rows.find((p) => p.slug === item.slug);
       if (!product) return null;
-      const ligne = product.price * item.qty;
+      const variante = item.variantId ? variantes.find((v) => v.id === item.variantId) : undefined;
+      // Une déclinaison demandée mais introuvable, retirée du catalogue ou
+      // rattachée à un autre article : on ne devine pas, on refuse la ligne.
+      if (item.variantId && (!variante || !variante.active || variante.productId !== product.id)) return null;
+
+      const prix = variante?.price ?? product.price;
+      const ligne = prix * item.qty;
       total += ligne;
       // Le vendeur et la commission sont figés ici, avec le prix : un article
       // repris par un autre vendeur, ou un taux revu l'an prochain, ne doivent
-      // pas réécrire ce qu'on doit pour une vente d'aujourd'hui.
+      // pas réécrire ce qu'on doit pour une vente d'aujourd'hui. Le nom de la
+      // déclinaison aussi : une saveur renommée ne réécrit pas la commande.
       return {
         id: uid(),
         productId: product.id,
+        variantId: variante?.id ?? null,
+        variantLabel: variante?.name ?? "",
         qty: item.qty,
-        unitPrice: product.price,
+        unitPrice: prix,
         sellerId: product.sellerId,
         commission: product.sellerId ? Math.round(ligne * COMMISSION_RATE) : ligne,
       };
@@ -561,6 +579,42 @@ export async function convertPoints(): Promise<ConvertResult> {
   revalidatePath("/app/pass");
   revalidatePath("/app");
   return { ok: true, points: user.points - POINTS_PER_FREE_TOKEN };
+}
+
+export type PhotoResult = { ok: true; avatar: string | null } | { ok: false; error: string };
+
+/**
+ * Sa propre photo de profil.
+ *
+ * Un joueur n'avait aucun moyen de changer son avatar : il gardait la lettre
+ * de ses initiales, ou la photo posée à la main par le semis. Il choisit
+ * maintenant la sienne — déposée depuis son téléphone, ou collée en adresse,
+ * comme partout ailleurs dans l'application.
+ */
+export async function changerMaPhoto(formData: FormData): Promise<PhotoResult> {
+  const moi = await requireUser();
+  const valeur = str(formData, "avatar").slice(0, 500);
+
+  // Vide : on retire la photo, et les initiales reprennent leur place.
+  if (!valeur) {
+    await db.update(users).set({ avatar: null }).where(eq(users.id, moi.id));
+    revalidatePath("/app");
+    revalidatePath("/app/rewards");
+    revalidatePath(`/app/joueurs/${moi.id}`);
+    return { ok: true, avatar: null };
+  }
+
+  // Une image interne ou une adresse http : rien d'autre. Un `javascript:`
+  // ou un `data:` n'a rien à faire dans un attribut `src` rendu à tous.
+  const propre = /^\/[\w./-]*$/.test(valeur) || /^https?:\/\/\S+$/i.test(valeur);
+  if (!propre) return { ok: false, error: "Donne une adresse d'image, ou dépose un fichier." };
+
+  await db.update(users).set({ avatar: valeur }).where(eq(users.id, moi.id));
+  revalidatePath("/app");
+  revalidatePath("/app/rewards");
+  revalidatePath(`/app/joueurs/${moi.id}`);
+  revalidatePath("/app/classement");
+  return { ok: true, avatar: valeur };
 }
 
 export async function markNotificationsRead() {
@@ -739,6 +793,120 @@ export async function deleteProduct(formData: FormData) {
   revalidatePath("/vendeur");
   revalidatePath("/admin/produits");
   revalidatePath("/app/shop");
+}
+
+/**
+ * Qui a le droit de toucher à cet article.
+ *
+ * Un vendeur et un gérant ne touchent qu'aux leurs ; l'administration touche
+ * à tout. La galerie et les déclinaisons passent par la même porte que la
+ * fiche — sinon on protégerait le prix et pas le stock d'une saveur.
+ */
+async function monArticle(productId: string) {
+  const auteur = await requireRole("admin", "seller", "manager");
+  const article = (await db.select().from(products).where(eq(products.id, productId)).limit(1))[0];
+  if (!article) redirect("/vendeur?refus=1");
+  if (auteur.role !== "admin" && article.sellerId !== auteur.id) redirect("/vendeur?refus=1");
+  return article;
+}
+
+function rafraichirArticle(slug: string) {
+  revalidatePath("/vendeur/articles");
+  revalidatePath("/admin/produits");
+  revalidatePath("/app/shop");
+  revalidatePath(`/app/shop/${slug}`);
+}
+
+/** Une photo de plus dans la galerie d'un article. */
+export async function ajouterImageProduit(formData: FormData) {
+  const article = await monArticle(str(formData, "productId"));
+  const url = str(formData, "url").slice(0, 500);
+  if (!url) return;
+  // Même garde que pour une photo de profil : une adresse d'image, rien d'autre.
+  if (!/^\/[\w./-]*$/.test(url) && !/^https?:\/\/\S+$/i.test(url)) return;
+
+  const dernier = (
+    await db
+      .select({ n: sql<number>`coalesce(max(${productImages.sort}), 0)` })
+      .from(productImages)
+      .where(eq(productImages.productId, article.id))
+  )[0];
+
+  await db.insert(productImages).values({
+    id: uid(),
+    productId: article.id,
+    url,
+    sort: Number(dernier?.n ?? 0) + 1,
+  });
+  rafraichirArticle(article.slug);
+}
+
+export async function retirerImageProduit(formData: FormData) {
+  const article = await monArticle(str(formData, "productId"));
+  await db
+    .delete(productImages)
+    .where(and(eq(productImages.id, str(formData, "id")), eq(productImages.productId, article.id)));
+  rafraichirArticle(article.slug);
+}
+
+/**
+ * Une déclinaison : une saveur, une contenance, une couleur.
+ *
+ * Le prix laissé vide reprend celui de l'article — c'est le cas courant, et
+ * demander de retaper le même nombre pour dix saveurs est le meilleur moyen
+ * d'en avoir une à 200 F par faute de frappe.
+ */
+export async function enregistrerVariante(formData: FormData) {
+  const article = await monArticle(str(formData, "productId"));
+  const id = str(formData, "id");
+  const nom = str(formData, "name").slice(0, 80);
+  if (!nom) return;
+
+  const prixBrut = str(formData, "price");
+  const values = {
+    name: nom,
+    price: prixBrut === "" ? null : Math.max(0, num(formData, "price")),
+    stock: Math.max(0, num(formData, "stock")),
+    image: str(formData, "image").slice(0, 500) || null,
+    active: !formData.has("active") || bool(formData, "active"),
+  };
+
+  if (id) {
+    await db
+      .update(productVariants)
+      .set(values)
+      .where(and(eq(productVariants.id, id), eq(productVariants.productId, article.id)));
+  } else {
+    const dernier = (
+      await db
+        .select({ n: sql<number>`coalesce(max(${productVariants.sort}), 0)` })
+        .from(productVariants)
+        .where(eq(productVariants.productId, article.id))
+    )[0];
+    await db.insert(productVariants).values({
+      id: uid(),
+      productId: article.id,
+      sort: Number(dernier?.n ?? 0) + 1,
+      ...values,
+    });
+  }
+  rafraichirArticle(article.slug);
+}
+
+/**
+ * Retirer une déclinaison.
+ *
+ * On la désactive plutôt que de l'effacer : des commandes passées y renvoient,
+ * et une ligne de vente sans déclinaison est une ligne qu'on ne sait plus
+ * expliquer — la même règle que pour un article retiré de la vente.
+ */
+export async function retirerVariante(formData: FormData) {
+  const article = await monArticle(str(formData, "productId"));
+  await db
+    .update(productVariants)
+    .set({ active: false })
+    .where(and(eq(productVariants.id, str(formData, "id")), eq(productVariants.productId, article.id)));
+  rafraichirArticle(article.slug);
 }
 
 export async function savePack(formData: FormData) {

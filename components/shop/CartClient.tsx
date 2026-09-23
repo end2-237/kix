@@ -14,14 +14,16 @@ import { cn } from "@/lib/cn";
 import { Counter } from "@/components/ui/Counter";
 import { f, fcfa } from "@/lib/format";
 import { DELIVERY_FEE } from "@/lib/constants";
-import type { Product, Venue } from "@/db";
+import type { Product, ProductVariant, Venue } from "@/db";
 
 export function CartClient({
   products,
+  variantes,
   venues,
   phone,
 }: {
   products: Product[];
+  variantes: ProductVariant[];
   venues: Venue[];
   phone: string;
 }) {
@@ -33,11 +35,29 @@ export function CartClient({
   const [method, setMethod] = useState<Method>("momo");
   const [done, setDone] = useState<{ total: number } | null>(null);
 
+  // Une ligne, c'est un article ET sa déclinaison : deux saveurs du même
+  // article sont deux lignes, avec chacune sa quantité et son prix.
   const lines = list
-    .map((item) => ({ product: products.find((p) => p.slug === item.slug), qty: item.qty }))
-    .filter((l): l is { product: Product; qty: number } => Boolean(l.product));
+    .map((item) => {
+      const product = products.find((p) => p.slug === item.slug);
+      if (!product) return null;
+      const variante = item.variantId ? (variantes.find((v) => v.id === item.variantId) ?? null) : null;
+      // Une déclinaison disparue du catalogue ne doit pas se vendre au prix
+      // de l'article : on laisse la ligne visible, le panier la refusera.
+      const introuvable = Boolean(item.variantId) && !variante;
+      return {
+        cle: item.cle,
+        product,
+        variante,
+        introuvable,
+        qty: item.qty,
+        prix: variante?.price ?? product.price,
+        image: variante?.image ?? product.image,
+      };
+    })
+    .filter((l): l is NonNullable<typeof l> => l !== null);
 
-  const subtotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
+  const subtotal = lines.reduce((sum, l) => sum + (l.introuvable ? 0 : l.prix * l.qty), 0);
   const shipping = fulfillment === "delivery" ? DELIVERY_FEE : 0;
   const total = subtotal + shipping;
 
@@ -46,7 +66,7 @@ export function CartClient({
   const start = async (phoneNumber: string, chosen: Method) => {
     setMethod(chosen);
     return checkout(
-      lines.map((l) => ({ slug: l.product.slug, qty: l.qty })),
+      lines.filter((l) => !l.introuvable).map((l) => ({ slug: l.product.slug, qty: l.qty, variantId: l.variante?.id })),
       fulfillment,
       chosen,
       phoneNumber,
@@ -109,11 +129,11 @@ export function CartClient({
   return (
     <div className="grid gap-3.5 lg:grid-cols-3 lg:items-start lg:gap-8">
       <div className="flex flex-col gap-2.5 lg:col-span-2 lg:gap-4">
-        {lines.map(({ product, qty }) => (
-          <div key={product.id} className="glass lift flex items-center gap-3 rounded-card p-3">
+        {lines.map(({ cle, product, variante, introuvable, qty, prix, image }) => (
+          <div key={cle} className="glass lift flex items-center gap-3 rounded-card p-3">
             <Link href={`/app/shop/${product.slug}`}>
               <Photo
-                src={product.image}
+                src={image}
                 alt={product.name}
                 width={64}
                 height={64}
@@ -122,12 +142,21 @@ export function CartClient({
             </Link>
             <div className="flex min-w-0 grow flex-col gap-1">
               <span className="truncate text-[13px] font-semibold">{product.name}</span>
-              <span className="text-[11px] text-muted">{f(product.price)} l&apos;unité</span>
-              <span className="text-[13px] font-bold">{f(product.price * qty)}</span>
+              {variante ? (
+                <span className="truncate text-[11px] text-gold-text">{variante.name}</span>
+              ) : null}
+              {introuvable ? (
+                <span className="text-[11px] text-warn">Cette déclinaison n&apos;est plus au catalogue.</span>
+              ) : (
+                <>
+                  <span className="text-[11px] text-muted">{f(prix)} l&apos;unité</span>
+                  <span className="text-[13px] font-bold">{f(prix * qty)}</span>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setQty(product.slug, qty - 1)}
+                onClick={() => setQty(cle, qty - 1)}
                 aria-label="Retirer un article"
                 className="glass press grid h-9 w-9 place-items-center rounded-full hover:text-gold-text"
               >
@@ -135,7 +164,7 @@ export function CartClient({
               </button>
               <span key={qty} className="pop w-5 text-center text-[13px] font-semibold">{qty}</span>
               <button
-                onClick={() => setQty(product.slug, qty + 1)}
+                onClick={() => setQty(cle, qty + 1)}
                 aria-label="Ajouter un article"
                 className="press grid h-9 w-9 place-items-center rounded-full bg-gold text-gold-ink hover:brightness-105"
               >

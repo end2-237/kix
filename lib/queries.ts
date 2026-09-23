@@ -8,7 +8,9 @@ import {
   orders,
   packs,
   payments,
+  productImages,
   products,
+  productVariants,
   purchases,
   reservations,
   scans,
@@ -20,6 +22,7 @@ import {
   tournamentPlayers,
   venueTables,
   type EventRow,
+  type ProductVariant,
   type Reservation,
   type Venue,
   type VenueTable,
@@ -68,6 +71,38 @@ export async function getProducts(category?: string, q?: string) {
 export async function getProduct(slug: string) {
   const rows = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
   return rows[0] ?? null;
+}
+
+/**
+ * La fiche complète d'un article : sa galerie et ses déclinaisons.
+ *
+ * `products.image` reste la vignette ; la galerie s'ouvre derrière elle. Les
+ * déclinaisons épuisées restent affichées mais grisées — savoir que la mangue
+ * existe et qu'elle est finie vaut mieux que de croire qu'elle n'existe pas.
+ */
+export async function getFicheProduit(slug: string) {
+  const produit = await getProduct(slug);
+  if (!produit) return null;
+
+  const [galerie, declinaisons] = await Promise.all([
+    db.select().from(productImages).where(eq(productImages.productId, produit.id)).orderBy(productImages.sort),
+    db
+      .select()
+      .from(productVariants)
+      .where(and(eq(productVariants.productId, produit.id), eq(productVariants.active, true)))
+      .orderBy(productVariants.sort, productVariants.name),
+  ]);
+
+  return { produit, galerie, declinaisons };
+}
+
+/** Toutes les déclinaisons actives, pour le panier qui en porte plusieurs. */
+export async function getDeclinaisons(): Promise<ProductVariant[]> {
+  return db
+    .select()
+    .from(productVariants)
+    .where(eq(productVariants.active, true))
+    .orderBy(productVariants.sort, productVariants.name);
 }
 
 export async function getEvents(): Promise<EventRow[]> {

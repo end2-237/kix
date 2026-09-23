@@ -225,6 +225,20 @@
       "when": 1790173164631,
       "tag": "0031_fin-de-soiree",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790175761967,
+      "tag": "0032_variantes-articles",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790175762967,
+      "tag": "0033_variantes_rls",
+      "breakpoints": true
     }
   ]
 }

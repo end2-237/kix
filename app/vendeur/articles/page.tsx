@@ -4,7 +4,8 @@ import { ImageField } from "@/components/admin/ImageField";
 import { Card } from "@/components/ui/Card";
 import { Section } from "@/components/dash/Section";
 import { deleteProduct, saveProduct } from "@/lib/actions";
-import { getProduitsVendeur } from "@/lib/seller";
+import { GalerieEtVariantes } from "@/components/vendeur/GalerieEtVariantes";
+import { getGalerieEtVariantes, getProduitsVendeur } from "@/lib/seller";
 import { requireRole } from "@/lib/session";
 import { f } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -20,6 +21,7 @@ const RAYONS = [
 export default async function VendeurArticles() {
   const vendeur = await requireRole("seller", "manager", "admin");
   const articles = await getProduitsVendeur(vendeur.id);
+  const { images, variantes } = await getGalerieEtVariantes(articles.map((a) => a.product.id));
 
   return (
     <>
@@ -53,7 +55,7 @@ export default async function VendeurArticles() {
 
         <div className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2">
           {articles.map(({ product, vendus }) => (
-            <Card key={product.id} shape="panel" className="flex flex-col gap-3 p-3.5">
+            <Card key={product.id} data-article={product.slug} shape="panel" className="flex flex-col gap-3 p-3.5">
               <div className="flex gap-3">
                 <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-card">
                   <Photo src={product.image} alt="" fill sizes="56px" className="object-cover" />
@@ -104,6 +106,12 @@ export default async function VendeurArticles() {
                   </button>
                 </form>
               </Drawer>
+
+              <GalerieEtVariantes
+                article={product}
+                images={images.filter((i) => i.productId === product.id)}
+                variantes={variantes.filter((v) => v.productId === product.id)}
+              />
             </Card>
           ))}
         </div>

@@ -2,21 +2,48 @@
 
 import { CheckIcon, PlusIcon } from "@/components/icons";
 import { useSnackbar } from "@/components/ui/Snackbar";
-import { addToCart, useCart } from "@/lib/cart";
+import { addToCart, cleArticle, useCart } from "@/lib/cart";
 import { cn } from "@/lib/cn";
 import { f } from "@/lib/format";
 
-type Props = { slug: string; name: string; price: number; qty?: number; full?: boolean; className?: string };
+type Props = {
+  slug: string;
+  name: string;
+  price: number;
+  qty?: number;
+  full?: boolean;
+  className?: string;
+  /** La déclinaison choisie, quand l'article en a. */
+  variantId?: string | null;
+  variantLabel?: string | null;
+  /** Rupture : on montre le bouton, mais il ne met rien au panier. */
+  epuise?: boolean;
+};
 
 /** Ajout au panier + snackbar de confirmation. */
-export function AddToCartButton({ slug, name, price, qty = 1, full = false, className }: Props) {
+export function AddToCartButton({
+  slug,
+  name,
+  price,
+  qty = 1,
+  full = false,
+  className,
+  variantId = null,
+  variantLabel = null,
+  epuise = false,
+}: Props) {
   const { notify } = useSnackbar();
   const { items } = useCart();
-  const inCart = items[slug] ?? 0;
+  const inCart = items[cleArticle(slug, variantId)] ?? 0;
+  const nomComplet = variantLabel ? `${name} · ${variantLabel}` : name;
 
   function add() {
-    addToCart(slug, qty);
-    notify("Ajouté au panier", { detail: `${name} · ${f(price * qty)}` });
+    if (epuise) {
+      notify("Rupture de stock", { detail: nomComplet, tone: "warn" });
+      return;
+    }
+    addToCart(slug, qty, variantId);
+    notify("Ajouté au panier", { detail: `${nomComplet} · ${f(price * qty)}` });
   }
 
   if (full) {
@@ -29,7 +56,7 @@ export function AddToCartButton({ slug, name, price, qty = 1, full = false, clas
         )}
       >
         {inCart > 0 ? <CheckIcon size={18} /> : <PlusIcon size={18} />}
-        {inCart > 0 ? `Dans le panier (${inCart})` : "Ajouter au panier"}
+        {epuise ? "Rupture de stock" : inCart > 0 ? `Dans le panier (${inCart})` : "Ajouter au panier"}
       </button>
     );
   }
@@ -37,7 +64,7 @@ export function AddToCartButton({ slug, name, price, qty = 1, full = false, clas
   return (
     <button
       onClick={add}
-      aria-label={`Ajouter ${name} au panier`}
+      aria-label={`Ajouter ${nomComplet} au panier`}
       className={cn(
         "press grid h-9 w-11 place-items-center rounded-full border transition",
         inCart > 0

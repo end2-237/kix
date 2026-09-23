@@ -205,14 +205,23 @@
    * s'arrête si la personne a demandé moins d'animations.
    * -------------------------------------------------------------------- */
 
+  /* `backwards` et non `both`.
+     Une animation qui remplit vers l'avant laisse sa dernière valeur sur
+     l'élément — ici une matrice de transformation, fût-elle l'identité. Un
+     élément transformé devient le bloc conteneur de ses descendants
+     `position: fixed` : le bouton d'achat flottant d'une fiche article se
+     retrouvait ancré au milieu de la page, à recouvrir les boutons qu'il
+     fallait toucher. En `backwards`, l'élément prend l'état de départ pendant
+     son délai, puis rend la main : l'entrée en cascade est identique, et plus
+     rien ne piège ce qui flotte au-dessus. */
   .rise {
-    animation: rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    animation: rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
     animation-delay: calc(var(--d, 0) * 70ms);
   }
 
   /* chaque enfant entre en cascade, sans avoir à numéroter à la main */
   .stagger > * {
-    animation: rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    animation: rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
   }
   .stagger > *:nth-child(1) { animation-delay: 40ms; }
   .stagger > *:nth-child(2) { animation-delay: 110ms; }

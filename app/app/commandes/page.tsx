@@ -74,7 +74,12 @@ export default async function CommandesPage() {
                     className="h-11 w-11 rounded-card object-cover"
                   />
                   <span className="flex grow flex-col">
-                    <span className="text-[13px]">{product.name}</span>
+                    <span className="text-[13px]">
+                      {product.name}
+                      {/* La déclinaison telle qu'elle était au moment de la
+                          vente : renommée depuis, la commande ne change pas. */}
+                      {item.variantLabel ? <span className="text-muted"> · {item.variantLabel}</span> : null}
+                    </span>
                     <span className="text-[11px] text-muted">
                       {item.qty} × {f(item.unitPrice)}
                     </span>

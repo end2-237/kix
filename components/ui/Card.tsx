@@ -23,6 +23,7 @@ export function Card({
   className,
   children,
   id,
+  ...reste
 }: {
   tone?: Tone;
   shape?: Shape;
@@ -30,9 +31,9 @@ export function Card({
   children: React.ReactNode;
   /** Une ancre, quand la carte doit pouvoir être visée depuis un lien. */
   id?: string;
-}) {
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div id={id} className={cn(shapes[shape], tones[tone], className)}>
+    <div id={id} className={cn(shapes[shape], tones[tone], className)} {...reste}>
       {children}
     </div>
   );

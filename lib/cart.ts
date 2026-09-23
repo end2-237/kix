@@ -3,9 +3,14 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Panier côté navigateur : { slug: quantité }. La commande, elle, part en base
+ * Panier côté navigateur : { clé: quantité }. La commande, elle, part en base
  * via l'action `checkout`. Passera en table `carts` si on veut le retrouver
  * d'un appareil à l'autre.
+ *
+ * La clé est l'adresse de l'article, éventuellement suivie de la déclinaison
+ * choisie : « puff-mangue » ou « puff-mangue::<id de la saveur> ». Deux
+ * saveurs du même article sont deux lignes — c'est ce qu'attend celui qui
+ * commande une mangue et une menthe, et c'est aussi ce qu'attend le stock.
  */
 
 const STORAGE_KEY = "mb.cart.v1";
@@ -57,8 +62,21 @@ function subscribe(listener: () => void) {
   };
 }
 
-export function addToCart(slug: string, qty = 1) {
-  set({ ...cart, [slug]: (cart[slug] ?? 0) + qty });
+/** « slug » ou « slug::variante » — une seule façon de nommer une ligne. */
+export function cleArticle(slug: string, variantId?: string | null): string {
+  return variantId ? `${slug}::${variantId}` : slug;
+}
+
+/** L'inverse : ce que la clé désigne. */
+export function lireCle(cle: string): { slug: string; variantId: string | null } {
+  const coupe = cle.indexOf("::");
+  if (coupe < 0) return { slug: cle, variantId: null };
+  return { slug: cle.slice(0, coupe), variantId: cle.slice(coupe + 2) };
+}
+
+export function addToCart(slug: string, qty = 1, variantId?: string | null) {
+  const cle = cleArticle(slug, variantId);
+  set({ ...cart, [cle]: (cart[cle] ?? 0) + qty });
 }
 
 export function setQty(slug: string, qty: number) {
@@ -109,7 +127,7 @@ export function useCart() {
     () => cart,
     () => EMPTY,
   );
-  const list = Object.entries(items).map(([slug, qty]) => ({ slug, qty }));
+  const list = Object.entries(items).map(([cle, qty]) => ({ cle, ...lireCle(cle), qty }));
   return {
     items,
     list,

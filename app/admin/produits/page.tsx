@@ -3,6 +3,8 @@ import { Drawer, Field, PageHead, Pill, Select, SubmitButton, Table, Td, TextAre
 import { ImageField } from "@/components/admin/ImageField";
 import { deleteProduct, saveProduct } from "@/lib/actions";
 import { getAllProducts } from "@/lib/queries";
+import { getGalerieEtVariantes } from "@/lib/seller";
+import { GalerieEtVariantes } from "@/components/vendeur/GalerieEtVariantes";
 import { f } from "@/lib/format";
 
 export const metadata = { title: "Produits" };
@@ -20,6 +22,7 @@ const tones = [
 
 export default async function AdminProducts() {
   const products = await getAllProducts();
+  const { images, variantes } = await getGalerieEtVariantes(products.map((p) => p.id));
 
   return (
     <>
@@ -98,6 +101,18 @@ export default async function AdminProducts() {
                     <input type="hidden" name="active" value="on" />
                     <SubmitButton />
                   </form>
+                </details>
+                <details className="relative">
+                  <summary className="cursor-pointer rounded-full border border-line px-3 py-1.5 text-[11px] marker:hidden">
+                    Photos & déclinaisons
+                  </summary>
+                  <div className="absolute right-0 z-10 mt-2 w-[26rem] border border-line bg-bg p-3 shadow-[var(--mb-shadow)]">
+                    <GalerieEtVariantes
+                      article={product}
+                      images={images.filter((i) => i.productId === product.id)}
+                      variantes={variantes.filter((v) => v.productId === product.id)}
+                    />
+                  </div>
                 </details>
                 <form action={deleteProduct}>
                   <input type="hidden" name="id" value={product.id} />

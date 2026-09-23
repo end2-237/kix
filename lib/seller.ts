@@ -1,6 +1,6 @@
 import "server-only";
-import { and, count, desc, eq, sql } from "drizzle-orm";
-import { db, orderItems, orders, products, users } from "@/db";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { db, orderItems, orders, productImages, products, productVariants, users } from "@/db";
 
 /**
  * La place de marché, vue du vendeur.
@@ -71,7 +71,29 @@ export async function getProduitsVendeur(sellerId: string) {
     })
     .from(products)
     .where(eq(products.sellerId, sellerId))
-    .orderBy(desc(products.createdAt));
+    // Le nom départage : deux articles créés dans la même milliseconde — ce
+    // qui arrive au semis — changeaient de place d'un chargement à l'autre.
+    .orderBy(desc(products.createdAt), products.name);
+}
+
+/**
+ * Les photos et les déclinaisons d'une poignée d'articles, d'un coup.
+ *
+ * La liste des articles en affiche une dizaine : aller chercher la galerie
+ * article par article ferait vingt requêtes pour une page qu'on ouvre au
+ * comptoir, sur un réseau qui n'aime pas ça.
+ */
+export async function getGalerieEtVariantes(productIds: string[]) {
+  if (productIds.length === 0) return { images: [], variantes: [] };
+  const [images, variantes] = await Promise.all([
+    db.select().from(productImages).where(inArray(productImages.productId, productIds)).orderBy(productImages.sort),
+    db
+      .select()
+      .from(productVariants)
+      .where(inArray(productVariants.productId, productIds))
+      .orderBy(productVariants.sort, productVariants.name),
+  ]);
+  return { images, variantes };
 }
 
 export async function getVentesVendeur(sellerId: string, limite = 30) {
