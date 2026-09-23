@@ -192,10 +192,15 @@ export async function lienAvec(moi: string, autre: string): Promise<{ etat: Lien
         and(eq(friendships.requesterId, moi), eq(friendships.addresseeId, autre)),
         and(eq(friendships.requesterId, autre), eq(friendships.addresseeId, moi)),
       ),
-    )
-    .limit(1);
+    );
 
-  const lien = rows[0];
+  // Une paire ne doit avoir qu'une ligne, et la base l'impose désormais. Mais
+  // si deux demandes croisées ont survécu quelque part, c'est l'amitié qui
+  // gagne : prendre « la première venue » revenait à proposer « Ajouter en
+  // ami » à quelqu'un avec qui on l'est déjà, une fois sur deux.
+  const rang = (statut: string) =>
+    statut === "acceptee" ? 0 : statut === "attente" ? 1 : statut === "bloquee" ? 2 : 3;
+  const lien = [...rows].sort((a, b) => rang(a.status) - rang(b.status))[0];
   if (!lien) return { etat: "aucun" };
   if (lien.status === "acceptee") return { etat: "amis", id: lien.id };
   if (lien.status === "refusee" || lien.status === "bloquee") return { etat: "refusee", id: lien.id };

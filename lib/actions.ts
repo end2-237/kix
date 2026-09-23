@@ -2585,12 +2585,32 @@ export async function demanderAmi(autreId: string) {
   if (existant) {
     await db.update(friendships).set({ status: "attente" }).where(eq(friendships.id, existant.id));
   } else {
-    await db.insert(friendships).values({
-      id: uid(),
-      requesterId: moi.id,
-      addresseeId: autreId,
-      status: "attente",
-    });
+    try {
+      await db.insert(friendships).values({
+        id: uid(),
+        requesterId: moi.id,
+        addresseeId: autreId,
+        status: "attente",
+      });
+    } catch {
+      // Les deux joueurs ont touché « Ajouter » en même temps : la base refuse
+      // la seconde ligne, et c'est très bien — leur demande croisée vaut
+      // acceptation, comme lorsqu'on répond à une demande déjà reçue.
+      const croisee = (
+        await db
+          .select()
+          .from(friendships)
+          .where(and(eq(friendships.requesterId, autreId), eq(friendships.addresseeId, moi.id)))
+          .limit(1)
+      )[0];
+      if (!croisee) return { ok: false as const, error: "Demande impossible pour le moment." };
+      if (croisee.status !== "acceptee") {
+        await db.update(friendships).set({ status: "acceptee" }).where(eq(friendships.id, croisee.id));
+      }
+      revalidatePath("/app/amis");
+      revalidatePath(`/app/joueurs/${autreId}`);
+      return { ok: true as const, etat: "amis" as const };
+    }
   }
 
   await notify(autreId, "Demande d'ami", `${moi.name} veut t'ajouter.`, "system", "/app/amis");
