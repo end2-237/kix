@@ -22,23 +22,55 @@ type CompteDeService = {
   project_id: string;
 };
 
-/** Le compte de service, en JSON brut ou encodé en base64. */
+/**
+ * Le compte de service, sous l'une des trois formes qu'on rencontre.
+ *
+ * Firebase le livre en fichier `.json` téléchargé, et une variable
+ * d'environnement ne prend pas un fichier. Trois chemins, donc, du plus
+ * commode au plus brut :
+ *
+ *  1. deux variables — `FIREBASE_CLIENT_EMAIL` et `FIREBASE_PRIVATE_KEY` —
+ *     recopiées depuis le fichier. C'est le plus simple : deux champs à
+ *     sélectionner, rien à encoder ;
+ *  2. `FIREBASE_SERVICE_ACCOUNT` avec le JSON entier collé tel quel ;
+ *  3. le même, encodé en base64, pour les hébergeurs qui abîment les
+ *     retours à la ligne.
+ *
+ * Dans tous les cas, les « \n » littéraux de la clé privée sont remis en
+ * vrais sauts de ligne : c'est ainsi que le JSON les stocke, et OpenSSL
+ * refuse une clé qui les garde échappés.
+ */
 function compte(): CompteDeService | null {
+  const separe = compteEnDeuxVariables();
+  if (separe) return separe;
+
   const brut = process.env.FIREBASE_SERVICE_ACCOUNT?.trim();
   if (!brut) return null;
 
-  // Une clé privée contient des sauts de ligne : beaucoup d'hébergeurs les
-  // mangent. On accepte donc aussi la forme encodée en base64, et on répare
-  // les « \n » littéraux quand le JSON a été collé tel quel.
   const texte = brut.startsWith("{") ? brut : Buffer.from(brut, "base64").toString("utf8");
   try {
     const lu = JSON.parse(texte) as CompteDeService;
     if (!lu.client_email || !lu.private_key || !lu.project_id) return null;
-    return { ...lu, private_key: lu.private_key.replace(/\\n/g, "\n") };
+    return { ...lu, private_key: remettreLesSauts(lu.private_key) };
   } catch {
     return null;
   }
 }
+
+/** La forme à deux variables, recopiée à la main depuis le fichier. */
+function compteEnDeuxVariables(): CompteDeService | null {
+  const client_email = process.env.FIREBASE_CLIENT_EMAIL?.trim();
+  const brut = process.env.FIREBASE_PRIVATE_KEY?.trim();
+  const project_id =
+    process.env.FIREBASE_PROJECT_ID?.trim() || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  if (!client_email || !brut || !project_id) return null;
+
+  // Certaines interfaces ajoutent des guillemets autour de la valeur collée.
+  const sansGuillemets = brut.replace(/^["']|["']$/g, "");
+  return { client_email, private_key: remettreLesSauts(sansGuillemets), project_id };
+}
+
+const remettreLesSauts = (cle: string) => cle.replace(/\\n/g, "\n");
 
 export const fcmConfigure = () => compte() !== null;
 

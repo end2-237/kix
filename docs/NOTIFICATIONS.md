@@ -89,9 +89,43 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY=B…        # la clé publique Web Push
 FIREBASE_SERVICE_ACCOUNT=…               # le JSON, ou son encodage base64
 ```
 
-Le compte de service se colle tel quel, ou encodé en base64 si l'hébergeur
-mange les sauts de ligne :
-`base64 -w0 service-account.json`.
+### Le compte de service arrive en fichier — que faire ?
+
+Firebase le télécharge en `.json`, et une variable d'environnement ne prend
+pas un fichier. Trois façons de le poser, du plus simple au plus brut ; le
+serveur accepte les trois.
+
+**1. Deux champs recopiés — le plus simple.** Ouvrez le fichier, prenez ces
+deux lignes :
+
+```
+FIREBASE_CLIENT_EMAIL=…@….iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIE…\n-----END PRIVATE KEY-----\n
+```
+
+Copiez la valeur de `private_key` **telle qu'elle est écrite dans le
+fichier**, avec ses `\n` : le serveur les remet en vrais sauts de ligne. Les
+guillemets autour sont tolérés. Le projet n'a pas besoin d'être répété, il
+est repris de `NEXT_PUBLIC_FIREBASE_PROJECT_ID`.
+
+**2. Le JSON entier**, collé d'un bloc dans `FIREBASE_SERVICE_ACCOUNT`.
+
+**3. Le JSON encodé en base64**, si l'interface abîme les retours à la
+ligne :
+
+```
+base64 -w0 service-account.json          # Linux
+base64 -i service-account.json | tr -d '\n'   # macOS
+```
+
+```powershell
+# Windows, PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("service-account.json"))
+```
+
+Ce fichier est le **seul vrai secret** de la liste : il donne le droit
+d'envoyer au nom du projet. Il ne se met pas dans le dépôt, ne se colle pas
+dans une conversation, et ne porte jamais le préfixe `NEXT_PUBLIC_`.
 
 ### Ce qui est public, ce qui ne l'est pas
 
