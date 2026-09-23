@@ -1,4 +1,4 @@
-import { createSign } from "node:crypto";
+import { createPrivateKey, createSign } from "node:crypto";
 
 /**
  * Envoi par Firebase Cloud Messaging, API HTTP v1.
@@ -70,7 +70,51 @@ function compteEnDeuxVariables(): CompteDeService | null {
   return { client_email, private_key: remettreLesSauts(sansGuillemets), project_id };
 }
 
-const remettreLesSauts = (cle: string) => cle.replace(/\\n/g, "\n");
+/**
+ * Remettre une clé privée en état de servir.
+ *
+ * Trois abîmes possibles entre le fichier et la variable d'environnement, et
+ * on les répare tous les trois :
+ *
+ *  · les « \n » littéraux du JSON, qu'OpenSSL refuse tels quels ;
+ *  · les « \r\n » de Windows, qui font échouer la lecture du PEM ;
+ *  · les sauts de ligne purement et simplement mangés par l'interface, qui
+ *    laissent une seule ligne interminable. Là, on recoupe le corps en
+ *    lignes de 64 caractères, comme le veut le format.
+ *
+ * Sans cette dernière réparation, la clé reste illisible et l'envoi échoue
+ * sans rien dire — c'est exactement le genre de panne qu'on met une soirée
+ * à comprendre.
+ */
+function remettreLesSauts(cle: string): string {
+  const propre = cle.replace(/\\r\\n|\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+
+  const entete = "-----BEGIN PRIVATE KEY-----";
+  const pied = "-----END PRIVATE KEY-----";
+  if (!propre.includes(entete)) return propre;
+  if (propre.includes("\n")) return propre.endsWith("\n") ? propre : `${propre}\n`;
+
+  // Une seule ligne : on la recompose.
+  const corps = propre.slice(propre.indexOf(entete) + entete.length, propre.indexOf(pied)).replace(/\s+/g, "");
+  const lignes = corps.match(/.{1,64}/g) ?? [];
+  return `${entete}\n${lignes.join("\n")}\n${pied}\n`;
+}
+
+/**
+ * La clé est-elle utilisable ?
+ *
+ * On le vérifie avant d'envoyer quoi que ce soit : sans cela, la signature
+ * lève une exception au fond d'un `Promise.allSettled`, où elle est comptée
+ * comme un envoi ignoré — et rien, nulle part, ne dit pourquoi.
+ */
+function cleLisible(pem: string): boolean {
+  try {
+    createPrivateKey(pem);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export const fcmConfigure = () => compte() !== null;
 
@@ -132,6 +176,15 @@ export async function envoyerFcm(token: string, urgence: "normal" | "high" = "no
   const sa = compte();
   if (!sa) return "ignore";
 
+  if (!cleLisible(sa.private_key)) {
+    console.error(
+      "[mb] La clé privée Firebase est illisible. Recopie la valeur de `private_key` telle qu'elle " +
+        "figure dans le fichier .json — avec ses « \\n » — dans FIREBASE_PRIVATE_KEY, ou colle le " +
+        "JSON entier dans FIREBASE_SERVICE_ACCOUNT. Aucune notification ne partira par Firebase d'ici là.",
+    );
+    return "ignore";
+  }
+
   const acces = await jetonAcces(sa);
   if (!acces) return "ignore";
 
@@ -166,6 +219,9 @@ export async function envoyerFcm(token: string, urgence: "normal" | "high" = "no
   }
   return "ignore";
 }
+
+/** La clé telle qu'elle sera signée. Exposée pour que la suite l'éprouve. */
+export const lireClePourTest = () => compte()?.private_key ?? null;
 
 /** Le projet visé, pour les écrans de diagnostic. */
 export const projetFcm = () => compte()?.project_id ?? null;
