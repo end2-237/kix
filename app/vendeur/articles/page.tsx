@@ -18,7 +18,7 @@ const RAYONS = [
 ];
 
 export default async function VendeurArticles() {
-  const vendeur = await requireRole("seller", "admin");
+  const vendeur = await requireRole("seller", "manager", "admin");
   const articles = await getProduitsVendeur(vendeur.id);
 
   return (

@@ -1,0 +1,1 @@
+ALTER TABLE "mb"."events" ADD COLUMN "ended_at" timestamp with time zone;

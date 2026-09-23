@@ -35,6 +35,7 @@ export default async function GerantEvenements() {
     capacity: event.capacity,
     image: event.image,
     active: event.active,
+    endedAt: event.endedAt,
     vendus: Number(vendus),
     entres: Number(entres),
     attente: Number(attente),

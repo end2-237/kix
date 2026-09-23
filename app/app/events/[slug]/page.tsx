@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { BookmarkIcon, CalendarIcon, ChevronLeftIcon, PinIcon, ShareIcon } from "@/components/icons";
 import { getEvent, getTickets, getVenues } from "@/lib/queries";
+import { soireeTerminee } from "@/lib/soirees";
 import { requireUser } from "@/lib/session";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -23,6 +24,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const [venues, tickets] = await Promise.all([getVenues(), getTickets(user.id)]);
   const venue = venues.find((v) => v.id === event.venueId);
   const owned = tickets.some((t) => t.event.id === event.id && t.ticket.status === "valid");
+  const terminee = soireeTerminee(event.endedAt);
   const avatars = ["/img/p-ariel.jpg", "/img/p-yannick.jpg", "/img/p-champion.jpg"];
 
   return (
@@ -59,6 +61,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       <div className="relative -mt-24 flex flex-col gap-4 rounded-t-[30px] border-t border-line bg-bg/95 px-5 pt-6 backdrop-blur-xl lg:col-span-2 lg:mt-0 lg:gap-5 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:backdrop-blur-none">
         <div className="flex flex-col gap-2.5">
           <div className="flex gap-1.5">
+            {/* Une soirée passée le dit dès l'en-tête : le joueur qui arrive
+                par un lien partagé ne doit pas croire qu'elle a lieu ce soir. */}
+            {terminee ? (
+              <Chip tone="neutral" className="px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] uppercase">
+                Terminé
+              </Chip>
+            ) : null}
             {event.tags.split(",").filter(Boolean).map((tag, i) => (
               <Chip
                 key={tag}
@@ -136,7 +145,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         <p className="text-[13px] leading-5 text-dim">
           Place gardée jusqu&apos;à l&apos;heure du check-in. Le pass QR arrive dans « Mes billets ».
         </p>
-        <TicketButton eventId={event.id} eventTitle={event.title} price={event.price} phone={user.phone} owned={owned} />
+        <TicketButton eventId={event.id} eventTitle={event.title} price={event.price} phone={user.phone} owned={owned} terminee={terminee} />
         <span className="text-[11px] text-muted">
           {Math.max(0, event.capacity - event.attendees)} places restantes sur {event.capacity}
         </span>
@@ -145,7 +154,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
       <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-full max-w-[430px] px-5 lg:hidden">
         <div className="glass-strong rounded-full px-4 py-3">
-          <TicketButton eventId={event.id} eventTitle={event.title} price={event.price} phone={user.phone} owned={owned} />
+          <TicketButton eventId={event.id} eventTitle={event.title} price={event.price} phone={user.phone} owned={owned} terminee={terminee} />
         </div>
       </div>
     </div>

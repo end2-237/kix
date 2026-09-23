@@ -75,6 +75,9 @@ export default async function GerantPage() {
           <span>
             <span className="font-semibold text-ink">{stats?.tickets ?? 0}</span> billets scannés
           </span>
+          <span>
+            <span className="font-semibold text-ink">{group(stats?.recetteBillets ?? 0)}</span> F d&apos;entrées
+          </span>
           <span>versement lundi</span>
         </div>
       </Hero>
@@ -97,10 +100,10 @@ export default async function GerantPage() {
             label="Ce mois"
             value={
               <>
-                <Counter value={stats?.revenue ?? 0} format="grouped" /> F
+                <Counter value={stats?.revenueMois ?? 0} format="grouped" /> F
               </>
             }
-            hint="recette du jour"
+            hint="30 derniers jours"
             tone="gold"
           />
         </div>

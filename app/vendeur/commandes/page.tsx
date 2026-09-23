@@ -16,7 +16,7 @@ const ETAT: Record<string, { label: string; ton: string }> = {
 };
 
 export default async function VendeurCommandes() {
-  const vendeur = await requireRole("seller", "admin");
+  const vendeur = await requireRole("seller", "manager", "admin");
   const [ventes, solde] = await Promise.all([getVentesVendeur(vendeur.id, 80), getSoldeVendeur(vendeur.id)]);
 
   return (

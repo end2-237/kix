@@ -16,12 +16,14 @@ export function TicketButton({
   price,
   phone,
   owned = false,
+  terminee = false,
 }: {
   eventId: string;
   eventTitle: string;
   price: number;
   phone: string;
   owned?: boolean;
+  terminee?: boolean;
 }) {
   const { notify } = useSnackbar();
   const router = useRouter();
@@ -57,18 +59,21 @@ export function TicketButton({
     router.refresh();
   }
 
+  // Une soirée close ne vend plus : le bouton le dit au lieu d'envoyer le
+  // joueur payer une nuit déjà passée. Qui a son billet peut toujours le voir.
   const action = taken ? () => router.push("/app/billets") : price > 0 ? () => setOpen(true) : takeFree;
+  const ferme = terminee && !taken;
 
   return (
     <>
       <div className="flex items-center gap-3.5">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[11px] text-muted">Billet joueur</span>
+          <span className="text-[11px] text-muted">{ferme ? "Billetterie close" : "Billet joueur"}</span>
           <span className="text-xl font-bold tracking-[-0.03em]">{price > 0 ? fcfa(price) : "Gratuit"}</span>
         </div>
         <button
           onClick={action}
-          disabled={pending}
+          disabled={pending || ferme}
           className={
             taken
               ? "pop press flex h-12 grow items-center justify-center gap-2 rounded-full border border-gold/45 bg-gold/15 text-sm font-semibold text-gold-text"
@@ -76,7 +81,7 @@ export function TicketButton({
           }
         >
           {pending ? <Spinner size={17} /> : taken ? <CheckIcon size={18} /> : <TicketIcon size={18} />}
-          {pending ? "Réservation…" : taken ? "Voir mon billet" : "Prendre mon billet"}
+          {pending ? "Réservation…" : taken ? "Voir mon billet" : ferme ? "Soirée terminée" : "Prendre mon billet"}
         </button>
       </div>
 

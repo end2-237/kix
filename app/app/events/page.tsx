@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Chip } from "@/components/ui/Chip";
 import { getEvents } from "@/lib/queries";
+import { soireeTerminee } from "@/lib/soirees";
 import { f } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,11 @@ export default async function EventsPage() {
           <div className="absolute inset-0 bg-linear-to-b from-black/10 via-black/45 to-black/95" />
           <div className="absolute inset-x-4 bottom-3.5 flex flex-col gap-1.5 text-white">
             <div className="flex gap-1.5">
+              {soireeTerminee(event.endedAt) ? (
+                <Chip tone="neutral" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
+                  Terminé
+                </Chip>
+              ) : null}
               {event.tags.split(",").filter(Boolean).map((tag) => (
                 <Chip key={tag} tone="gold" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
                   {tag}
@@ -42,7 +48,7 @@ export default async function EventsPage() {
             </div>
             <span className="text-lg font-bold">{event.title}</span>
             <span className="text-xs text-white/75">
-              {event.day} · {event.hours} · dès {f(event.price)}
+              {event.day} · {event.hours} · {soireeTerminee(event.endedAt) ? "billetterie close" : `dès ${f(event.price)}`}
             </span>
           </div>
         </Link>

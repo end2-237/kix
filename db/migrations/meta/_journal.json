@@ -218,6 +218,13 @@
       "when": 1790127482489,
       "tag": "0030_code-joueur",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790173164631,
+      "tag": "0031_fin-de-soiree",
+      "breakpoints": true
     }
   ]
 }

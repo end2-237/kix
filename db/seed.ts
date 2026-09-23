@@ -359,6 +359,10 @@ const eventRows = [
     description:
       "Poules de 4 puis tableau à élimination directe sur 8 tables. Jetons de partie offerts aux qualifiés, grillades et sono jusqu'à minuit.",
     tags: "Tournoi 8-ball,32 joueurs",
+    // Deux affiches insérées d'un même coup portent la même horodate à la
+    // milliseconde près : l'ordre de la liste changeait alors d'un semis à
+    // l'autre. On les date à la main.
+    createdAt: hoursAgo(72),
   },
   {
     id: uid(),
@@ -377,6 +381,7 @@ const eventRows = [
     description:
       "Tables ouvertes toute la nuit, stand vape sur place et tarif jeton réduit entre 21h et 23h.",
     tags: "Soirée,DJ set",
+    createdAt: hoursAgo(48),
   },
 ];
 await db.insert(events).values(eventRows);

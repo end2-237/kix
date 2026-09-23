@@ -8,7 +8,7 @@
  * produit.
  */
 import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { tournaments, tournamentMatches, tournamentPlayers, users } from "@/db/schema";
+import { events, tournaments, tournamentMatches, tournamentPlayers, users } from "@/db/schema";
 import type { Db } from "@/db/client";
 import {
   courseDuTour,
@@ -441,4 +441,12 @@ async function cloreSiFini(db: Db, tournamentId: string) {
     .update(tournaments)
     .set({ status: "termine", winnerId: champion?.userId ?? null })
     .where(eq(tournaments.id, tournamentId));
+
+  // Le tournoi est un événement : sa finale jouée, la soirée jumelle se
+  // referme dans la foulée. Elle reste à l'affiche, marquée « terminé », mais
+  // ne vend plus un seul billet pour une nuit déjà passée.
+  const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
+  if (t?.eventId) {
+    await db.update(events).set({ endedAt: new Date() }).where(eq(events.id, t.eventId));
+  }
 }

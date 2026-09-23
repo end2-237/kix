@@ -1,12 +1,17 @@
 import { Photo } from "@/components/ui/Photo";
 import Link from "next/link";
+import { Drawer, Field, SubmitButton, TextArea } from "@/components/admin/AdminUI";
+import { ImageField } from "@/components/admin/ImageField";
 import { Card } from "@/components/ui/Card";
 import { ArrowRightIcon, CalendarIcon, TicketIcon } from "@/components/icons";
+import { saveEvent } from "@/lib/actions";
+import { soireeTerminee } from "@/lib/soirees";
 import { f, fcfa } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export type EventRowView = {
   id: string;
+  endedAt: Date | null;
   slug: string;
   title: string;
   day: string;
@@ -30,7 +35,7 @@ export type EventRowView = {
 export function EventsAdmin({ rows }: { rows: EventRowView[] }) {
   const recette = rows.reduce((n, r) => n + r.recette, 0);
   const vendus = rows.reduce((n, r) => n + r.vendus, 0);
-  const aVenir = rows.filter((r) => r.active).length;
+  const aVenir = rows.filter((r) => r.active && !soireeTerminee(r.endedAt)).length;
 
   return (
     <div className="flex flex-col gap-5">
@@ -38,6 +43,29 @@ export function EventsAdmin({ rows }: { rows: EventRowView[] }) {
         <h1 className="text-xl lg:text-[26px]">Les événements</h1>
         <p className="text-[13px] text-muted">Tes soirées, ce qu&apos;elles ont rapporté, et qui vient.</p>
       </header>
+
+      {/* Une soirée se décide au comptoir, la veille : le gérant n'avait
+          jusqu'ici aucun moyen de la créer sans passer par l'administration.
+          La salle n'est pas demandée — c'est la sienne, imposée côté serveur. */}
+      <Drawer summary="＋ Créer une soirée">
+        <form action={saveEvent} className="grid gap-3 pt-3 sm:grid-cols-2">
+          <Field label="Titre" name="title" required className="sm:col-span-2" />
+          <Field label="Sous-titre" name="subtitle" className="sm:col-span-2" />
+          <Field label="Jour" name="day" placeholder="Samedi 03 octobre" />
+          <Field label="Horaires" name="hours" placeholder="18:00 → 23:30" />
+          <Field label="Check-in" name="checkin" placeholder="dès 17:30" />
+          <Field label="Prix du billet (F)" name="price" type="number" min={0} defaultValue={2000} />
+          <Field label="Capacité" name="capacity" type="number" min={0} defaultValue={120} />
+          <Field label="Tags (virgules)" name="tags" placeholder="Soirée,8-ball" />
+          <ImageField name="image" dossier="evenements" defaultValue="/img/crowd-lights.jpg" />
+          <Field label="Adresse" name="address" className="sm:col-span-2" />
+          <TextArea label="Description" name="description" className="sm:col-span-2" />
+          <input type="hidden" name="active" value="on" />
+          <div className="flex items-end sm:col-span-2">
+            <SubmitButton>Créer la soirée</SubmitButton>
+          </div>
+        </form>
+      </Drawer>
 
       <div className="grid grid-cols-3 gap-2.5">
         <Chiffre valeur={fcfa(recette)} quoi="encaissé" tone="gold" />
@@ -52,7 +80,7 @@ export function EventsAdmin({ rows }: { rows: EventRowView[] }) {
           </span>
           <h2 className="text-lg">Aucun événement</h2>
           <p className="max-w-sm text-[13px] text-muted">
-            Crée une soirée depuis l&apos;administration : elle apparaîtra ici avec sa recette et ses inscrits.
+            Crée ta première soirée ci-dessus : elle apparaîtra ici avec sa recette et ses inscrits.
           </p>
         </Card>
       ) : null}
@@ -73,7 +101,11 @@ export function EventsAdmin({ rows }: { rows: EventRowView[] }) {
                 <span className="flex min-w-0 grow flex-col gap-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-[15px] font-semibold">{row.title}</span>
-                    {!row.active ? (
+                    {soireeTerminee(row.endedAt) ? (
+                      <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] text-muted">
+                        terminé
+                      </span>
+                    ) : !row.active ? (
                       <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] text-muted">
                         masqué
                       </span>

@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  * son solde. La garde vit ici, donc avant le premier octet de HTML.
  */
 export default async function VendeurLayout({ children }: { children: React.ReactNode }) {
-  const vendeur = await requireRole("seller", "admin");
+  const vendeur = await requireRole("seller", "manager", "admin");
 
   return (
     <div className="flex min-h-dvh">
@@ -25,7 +25,9 @@ export default async function VendeurLayout({ children }: { children: React.Reac
           <MasterMark />
           <span className="flex flex-col gap-px">
             <span className="text-base font-bold tracking-[0.14em]">MASTER SHOP</span>
-            <span className="text-[11px] text-muted">Espace vendeur</span>
+            <span className="text-[11px] text-muted">
+              {vendeur.role === "manager" ? "Boutique de la salle" : "Espace vendeur"}
+            </span>
           </span>
         </Link>
 
@@ -48,7 +50,9 @@ export default async function VendeurLayout({ children }: { children: React.Reac
             )}
             <span className="flex grow flex-col gap-0.5">
               <span className="text-[13px] font-semibold">{vendeur.name}</span>
-              <span className="text-[11px] text-muted">Vendeur</span>
+              <span className="text-[11px] text-muted">
+                {vendeur.role === "manager" ? "Gérant" : "Vendeur"}
+              </span>
             </span>
             <ThemeToggle className="h-9 w-9" />
           </div>

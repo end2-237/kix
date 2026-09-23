@@ -5,6 +5,7 @@ import {
   BoltIcon,
   CalendarIcon,
   ChartIcon,
+  CartIcon,
   CoinIcon,
   MapIcon,
   QrIcon,
@@ -28,6 +29,9 @@ const items: NavItem[] = [
   { href: "/gerant/ecrans", label: "Écrans", Icon: MapIcon },
   { href: "/gerant/service", label: "Service", Icon: ChartIcon },
   { href: "/gerant/caisse", label: "Caisse", Icon: CoinIcon },
+  // Le comptoir vend aussi des puffs : la boutique du gérant est le même
+  // espace que celui d'un vendeur, avec ses articles et ses commandes.
+  { href: "/vendeur", label: "Boutique", Icon: CartIcon },
 ];
 
 export function GerantNav({ mobile = false }: { mobile?: boolean }) {

@@ -72,6 +72,10 @@ export function DemandeRetrait({
           }
           className="flex flex-col gap-3.5"
         >
+          {/* Le guichet nomme sa bourse : la salle quand on vient de la caisse,
+              la boutique quand on vient de l'espace vendeur. Un gérant tient
+              parfois les deux. */}
+          <input type="hidden" name="cible" value={venueId ? "salle" : "vendeur"} />
           {venueId ? <input type="hidden" name="venueId" value={venueId} /> : null}
 
           <Card tone="gold" shape="panel" className="flex items-baseline justify-between gap-3 p-3.5">

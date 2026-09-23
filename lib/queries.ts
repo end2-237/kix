@@ -16,6 +16,8 @@ import {
   tokens,
   users,
   venues,
+  tournaments,
+  tournamentPlayers,
   venueTables,
   type EventRow,
   type Reservation,
@@ -59,7 +61,13 @@ export async function getProduct(slug: string) {
 }
 
 export async function getEvents(): Promise<EventRow[]> {
-  return db.select().from(events).where(eq(events.active, true)).orderBy(events.createdAt);
+  // Les soirées passées restent à l'affiche — on y retrouve son billet, ses
+  // photos, son classement — mais derrière celles qui arrivent.
+  return db
+    .select()
+    .from(events)
+    .where(eq(events.active, true))
+    .orderBy(sql`${events.endedAt} is not null`, events.createdAt);
 }
 
 export async function getEvent(slug: string) {
@@ -219,28 +227,42 @@ export async function getRank(userId: string): Promise<number> {
 
 export async function getVenueStats(venueId: string) {
   const since = startOfToday();
-  const [today, tables, ticketsToday] = await Promise.all([
+  const mois = daysAgo(30);
+  const [jetons, tables, billets, duMois] = await Promise.all([
     db
       .select({ n: count(), total: sum(scans.amount) })
       .from(scans)
       .where(and(eq(scans.venueId, venueId), eq(scans.kind, "token"), gte(scans.createdAt, since))),
     db.select().from(venues).where(eq(venues.id, venueId)).limit(1),
     db
-      .select({ n: count() })
+      .select({ n: count(), total: sum(scans.amount) })
       .from(scans)
       .where(and(eq(scans.venueId, venueId), eq(scans.kind, "ticket"), gte(scans.createdAt, since))),
+    // Le bloc « ce mois » affichait la recette du jour : deux chiffres
+    // différents portant le même nombre, dans la même vue.
+    db
+      .select({ total: sum(scans.amount) })
+      .from(scans)
+      .where(and(eq(scans.venueId, venueId), gte(scans.createdAt, mois))),
   ]);
 
   const venue = tables[0];
-  const debited = today[0]?.n ?? 0;
-  const revenue = Number(today[0]?.total ?? 0);
+  const debited = jetons[0]?.n ?? 0;
+  // La recette du jour, c'est tout ce qui est passé au comptoir : les jetons
+  // débités aux tables ET les billets scannés à l'entrée.
+  const recetteJetons = Number(jetons[0]?.total ?? 0);
+  const recetteBillets = Number(billets[0]?.total ?? 0);
+  const revenue = recetteJetons + recetteBillets;
 
   return {
     venue,
     debited,
     revenue,
+    recetteJetons,
+    recetteBillets,
+    revenueMois: Number(duMois[0]?.total ?? 0),
     commission: Math.round(revenue * 0.1),
-    tickets: ticketsToday[0]?.n ?? 0,
+    tickets: billets[0]?.n ?? 0,
     tablesBusy: venue ? venue.tables - venue.freeTables : 0,
     tablesTotal: venue?.tables ?? 0,
   };
@@ -389,6 +411,36 @@ export async function getVenueEvents(venueId: string) {
     .from(events)
     .where(eq(events.venueId, venueId))
     .orderBy(desc(events.createdAt));
+}
+
+/**
+ * Le tournoi dont cet événement est le jumeau, s'il y en a un.
+ *
+ * Le récapitulatif d'une soirée de tournoi ne montrait que la billetterie
+ * spectateurs : les joueurs inscrits et leurs droits d'entrée, qui sont
+ * l'essentiel de la recette, n'apparaissaient nulle part.
+ */
+export async function getTournoiDeLEvenement(eventId: string) {
+  const t = (await db.select().from(tournaments).where(eq(tournaments.eventId, eventId)).limit(1))[0];
+  if (!t) return null;
+
+  const ligne = (
+    await db
+      .select({
+        inscrits: sql<number>`count(*) filter (where ${tournamentPlayers.status} = 'accepte')`,
+        candidats: sql<number>`count(*) filter (where ${tournamentPlayers.status} = 'candidat')`,
+        droits: sql<number>`coalesce(sum(case when ${tournamentPlayers.payment} = 'paye' then ${tournamentPlayers.fee} else 0 end), 0)`,
+      })
+      .from(tournamentPlayers)
+      .where(eq(tournamentPlayers.tournamentId, t.id))
+  )[0];
+
+  return {
+    tournoi: t,
+    inscrits: Number(ligne?.inscrits ?? 0),
+    candidats: Number(ligne?.candidats ?? 0),
+    droits: Number(ligne?.droits ?? 0),
+  };
 }
 
 /** La liste des participants d'un événement, et ce que chacun a payé. */

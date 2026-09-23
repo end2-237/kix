@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Mes ventes" };
 
 export default async function VendeurAccueil() {
-  const vendeur = await requireRole("seller", "admin");
+  const vendeur = await requireRole("seller", "manager", "admin");
   const [solde, articles, ventes, retraits] = await Promise.all([
     getSoldeRetirableVendeur(vendeur.id),
     getProduitsVendeur(vendeur.id),

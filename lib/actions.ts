@@ -23,6 +23,7 @@ import {
   orderItems,
   orders,
   packs,
+  payments,
   payouts,
   products,
   purchases,
@@ -345,6 +346,19 @@ export async function scanCode(raw: string, method: "qr" | "code" = "code"): Pro
   )[0];
 
   if (ticket) {
+    // Ce que le billet a rapporté, figé au scan : sans lui, la recette du jour
+    // d'une salle ignorait purement et simplement ses soirées — le gérant
+    // encaissait des entrées et son tableau de bord affichait zéro.
+    const regle = ticket.ticket.reference
+      ? (
+          await db
+            .select({ amount: payments.amount })
+            .from(payments)
+            .where(and(eq(payments.reference, ticket.ticket.reference), eq(payments.status, "paid")))
+            .limit(1)
+        )[0]?.amount
+      : undefined;
+
     await db.update(tickets).set({ status: "used", usedAt: new Date() }).where(eq(tickets.id, ticket.ticket.id));
     await db.insert(scans).values({
       id: uid(),
@@ -355,9 +369,10 @@ export async function scanCode(raw: string, method: "qr" | "code" = "code"): Pro
       venueId: manager.venueId ?? ticket.event.venueId,
       managerId: manager.id,
       method,
-      amount: 0,
+      amount: regle ?? ticket.event.price,
     });
     revalidatePath("/gerant");
+    revalidatePath("/gerant/evenements");
     revalidatePath("/admin");
     return { ok: true, kind: "ticket", client: ticket.user.name, event: ticket.event.title };
   }
@@ -479,6 +494,10 @@ export async function buyTicket(eventId: string, phone?: string, method: "om" | 
   const user = await requireUser();
   const event = (await db.select().from(events).where(eq(events.id, eventId)).limit(1))[0];
   if (!event) return { ok: false, error: "Événement introuvable" };
+  // Une soirée close ne vend plus rien : le tournoi jumeau qui restait ouvert
+  // après sa finale encaissait des billets pour une soirée déjà passée.
+  const { billetterieOuverte } = await import("@/lib/soirees");
+  if (!billetterieOuverte(event)) return { ok: false, error: "Cette soirée est terminée" };
   if (event.attendees >= event.capacity) return { ok: false, error: "Complet" };
 
   const code = await freshCode();
@@ -576,12 +595,51 @@ const slugify = (texte: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
 
+/**
+ * Une adresse libre, quitte à numéroter.
+ *
+ * `slug` est unique en base : deux soirées appelées « Nuit Néon » faisaient
+ * échouer la seconde avec une erreur Postgres au visage du gérant. Et un titre
+ * accentué donnait une adresse accentuée, qui ne se retrouvait plus.
+ *
+ * À la modification, la ligne ne se compte pas elle-même : sinon une soirée
+ * enregistrée deux fois changerait d'adresse à chaque fois, et les liens déjà
+ * partagés tomberaient dans le vide.
+ */
+async function slugLibre(
+  base: string,
+  existe: (slug: string) => Promise<boolean>,
+  repli: string,
+): Promise<string> {
+  const racine = slugify(base) || repli;
+  if (!(await existe(racine))) return racine;
+  for (let n = 2; n < 60; n++) {
+    const essai = `${racine}-${n}`;
+    if (!(await existe(essai))) return essai;
+  }
+  return `${racine}-${Date.now().toString(36)}`;
+}
+
 export async function saveVenue(formData: FormData) {
   await requireRole("admin");
   const id = str(formData, "id");
+  const nom = str(formData, "name");
+  const slug =
+    str(formData, "slug") ||
+    (await slugLibre(
+      nom,
+      async (essai) =>
+        ((await db
+          .select({ id: venues.id })
+          .from(venues)
+          .where(and(eq(venues.slug, essai), id ? ne(venues.id, id) : undefined))
+          .limit(1))[0]?.id ?? null) !== null,
+      "salle",
+    ));
+
   const values = {
-    slug: str(formData, "slug") || str(formData, "name").toLowerCase().replace(/\s+/g, "-"),
-    name: str(formData, "name"),
+    slug,
+    name: nom,
     area: str(formData, "area"),
     city: str(formData, "city"),
     address: str(formData, "address"),
@@ -608,19 +666,35 @@ export async function deleteVenue(formData: FormData) {
 }
 
 export async function saveProduct(formData: FormData) {
-  // Un vendeur tient ses articles ; l'administrateur tient ceux de la maison
-  // et peut corriger n'importe lesquels.
-  const auteur = await requireRole("admin", "seller");
+  // Un vendeur tient ses articles ; un gérant vend aussi au comptoir de sa
+  // salle, et n'avait aucun moyen de mettre une puff en ligne. L'administrateur
+  // tient ceux de la maison et peut corriger n'importe lesquels.
+  const auteur = await requireRole("admin", "seller", "manager");
   const id = str(formData, "id");
+  const proprietaire = auteur.role !== "admin";
 
-  if (auteur.role === "seller" && id) {
+  if (proprietaire && id) {
     const actuel = (await db.select().from(products).where(eq(products.id, id)).limit(1))[0];
     if (!actuel || actuel.sellerId !== auteur.id) redirect("/vendeur?refus=1");
   }
 
+  const nom = str(formData, "name");
+  const slug =
+    str(formData, "slug") ||
+    (await slugLibre(
+      nom,
+      async (essai) =>
+        ((await db
+          .select({ id: products.id })
+          .from(products)
+          .where(and(eq(products.slug, essai), id ? ne(products.id, id) : undefined))
+          .limit(1))[0]?.id ?? null) !== null,
+      "article",
+    ));
+
   const values = {
-    slug: str(formData, "slug") || str(formData, "name").toLowerCase().replace(/\s+/g, "-"),
-    name: str(formData, "name"),
+    slug,
+    name: nom,
     detail: str(formData, "detail"),
     description: str(formData, "description"),
     price: num(formData, "price"),
@@ -640,7 +714,7 @@ export async function saveProduct(formData: FormData) {
     await db.insert(products).values({
       id: uid(),
       ...values,
-      sellerId: auteur.role === "seller" ? auteur.id : null,
+      sellerId: proprietaire ? auteur.id : null,
     });
   }
 
@@ -650,16 +724,16 @@ export async function saveProduct(formData: FormData) {
 }
 
 export async function deleteProduct(formData: FormData) {
-  const auteur = await requireRole("admin", "seller");
+  const auteur = await requireRole("admin", "seller", "manager");
   const id = str(formData, "id");
 
   // Retirer un article le masque plutôt que de le supprimer : des commandes
   // passées y renvoient, et une ligne de vente sans produit est une ligne
   // qu'on ne sait plus expliquer.
   const ou =
-    auteur.role === "seller"
-      ? and(eq(products.id, id), eq(products.sellerId, auteur.id))
-      : eq(products.id, id);
+    auteur.role === "admin"
+      ? eq(products.id, id)
+      : and(eq(products.id, id), eq(products.sellerId, auteur.id));
 
   await db.update(products).set({ active: false }).where(ou);
   revalidatePath("/vendeur");
@@ -711,9 +785,23 @@ export async function saveEvent(formData: FormData) {
     }
   }
 
+  const titre = str(formData, "title");
+  const slug =
+    str(formData, "slug") ||
+    (await slugLibre(
+      titre,
+      async (essai) =>
+        ((await db
+          .select({ id: events.id })
+          .from(events)
+          .where(and(eq(events.slug, essai), id ? ne(events.id, id) : undefined))
+          .limit(1))[0]?.id ?? null) !== null,
+      "soiree",
+    ));
+
   const values = {
-    slug: str(formData, "slug") || str(formData, "title").toLowerCase().replace(/\s+/g, "-"),
-    title: str(formData, "title"),
+    slug,
+    title: titre,
     subtitle: str(formData, "subtitle"),
     day: str(formData, "day"),
     hours: str(formData, "hours"),
@@ -735,6 +823,32 @@ export async function saveEvent(formData: FormData) {
   revalidatePath("/admin/evenements");
   revalidatePath("/gerant/evenements");
   revalidatePath("/app/events");
+  revalidatePath("/");
+}
+
+/**
+ * Clore une soirée, ou la rouvrir.
+ *
+ * `day` est du texte libre : rien dans la base ne savait dire qu'une soirée
+ * était passée, et l'affiche restait « en cours » des semaines après. Le
+ * gérant la referme d'un geste, et le tournoi jumeau la referme tout seul
+ * quand sa finale tombe.
+ */
+export async function cloreEvenement(formData: FormData) {
+  const auteur = await requireRole("admin", "manager");
+  const id = str(formData, "id");
+  const event = (await db.select().from(events).where(eq(events.id, id)).limit(1))[0];
+  if (!event) return;
+  if (auteur.role === "manager" && event.venueId !== auteur.venueId) redirect("/gerant/evenements?refus=1");
+
+  const rouvrir = bool(formData, "rouvrir");
+  await db.update(events).set({ endedAt: rouvrir ? null : new Date() }).where(eq(events.id, id));
+
+  revalidatePath("/gerant/evenements");
+  revalidatePath(`/gerant/evenements/${id}`);
+  revalidatePath("/admin/evenements");
+  revalidatePath("/app/events");
+  revalidatePath(`/app/events/${event.slug}`);
   revalidatePath("/");
 }
 
@@ -1719,9 +1833,23 @@ export async function saveCourse(formData: FormData) {
   }
 
   const sessions = Math.max(1, num(formData, "sessions"));
+  const titre = str(formData, "title");
+  const slug =
+    str(formData, "slug") ||
+    (await slugLibre(
+      titre,
+      async (essai) =>
+        ((await db
+          .select({ id: courses.id })
+          .from(courses)
+          .where(and(eq(courses.slug, essai), id ? ne(courses.id, id) : undefined))
+          .limit(1))[0]?.id ?? null) !== null,
+      "cours",
+    ));
+
   const values = {
-    slug: str(formData, "slug") || str(formData, "title").toLowerCase().replace(/\s+/g, "-"),
-    title: str(formData, "title"),
+    slug,
+    title: titre,
     coachName: str(formData, "coachName") || auteur.name,
     venueId: str(formData, "venueId") || null,
     level: str(formData, "level") || "debutant",
@@ -1827,6 +1955,9 @@ export async function saveTournament(formData: FormData) {
 async function syncTwinEvent(tournamentId: string, formData: FormData) {
   const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
   if (!t) return;
+  const jumeau = t.eventId
+    ? (await db.select().from(events).where(eq(events.id, t.eventId)).limit(1))[0]
+    : null;
 
   const prix = Math.max(0, num(formData, "ticketPrice"));
   const places = Math.max(1, num(formData, "ticketCapacity") || 100);
@@ -1849,6 +1980,8 @@ async function syncTwinEvent(tournamentId: string, formData: FormData) {
     // Le public ne doit voir la billetterie qu'une fois le tournoi annoncé :
     // un brouillon ne se vend pas.
     active: t.status !== "brouillon" && t.status !== "annule",
+    // Un tournoi fini ou annulé referme sa soirée ; le rouvrir la rouvre.
+    endedAt: t.status === "termine" || t.status === "annule" ? (jumeau?.endedAt ?? new Date()) : null,
   };
 
   if (t.eventId) {
@@ -1876,11 +2009,15 @@ export async function setTournamentStatus(id: string, status: string) {
 
   await db.update(tournaments).set({ status }).where(eq(tournaments.id, id));
 
-  // La billetterie spectateurs suit l'état du tournoi.
+  // La billetterie spectateurs suit l'état du tournoi — et un tournoi annulé
+  // referme sa soirée au lieu de la laisser « en cours » indéfiniment.
   if (t.eventId) {
     await db
       .update(events)
-      .set({ active: status !== "brouillon" && status !== "annule" })
+      .set({
+        active: status !== "brouillon" && status !== "annule",
+        endedAt: status === "annule" ? new Date() : null,
+      })
       .where(eq(events.id, t.eventId));
   }
 
@@ -2362,8 +2499,11 @@ export async function demanderRetrait(formData: FormData): Promise<RetraitResult
     return { ok: false, error: `Le minimum est de ${RETRAIT_MINIMUM.toLocaleString("fr-FR")} F.` };
   }
 
-  // Un vendeur retire sur son propre solde ; un gérant, sur celui de sa salle.
-  const pourSalle = auteur.role !== "seller";
+  // Un vendeur retire sur son propre solde ; un gérant, sur celui de sa salle
+  // — mais s'il vend aussi des articles, il a deux bourses distinctes. C'est
+  // le guichet d'où part la demande qui dit laquelle, pas le rôle : sinon un
+  // gérant verrait le solde de sa boutique et retirerait celui de sa salle.
+  const pourSalle = auteur.role !== "seller" && str(formData, "cible") !== "vendeur";
   const venueId = pourSalle ? str(formData, "venueId") || auteur.venueId || "" : "";
   if (pourSalle && !venueId) return { ok: false, error: "Aucune salle rattachée à ce compte." };
   if (pourSalle && auteur.role === "manager" && venueId !== auteur.venueId) redirect("/gerant?refus=1");

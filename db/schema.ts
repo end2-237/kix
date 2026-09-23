@@ -407,6 +407,16 @@ export const events = mb.table("events", {
   description: text("description").notNull().default(""),
   tags: text("tags").notNull().default(""),
   active: boolean("active").notNull().default(true),
+  /**
+   * Quand la soirée s'est terminée.
+   *
+   * `day` est du texte libre — « Samedi 03 octobre » —, impossible à comparer
+   * à une horloge : une soirée restait donc « en cours » pour toujours, et le
+   * tournoi fini laissait derrière lui un événement qui vendait encore des
+   * billets. Une date de fin, posée à la main par le gérant ou par la finale
+   * du tournoi jumeau, referme l'affiche sans la faire disparaître.
+   */
+  endedAt: timestamp("ended_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 

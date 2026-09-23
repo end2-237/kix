@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { ChevronLeftIcon, TicketIcon } from "@/components/icons";
-import { getEventAttendees, getVenueEvents } from "@/lib/queries";
+import { getEventAttendees, getTournoiDeLEvenement, getVenueEvents } from "@/lib/queries";
+import { cloreEvenement } from "@/lib/actions";
+import { etatSoiree, ETATS_SOIREE, soireeTerminee } from "@/lib/soirees";
 import { requireRole } from "@/lib/session";
 import { displayPhone } from "@/lib/phone";
 import { f, fcfa } from "@/lib/format";
@@ -29,7 +31,11 @@ export default async function GerantEvenement({ params }: { params: Promise<{ id
   if (!ligne) notFound();
 
   const { event, vendus, entres, attente, recette } = ligne;
-  const participants = await getEventAttendees(event.id);
+  const [participants, jumeau] = await Promise.all([
+    getEventAttendees(event.id),
+    getTournoiDeLEvenement(event.id),
+  ]);
+  const terminee = soireeTerminee(event.endedAt);
 
   return (
     <div className="flex flex-col gap-5">
@@ -46,15 +52,63 @@ export default async function GerantEvenement({ params }: { params: Promise<{ id
           <p className="text-[13px] text-muted">
             {event.day} · {event.hours} · {event.price > 0 ? f(event.price) : "entrée libre"}
           </p>
+          <span
+            className={cn(
+              "w-fit rounded-full border px-2.5 py-0.5 text-[10.5px]",
+              terminee
+                ? "border-line bg-surface-2 text-muted"
+                : "border-jade/40 bg-jade/12 text-jade-text",
+            )}
+          >
+            {ETATS_SOIREE[etatSoiree(event)]}
+          </span>
         </div>
       </div>
 
+      {/* Une soirée finit : sans ce bouton, l'affiche restait « en cours » des
+          semaines après, et la billetterie vendait encore des places. Un
+          tournoi, lui, referme sa soirée tout seul à la finale. */}
+      <form action={cloreEvenement} className="flex items-center gap-3">
+        <input type="hidden" name="id" value={event.id} />
+        {terminee ? <input type="hidden" name="rouvrir" value="on" /> : null}
+        <button className="press h-11 rounded-full border border-line px-4 text-[13px] text-dim transition hover:text-ink">
+          {terminee ? "Rouvrir la soirée" : "Clore la soirée"}
+        </button>
+        <span className="text-[12px] text-muted">
+          {terminee
+            ? "Les billets déjà émis restent valables au scan."
+            : "Après clôture, plus aucun billet ne se vend."}
+        </span>
+      </form>
+
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-        <Chiffre valeur={fcfa(Number(recette))} quoi="encaissé" tone="gold" />
+        <Chiffre valeur={fcfa(Number(recette) + (jumeau?.droits ?? 0))} quoi="encaissé" tone="gold" />
         <Chiffre valeur={`${Number(vendus)} / ${event.capacity}`} quoi="places vendues" />
         <Chiffre valeur={String(Number(entres))} quoi="entrés" />
         <Chiffre valeur={String(Number(attente))} quoi="en attente" />
       </div>
+
+      {/* Sur une soirée de tournoi, les joueurs paient un droit d'inscription :
+          c'est souvent le gros de la recette, et il n'apparaissait pas ici. */}
+      {jumeau ? (
+        <Card shape="panel" className="flex flex-col gap-2.5 p-4">
+          <span className="label-caps text-[10px]">Le tournoi</span>
+          <div className="grid grid-cols-3 gap-2.5">
+            <Chiffre valeur={String(jumeau.inscrits)} quoi="joueurs retenus" />
+            <Chiffre valeur={String(jumeau.candidats)} quoi="candidatures" />
+            <Chiffre valeur={fcfa(jumeau.droits)} quoi="droits encaissés" />
+          </div>
+          <p className="text-[12px] text-muted">
+            Billetterie spectateurs : {fcfa(Number(recette))} · droits joueurs : {fcfa(jumeau.droits)}.
+          </p>
+          <Link
+            href={`/gerant/tournois/${jumeau.tournoi.id}`}
+            className="press w-fit text-[12.5px] text-gold-text"
+          >
+            Ouvrir le tournoi
+          </Link>
+        </Card>
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-[15px]">

@@ -1,6 +1,7 @@
 import { Drawer, Field, PageHead, Pill, Select, SubmitButton, Table, Td, TextArea } from "@/components/admin/AdminUI";
 import { ImageField } from "@/components/admin/ImageField";
-import { deleteEvent, saveEvent } from "@/lib/actions";
+import { cloreEvenement, deleteEvent, saveEvent } from "@/lib/actions";
+import { etatSoiree, ETATS_SOIREE, soireeTerminee } from "@/lib/soirees";
 import { getAllEvents, getAllVenues } from "@/lib/queries";
 import { f } from "@/lib/format";
 
@@ -52,7 +53,9 @@ export default async function AdminEvents() {
             </Td>
             <Td>{sold}</Td>
             <Td>
-              <Pill tone={event.active ? "gold" : "neutral"}>{event.active ? "Publié" : "Archivé"}</Pill>
+              <Pill tone={etatSoiree(event) === "affiche" ? "gold" : "neutral"}>
+                {event.active ? ETATS_SOIREE[etatSoiree(event)] : "Archivé"}
+              </Pill>
             </Td>
             <Td>
               <div className="flex items-center gap-2">
@@ -84,6 +87,15 @@ export default async function AdminEvents() {
                     <SubmitButton />
                   </form>
                 </details>
+                {/* Clore une soirée la laisse à l'affiche, marquée terminée,
+                    mais ferme sa billetterie. L'archiver la retire. */}
+                <form action={cloreEvenement}>
+                  <input type="hidden" name="id" value={event.id} />
+                  {soireeTerminee(event.endedAt) ? <input type="hidden" name="rouvrir" value="on" /> : null}
+                  <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-ink">
+                    {soireeTerminee(event.endedAt) ? "Rouvrir" : "Clore"}
+                  </button>
+                </form>
                 <form action={deleteEvent}>
                   <input type="hidden" name="id" value={event.id} />
                   <button className="rounded-full border border-line px-3 py-1.5 text-[11px] text-muted hover:text-warn">
