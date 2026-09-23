@@ -33,7 +33,11 @@ export const ressembleAUnePriveeVapid = (v: string) =>
   Buffer.from(v.trim().replace(/-/g, "+").replace(/_/g, "/"), "base64").length === 32;
 
 export function cles(): Cles | null {
-  const publique = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  // `VAPID_PUBLIC_KEY` accepté en second : c'est le nom sans préfixe qu'on
+  // trouve partout ailleurs, et le serveur n'a pas besoin du préfixe — seul
+  // le navigateur l'exige, pour que la valeur soit inlinée à la construction.
+  const publique =
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() || process.env.VAPID_PUBLIC_KEY?.trim();
   const privee = process.env.VAPID_PRIVATE_KEY?.trim();
 
   // Une clé publique seule est le piège silencieux de cette configuration :
@@ -42,7 +46,7 @@ export function cles(): Cles | null {
   // Mieux vaut le dire au démarrage que le chercher un mois plus tard.
   if (publique && !privee) {
     console.error(
-      "[mb] NEXT_PUBLIC_VAPID_PUBLIC_KEY est posée mais VAPID_PRIVATE_KEY manque. " +
+      "[mb] La clé publique VAPID est posée mais VAPID_PRIVATE_KEY manque. " +
         "Les navigateurs s'abonneront sans que rien ne puisse leur être envoyé. " +
         "Génère la paire avec `npm run push:cles` et pose les deux moitiés — " +
         "la publique doit être présente à la construction.",

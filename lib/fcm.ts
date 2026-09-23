@@ -32,7 +32,8 @@ type CompteDeService = {
  *  1. deux variables — `FIREBASE_CLIENT_EMAIL` et `FIREBASE_PRIVATE_KEY` —
  *     recopiées depuis le fichier. C'est le plus simple : deux champs à
  *     sélectionner, rien à encoder ;
- *  2. `FIREBASE_SERVICE_ACCOUNT` avec le JSON entier collé tel quel ;
+ *  2. `FIREBASE_SERVICE_ACCOUNT` — ou `FIREBASE_SERVICE_ACCOUNT_JSON` — avec
+ *     le JSON entier collé tel quel ;
  *  3. le même, encodé en base64, pour les hébergeurs qui abîment les
  *     retours à la ligne.
  *
@@ -44,7 +45,12 @@ function compte(): CompteDeService | null {
   const separe = compteEnDeuxVariables();
   if (separe) return separe;
 
-  const brut = process.env.FIREBASE_SERVICE_ACCOUNT?.trim();
+  // Deux noms pour la même chose : `FIREBASE_SERVICE_ACCOUNT_JSON` est celui
+  // qu'emploient les autres services de la maison, et un déploiement se fait
+  // en recopiant un bloc de variables d'un projet à l'autre. Refuser le nom
+  // voisin ne protégerait rien, et coûterait une soirée de recherche.
+  const brut =
+    process.env.FIREBASE_SERVICE_ACCOUNT?.trim() || process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
   if (!brut) return null;
 
   const texte = brut.startsWith("{") ? brut : Buffer.from(brut, "base64").toString("utf8");
@@ -180,7 +186,7 @@ export async function envoyerFcm(token: string, urgence: "normal" | "high" = "no
     console.error(
       "[mb] La clé privée Firebase est illisible. Recopie la valeur de `private_key` telle qu'elle " +
         "figure dans le fichier .json — avec ses « \\n » — dans FIREBASE_PRIVATE_KEY, ou colle le " +
-        "JSON entier dans FIREBASE_SERVICE_ACCOUNT. Aucune notification ne partira par Firebase d'ici là.",
+        "JSON entier dans FIREBASE_SERVICE_ACCOUNT_JSON. Aucune notification ne partira par Firebase d'ici là.",
     );
     return "ignore";
   }
