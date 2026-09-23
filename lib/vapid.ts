@@ -5,7 +5,7 @@
  * signature est la seule partie vraiment délicate du protocole, et elle doit
  * pouvoir être éprouvée depuis un script Node.
  */
-import { createPrivateKey, createSign, generateKeyPairSync } from "node:crypto";
+import { createPrivateKey, createPublicKey, createSign, generateKeyPairSync } from "node:crypto";
 
 export const TTL = 60 * 60 * 12; // douze heures : au-delà, la notification a vieilli
 
@@ -51,17 +51,7 @@ export function cles(): Cles | null {
   }
   if (!publique || !privee) return null;
 
-  // La clé du certificat Web Push de Firebase est une AUTRE paire que la
-  // nôtre : s'en servir pour l'abonnement standard produit des abonnements
-  // que nous ne saurons jamais signer.
-  const firebase = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY?.trim();
-  if (firebase && firebase === publique) {
-    console.error(
-      "[mb] NEXT_PUBLIC_VAPID_PUBLIC_KEY et NEXT_PUBLIC_FIREBASE_VAPID_KEY portent la même valeur. " +
-        "Ce sont deux paires distinctes : celle de Firebase vient de sa console, la nôtre de " +
-        "`npm run push:cles`. Tant qu'elles sont confondues, les envois directs seront refusés.",
-    );
-  }
+
 
   // Refuser plutôt qu'envoyer : une clé privée déjà partie dans le navigateur
   // est une clé à changer, et continuer à s'en servir ne ferait que retarder
@@ -80,6 +70,21 @@ export function cles(): Cles | null {
     console.error(
       "[mb] NEXT_PUBLIC_VAPID_PUBLIC_KEY n'est pas une clé publique VAPID valide " +
         "(65 octets attendus, préfixe 0x04). Les notifications push resteront muettes.",
+    );
+    return null;
+  }
+
+  // Deux moitiés de paires différentes signent un JWT parfaitement formé que
+  // tous les services de push refusent — sans un mot. La console Firebase
+  // fournit d'ailleurs une paire Web Push tout à fait utilisable ici : sa
+  // publique dans NEXT_PUBLIC_VAPID_PUBLIC_KEY, sa privée dans
+  // VAPID_PRIVATE_KEY, jamais l'inverse ni le contraire.
+  if (!paireCoherente(publique, privee)) {
+    console.error(
+      "[mb] NEXT_PUBLIC_VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY ne forment pas une paire : " +
+        "la privée ne redonne pas cette publique. Les deux moitiés doivent venir de la même " +
+        "génération — `npm run push:cles`, ou le même certificat Web Push de la console Firebase. " +
+        "Aucun envoi ne partira d'ici là.",
     );
     return null;
   }
@@ -138,6 +143,23 @@ function clePrivee(brut: string) {
   const d = deB64url(brut);
   if (d.length !== 32) throw new Error("clé privée VAPID : 32 octets attendus");
   return createPrivateKey({ key: Buffer.concat([prefixe, d]), format: "der", type: "pkcs8" });
+}
+
+/**
+ * La privée correspond-elle vraiment à la publique ?
+ *
+ * C'est la seule question qui compte, et aucune erreur de configuration ne la
+ * pose : deux moitiés de paires différentes donnent un JWT parfaitement formé
+ * que tous les services de push refusent, sans que rien ne le dise. On dérive
+ * donc le point public de la clé privée et on compare.
+ */
+export function paireCoherente(publique: string, privee: string): boolean {
+  try {
+    const derive = createPublicKey(clePrivee(privee)).export({ format: "der", type: "spki" });
+    return b64url(derive.subarray(derive.length - 65)) === publique.trim();
+  } catch {
+    return false;
+  }
 }
 
 /** Le jeton VAPID pour un service de push donné. */
