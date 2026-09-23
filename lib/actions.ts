@@ -2089,7 +2089,9 @@ export async function saveTournament(formData: FormData) {
     size: Math.max(2, num(formData, "size") || 16),
     // Sèche = une partie gagnante. Le tournoi entier suit la même règle, du
     // premier tour à la finale : on ne rallonge pas une sèche en demi-finale.
-    raceTo: str(formData, "mode") === "seche" ? 1 : Math.max(2, num(formData, "raceTo") || 4),
+    // Une « course à 1 partie » saisie à la main est une sèche, et se range
+    // d'elle-même du bon côté — le mode se lit dans la cible, nulle part ailleurs.
+    raceTo: str(formData, "mode") === "seche" ? 1 : Math.max(1, num(formData, "raceTo") || 4),
     entryFee: Math.max(0, num(formData, "entryFee")),
     prizePool: Math.max(0, num(formData, "prizePool")),
     prizeSplit: str(formData, "prizeSplit"),

@@ -22,26 +22,55 @@ export type ConfigFirebase = {
   measurementId?: string;
 };
 
+/**
+ * Ce que l'hébergeur a pu ajouter autour de la valeur.
+ *
+ * Un panneau de variables d'environnement accepte volontiers
+ * `NEXT_PUBLIC_FIREBASE_API_KEY="AIza…"` et garde les guillemets ; un
+ * copier-coller laisse une espace ou un retour à la ligne. Google répond
+ * alors « API key not valid », et l'on cherche la faute dans le code pendant
+ * une heure. On nettoie donc à la lecture, une fois pour toutes.
+ */
+const propre = (valeur: string | undefined): string =>
+  (valeur ?? "").trim().replace(/^["']([\s\S]*)["']$/, "$1").trim();
+
+/** Une clé d'API Google : `AIza` suivi de 35 caractères. */
+export const ressembleAUneCleGoogle = (cle: string) => /^AIza[0-9A-Za-z_-]{35}$/.test(cle);
+
 export function configFirebase(): ConfigFirebase | null {
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
-  const messagingSenderId = process.env.NEXT_PUBLIC_FIREBASE_SENDER_ID;
+  const apiKey = propre(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+  const projectId = propre(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  const appId = propre(process.env.NEXT_PUBLIC_FIREBASE_APP_ID);
+  const messagingSenderId = propre(process.env.NEXT_PUBLIC_FIREBASE_SENDER_ID);
   if (!apiKey || !projectId || !appId || !messagingSenderId) return null;
+
+  // Une clé mal recopiée ne sert à rien, et pire : elle fait échouer
+  // l'enregistrement Firebase, donc les notifications, alors que le protocole
+  // standard — qui ne dépend pas de Google — aurait très bien fonctionné. On
+  // préfère débrancher Firebase et le dire.
+  if (!ressembleAUneCleGoogle(apiKey)) {
+    console.error(
+      "[mb] NEXT_PUBLIC_FIREBASE_API_KEY ne ressemble pas à une clé Google " +
+        `(attendu « AIza » + 35 caractères, reçu ${apiKey.length} caractères). ` +
+        "Vérifie qu'aucun guillemet ni espace ne traîne autour de la valeur. " +
+        "Firebase reste débranché ; les notifications passent par le protocole standard.",
+    );
+    return null;
+  }
 
   return {
     apiKey,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? `${projectId}.firebaseapp.com`,
+    authDomain: propre(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN) || `${projectId}.firebaseapp.com`,
     projectId,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? `${projectId}.firebasestorage.app`,
+    storageBucket: propre(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) || `${projectId}.firebasestorage.app`,
     messagingSenderId,
     appId,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+    measurementId: propre(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID) || undefined,
   };
 }
 
 /** La clé publique du certificat Web Push, donnée par la console Firebase. */
-export const cleWebPushFirebase = () => process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ?? "";
+export const cleWebPushFirebase = () => propre(process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY);
 
 /**
  * Firebase est-il utilisable pour les notifications ?

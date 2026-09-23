@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { useSnackbar } from "@/components/ui/Snackbar";
@@ -26,6 +26,45 @@ const useMonte = () =>
   );
 
 type Etat = "inconnu" | "impossible" | "ios" | "refusee" | "prete" | "active";
+
+/** Enregistrer ce navigateur auprès du serveur. Idempotent : on peut répéter. */
+async function inscrire(cleVapid: string, firebase?: ConfigFirebase | null, cleWebPushFirebase?: string) {
+  const sw = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  await navigator.serviceWorker.ready;
+
+  // Firebase quand le projet est branché, le protocole standard sinon. Les
+  // deux aboutissent au même service worker et à la même table : ce qui
+  // change, c'est qui achemine le signal.
+  let corps: Record<string, unknown> | null = null;
+
+  if (firebase && cleWebPushFirebase) {
+    try {
+      const { jetonFcm } = await import("@/components/mb/fcm");
+      const token = await jetonFcm(firebase, cleWebPushFirebase, sw);
+      if (token) corps = { provider: "fcm", endpoint: token };
+    } catch (e) {
+      console.warn("[mb] Firebase indisponible, on passe par le push standard.", e);
+    }
+  }
+
+  if (!corps) {
+    if (!cleVapid) throw new Error("aucune clé d'envoi configurée");
+    const abonnement =
+      (await sw.pushManager.getSubscription()) ??
+      (await sw.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: b64ToU8(cleVapid),
+      }));
+    corps = { provider: "web", ...abonnement.toJSON() };
+  }
+
+  const res = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(corps),
+  });
+  if (!res.ok) throw new Error("refus du serveur");
+}
 
 function b64ToU8(base64: string) {
   const complet = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
@@ -65,10 +104,55 @@ export function ActiverNotifications({
   const { notify } = useSnackbar();
   const [etat, setEtat] = useState<Etat>("inconnu");
   const [travail, setTravail] = useState(false);
+  const verifie = useRef(false);
 
   // L'état se lit au premier rendu côté navigateur, sans effet : il ne dépend
   // que d'API synchrones.
   const courant = etat === "inconnu" && monte ? lire() : etat;
+
+  /**
+   * « Autorisé » ne veut pas dire « inscrit ».
+   *
+   * La carte affichait « Notifications activées » dès que le navigateur avait
+   * donné sa permission — même si aucun abonnement n'était jamais arrivé
+   * jusqu'au serveur, parce que l'enregistrement avait échoué, ou parce que la
+   * table a été refaite depuis. On le rejoue donc en silence à l'ouverture de
+   * la page : c'est idempotent, et cela répare le cas sans rien demander.
+   */
+  useEffect(() => {
+    if (!monte || verifie.current) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    verifie.current = true;
+
+    void (async () => {
+      try {
+        await inscrire(cleVapid, firebase, cleWebPushFirebase);
+      } catch (e) {
+        console.warn("[mb] ce navigateur n'a pas pu être réinscrit", e);
+        setEtat("prete");
+      }
+    })();
+  }, [monte, cleVapid, firebase, cleWebPushFirebase]);
+
+  async function tester() {
+    setTravail(true);
+    try {
+      const res = await fetch("/api/push/test", { method: "POST" });
+      const lu = (await res.json()) as { ok: boolean; error?: string; envoyes?: number };
+      if (!lu.ok) {
+        notify("Rien n'est parti", { detail: lu.error, tone: "warn" });
+        return;
+      }
+      notify("Essai envoyé", {
+        detail: `${lu.envoyes} appareil${(lu.envoyes ?? 0) > 1 ? "s" : ""} prévenu${(lu.envoyes ?? 0) > 1 ? "s" : ""}.`,
+        tone: "jade",
+      });
+    } catch {
+      notify("Essai impossible", { detail: "Le serveur n'a pas répondu.", tone: "warn" });
+    } finally {
+      setTravail(false);
+    }
+  }
 
   async function activer() {
     setTravail(true);
@@ -80,41 +164,12 @@ export function ActiverNotifications({
         return;
       }
 
-      const sw = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-      await navigator.serviceWorker.ready;
-
-      // Firebase quand le projet est branché, le protocole standard sinon.
-      // Les deux aboutissent au même service worker et à la même table : ce
-      // qui change, c'est qui achemine le signal.
-      let corps: Record<string, unknown> | null = null;
-
-      if (firebase && cleWebPushFirebase) {
-        const { jetonFcm } = await import("@/components/mb/fcm");
-        const token = await jetonFcm(firebase, cleWebPushFirebase, sw);
-        if (token) corps = { provider: "fcm", endpoint: token };
-      }
-
-      if (!corps) {
-        if (!cleVapid) throw new Error("aucune clé d'envoi configurée");
-        const abonnement =
-          (await sw.pushManager.getSubscription()) ??
-          (await sw.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: b64ToU8(cleVapid),
-          }));
-        corps = { provider: "web", ...abonnement.toJSON() };
-      }
-
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(corps),
-      });
-      if (!res.ok) throw new Error("refus du serveur");
+      await inscrire(cleVapid, firebase, cleWebPushFirebase);
 
       setEtat("active");
       notify("Notifications activées", { detail: "On te préviendra même application fermée.", tone: "jade" });
-    } catch {
+    } catch (e) {
+      console.warn("[mb] activation des notifications impossible", e);
       notify("Activation impossible", { detail: "Réessaie, ou vérifie les réglages du navigateur.", tone: "warn" });
     } finally {
       setTravail(false);
@@ -163,12 +218,22 @@ export function ActiverNotifications({
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-jade/20 text-jade-text">
           <CheckIcon size={17} />
         </span>
-        <span className="flex flex-col gap-0.5">
+        <span className="flex min-w-0 grow flex-col gap-0.5">
           <span className="text-[13.5px] font-semibold">Notifications activées</span>
           <span className="text-[11.5px] text-muted">
             Jetons, billets, tournois, et quand un ami se met à jouer.
           </span>
         </span>
+        {/* Le seul moyen honnête de répondre à « je ne reçois rien » : essayer,
+            et dire ce qui s'est passé. */}
+        <button
+          onClick={tester}
+          disabled={travail}
+          className="press flex h-10 shrink-0 items-center gap-2 rounded-full border border-line px-3.5 text-[12px] text-dim transition hover:text-ink disabled:opacity-50"
+        >
+          {travail ? <Spinner size={13} /> : null}
+          Tester
+        </button>
       </Card>
     );
   }

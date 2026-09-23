@@ -3,6 +3,7 @@ import { Photo } from "@/components/ui/Photo";
 import { Drawer, Field, Select, SubmitButton, TextArea } from "@/components/admin/AdminUI";
 import { ImageField } from "@/components/admin/ImageField";
 import { EtatTournoi } from "@/components/tournoi/Actions";
+import { Formules } from "@/components/tournoi/Formules";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ArrowRightIcon, TrophyIcon } from "@/components/icons";
@@ -49,9 +50,22 @@ export function FormulaireTournoi({
   /** Là où l'on revient après enregistrement — pour les liens du panneau. */
   base: string;
 }) {
+  // Un identifiant par formulaire : la page d'administration en affiche un
+  // par tournoi, et les formules doivent viser celui de la création.
+  const cible = tournoi ? tournoi.id : "nouveau";
+
   return (
     <Drawer summary={tournoi ? "▸ Éditer" : "+ Nouveau tournoi"}>
-      <form action={saveTournament} className="grid gap-3 pt-3 lg:grid-cols-3">
+      {/* Les formules ne s'affichent qu'à la création : sur un tournoi qui
+          existe, écraser d'un clic ce que l'organisateur a réglé — et son
+          règlement déjà publié — ne rendrait service à personne. */}
+      {tournoi ? null : (
+        <div className="pt-3">
+          <Formules cible={cible} />
+        </div>
+      )}
+
+      <form data-formulaire={cible} action={saveTournament} className="grid gap-3 pt-3 lg:grid-cols-3">
         {tournoi ? <input type="hidden" name="id" value={tournoi.id} /> : null}
         {tournoi ? <input type="hidden" name="slug" value={tournoi.slug} /> : null}
 
@@ -89,11 +103,16 @@ export function FormulaireTournoi({
           defaultValue={modeDuJeu(tournoi?.raceTo ?? 1)}
           options={MODES_OPTIONS}
         />
+        {/* `min` à 1 et non 2 : une formule en parties sèches pose 1 ici, et le
+            navigateur refusait alors l'envoi en affichant « la valeur doit être
+            supérieure ou égale à 2 » dans une bulle que personne ne relie au
+            bouton qui ne réagit pas. Une course à 1 partie est une sèche : le
+            serveur la lit comme telle. */}
         <Field
           label="Parties gagnantes (1er tour)"
           name="raceTo"
           type="number"
-          min={2}
+          min={1}
           defaultValue={tournoi && tournoi.raceTo > 1 ? tournoi.raceTo : 4}
           hint="En course seulement : +1 en demi-finale, +2 en finale. En partie sèche, tout le tournoi se joue à la noire."
         />
