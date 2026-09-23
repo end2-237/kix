@@ -988,6 +988,22 @@ export async function saveEvent(formData: FormData) {
   if (id) await db.update(events).set(values).where(eq(events.id, id));
   else await db.insert(events).values({ id: uid(), ...values, attendees: 0 });
 
+  // Une soirée à l'affiche se dit à toute la salle — une fois, à sa
+  // publication. Un brouillon masqué, non : on n'annonce pas ce qu'on ne peut
+  // pas encore ouvrir.
+  if (values.active) {
+    const { annoncerATous } = await import("@/lib/annonces");
+    await annoncerATous({
+      titre: values.title,
+      corps: [values.day, values.hours, values.price > 0 ? `${values.price.toLocaleString("fr-FR")} F` : "entrée libre"]
+        .filter(Boolean)
+        .join(" · "),
+      kind: "event",
+      href: `/app/events/${slug}`,
+      sauf: auteur.id,
+    });
+  }
+
   revalidatePath("/admin/evenements");
   revalidatePath("/gerant/evenements");
   revalidatePath("/app/events");
@@ -2189,6 +2205,29 @@ export async function setTournamentStatus(id: string, status: string) {
         endedAt: status === "annule" ? new Date() : null,
       })
       .where(eq(events.id, t.eventId));
+  }
+
+  // Les candidatures ouvertes, le tournoi existe pour les joueurs : c'est le
+  // moment de le leur dire, et le seul. Les états suivants — complet, en
+  // cours — ne sont plus une nouvelle pour qui n'a pas postulé.
+  if (status === "inscriptions") {
+    const { annoncerATous } = await import("@/lib/annonces");
+    const { DISCIPLINES: noms } = await import("@/lib/tournois");
+    const { nomDuJeu } = await import("@/lib/regles");
+    await annoncerATous({
+      titre: `Tournoi · ${t.title}`,
+      corps: [
+        noms[t.discipline] ?? t.discipline,
+        nomDuJeu(t.raceTo),
+        t.prizePool > 0 ? `${t.prizePool.toLocaleString("fr-FR")} F de dotation` : null,
+        "Candidatures ouvertes.",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      kind: "event",
+      href: `/app/tournois/${t.slug}`,
+      sauf: auteur.id,
+    });
   }
 
   revalidatePath("/app/tournois");
