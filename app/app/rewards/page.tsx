@@ -19,7 +19,7 @@ import {
 } from "@/components/icons";
 import { getLeaderboard, getRank } from "@/lib/queries";
 import { estMembre, joursRestants } from "@/lib/membres";
-import { peutEnseigner } from "@/lib/niveaux";
+import { peutDiffuser, peutEnseigner } from "@/lib/niveaux";
 import { requireUser } from "@/lib/session";
 import { signOut } from "@/lib/actions";
 import { levelFor, POINTS_PER_FREE_TOKEN } from "@/lib/constants";
@@ -235,6 +235,9 @@ export default async function RewardsPage() {
               qu'on lui avait mis sous les yeux. */}
           {/* Enseigner s'ouvre au niveau, pas au rôle : le raccourci apparaît
               quand le joueur y a droit, ou qu'il donne déjà des cours. */}
+          {peutDiffuser(user.points) || user.role !== "client" ? (
+            <Shortcut href="/app/diffuser" icon={<BoltIcon size={18} />} label="Mes directs" />
+          ) : null}
           {peutEnseigner(user.points) || user.role !== "client" ? (
             <Shortcut href="/app/prof" icon={<TrophyIcon size={18} />} label="Mes cours" />
           ) : null}

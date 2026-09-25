@@ -337,3 +337,49 @@ export async function getShowcase(): Promise<{
     replays,
   };
 }
+
+
+/* --------------------------------------------------------------- diffuseur */
+
+export type SoldeDiffuseur = { brut: number; commission: number; net: number; billets: number };
+
+/**
+ * Ce qu'un direct a rapporté à celui qui l'a tenu.
+ *
+ * Les billets vidéo n'allaient nulle part : ils se payaient, et l'argent
+ * restait sans propriétaire. Il revient maintenant à celui qui filme, moins la
+ * part de la maison — ce qui donne une raison de poser son téléphone sur un
+ * trépied un mardi soir.
+ */
+export async function getSoldeDiffuseur(hostId: string): Promise<SoldeDiffuseur> {
+  const { db, streamPasses } = await import("@/db");
+  const { and, eq, sql } = await import("drizzle-orm");
+
+  const ligne = (
+    await db
+      .select({
+        brut: sql<number>`coalesce(sum(${streamPasses.amount}), 0)`,
+        commission: sql<number>`coalesce(sum(${streamPasses.commission}), 0)`,
+        billets: sql<number>`count(*)`,
+      })
+      .from(streamPasses)
+      .where(and(eq(streamPasses.hostId, hostId), eq(streamPasses.status, "paid")))
+  )[0];
+
+  const brut = Number(ligne?.brut ?? 0);
+  const commission = Number(ligne?.commission ?? 0);
+  return { brut, commission, net: brut - commission, billets: Number(ligne?.billets ?? 0) };
+}
+
+/** Les directs qu'un joueur a ouverts lui-même. */
+export async function getStreamsDuJoueur(userId: string) {
+  const { db, streams, venues } = await import("@/db");
+  const { desc, eq } = await import("drizzle-orm");
+
+  return db
+    .select({ stream: streams, venue: venues })
+    .from(streams)
+    .leftJoin(venues, eq(venues.id, streams.venueId))
+    .where(eq(streams.createdBy, userId))
+    .orderBy(desc(streams.createdAt));
+}

@@ -742,6 +742,16 @@ export const streamPasses = mb.table(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     amount: integer("amount").notNull().default(0),
+    /**
+     * Qui diffuse, et ce que la plateforme prend — figés à l'achat.
+     *
+     * Un direct tenu par un joueur lui rapporte : c'est ce qui donne une
+     * raison de poser son téléphone sur un trépied et de filmer une table un
+     * mardi soir. Le bénéficiaire se fige ici, comme le vendeur d'une ligne de
+     * commande ou le coach d'une inscription.
+     */
+    hostId: uuid("host_id").references(() => users.id, { onDelete: "set null" }),
+    commission: integer("commission").notNull().default(0),
     /** Référence du paiement (mb.payments.reference). */
     reference: text("reference").unique(),
     // pending | paid | failed

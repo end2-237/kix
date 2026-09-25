@@ -214,9 +214,12 @@ function Line({
 
 export function NewStreamButton({
   matches,
+  salles,
   onCreate,
 }: {
   matches: { id: string; label: string }[];
+  /** Les salles au choix : un joueur filme là où il joue, un gérant chez lui. */
+  salles?: { id: string; label: string }[];
   onCreate: (form: FormData) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const { notify } = useSnackbar();
@@ -297,6 +300,22 @@ export function NewStreamButton({
                 defaultValue={500}
                 className="h-12 rounded-none border border-line bg-surface px-3 text-[14px] outline-none focus:border-gold"
               />
+            </label>
+          ) : null}
+
+          {salles && salles.length > 0 ? (
+            <label className="flex flex-col gap-1.5">
+              <span className="label-caps text-[10.5px] text-muted">Salle</span>
+              <select
+                name="venueId"
+                className="h-12 rounded-none border border-line bg-surface px-3 text-[14px] outline-none focus:border-gold"
+              >
+                {salles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
             </label>
           ) : null}
 

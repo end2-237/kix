@@ -43,10 +43,11 @@ export async function getSoldeVendeur(sellerId: string): Promise<SoldeVendeur> {
   // puffs et enseigne le samedi n'a pas deux comptes à surveiller, et le
   // guichet de retrait n'en connaît qu'un.
   const { getSoldeProf } = await import("@/lib/courses");
-  const cours = await getSoldeProf(sellerId);
+  const { getSoldeDiffuseur } = await import("@/lib/stream");
+  const [cours, directs] = await Promise.all([getSoldeProf(sellerId), getSoldeDiffuseur(sellerId)]);
 
-  const brut = Number(ligne?.brut ?? 0) + cours.brut;
-  const commission = Number(ligne?.commission ?? 0) + cours.commission;
+  const brut = Number(ligne?.brut ?? 0) + cours.brut + directs.brut;
+  const commission = Number(ligne?.commission ?? 0) + cours.commission + directs.commission;
   return {
     brut,
     commission,

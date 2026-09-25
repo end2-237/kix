@@ -1783,10 +1783,21 @@ export type StreamCreated = { ok: true; id: string } | { ok: false; error: strin
 
 /** Ouvre un direct : chemin public, clé d'ingestion, niveau et accès. */
 export async function createStream(formData: FormData): Promise<StreamCreated> {
-  const manager = await requireRole("manager", "admin");
+  // Filmer une table n'est plus réservé au comptoir : un joueur qui a atteint
+  // « Cogneur » pose son téléphone sur un trépied et diffuse, contre une part
+  // des billets vidéo. C'est le niveau qui ouvre la porte, pas le rôle.
+  const auteur = await requireUser();
+  const { peutDiffuser } = await import("@/lib/niveaux");
+  const duComptoir = auteur.role === "manager" || auteur.role === "admin";
+  if (!duComptoir && !peutDiffuser(auteur.points)) {
+    return { ok: false, error: "La diffusion s'ouvre au niveau Cogneur." };
+  }
+
+  const manager = auteur;
   const venueId = String(formData.get("venueId") ?? manager.venueId ?? "");
-  if (!venueId) return { ok: false, error: "Aucune salle" };
-  await guardVenue(venueId);
+  if (!venueId) return { ok: false, error: "Choisis la salle depuis laquelle tu filmes" };
+  // Le gérant reste borné à sa salle ; un joueur filme là où il joue.
+  if (duComptoir) await guardVenue(venueId);
 
   const venue = (await db.select().from(venues).where(eq(venues.id, venueId)).limit(1))[0];
   if (!venue) return { ok: false, error: "Salle introuvable" };
@@ -1898,15 +1909,26 @@ export async function buyStreamPass(
   )[0];
   if (existing?.status === "paid") return { ok: false, error: "Tu as déjà ton billet" };
 
+  // Ce que touchera celui qui filme, figé à l'achat : un direct repris ou
+  // supprimé plus tard ne réécrit pas ce qu'on lui doit pour ce soir.
+  const part = {
+    hostId: stream.createdBy,
+    commission: stream.createdBy ? Math.round(stream.price * COMMISSION_RATE) : stream.price,
+  };
+
   const passId = existing?.id ?? uid();
   if (existing) {
-    await db.update(streamPasses).set({ status: "pending", amount: stream.price }).where(eq(streamPasses.id, passId));
+    await db
+      .update(streamPasses)
+      .set({ status: "pending", amount: stream.price, ...part })
+      .where(eq(streamPasses.id, passId));
   } else {
     await db.insert(streamPasses).values({
       id: passId,
       streamId,
       userId: user.id,
       amount: stream.price,
+      ...part,
       status: "pending",
     });
   }

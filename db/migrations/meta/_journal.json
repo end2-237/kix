@@ -260,6 +260,13 @@
       "when": 1790367361570,
       "tag": "0036_prof-paye",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790368013350,
+      "tag": "0037_diffuseur-paye",
+      "breakpoints": true
     }
   ]
 }
