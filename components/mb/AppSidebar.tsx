@@ -36,6 +36,7 @@ const primary = [
 ];
 
 const secondary = [
+  { href: "/app/defis", label: "Mes défis" },
   { href: "/app/amis", label: "Mes amis" },
   { href: "/app/groupes", label: "Les groupes" },
   { href: "/app/abonnement", label: "Abonnement Master Break" },

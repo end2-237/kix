@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Photo } from "@/components/ui/Photo";
 import { BoutonAmi } from "@/components/joueur/BoutonAmi";
+import { Defier } from "@/components/joueur/Defier";
 import { InviterDansGroupe } from "@/components/joueur/InviterDansGroupe";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -36,12 +37,17 @@ export default async function ProfilJoueur({ params }: { params: Promise<{ id: s
   if (!palmares) notFound();
 
   const { mesGroupes } = await import("@/lib/bande");
-  const [matchs, tournois, soirees, lien, bandes] = await Promise.all([
+  const { defiEnCours } = await import("@/lib/defis");
+  const { getBalance, getVenues } = await import("@/lib/queries");
+  const [matchs, tournois, soirees, lien, bandes, defi, jetons, salles] = await Promise.all([
     derniersMatchs(id),
     tournoisDuJoueur(id),
     soireesDuJoueur(id),
     lienAvec(moi.id, id),
     mesGroupes(moi.id),
+    defiEnCours(moi.id, id),
+    getBalance(moi.id),
+    getVenues(),
   ]);
 
   const badges = badgesDe(palmares);
@@ -96,6 +102,15 @@ export default async function ProfilJoueur({ params }: { params: Promise<{ id: s
 
         {!cestMoi ? (
           <div className="flex flex-col gap-2">
+            {/* Le défi d'abord : c'est ce qu'on vient chercher sur la fiche
+                d'un joueur qu'on a repéré au classement. */}
+            <Defier
+              joueurId={id}
+              nom={palmares.user.name}
+              salles={salles.map((v) => ({ id: v.id, name: v.name }))}
+              jetons={jetons}
+              defiEnCours={Boolean(defi)}
+            />
             <BoutonAmi autreId={id} nom={palmares.user.name} etat={lien.etat} lienId={lien.id} />
             {/* On recrute au classement : l'amitié n'est pas un préalable pour
                 proposer à quelqu'un de rejoindre sa bande. */}

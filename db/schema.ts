@@ -978,6 +978,51 @@ export const memberships = mb.table(
  * de savoir à qui revient la réponse. L'index unique interdit les doublons
  * dans un sens ; le code vérifie l'autre avant d'insérer.
  */
+/**
+ * Un défi entre deux joueurs.
+ *
+ * Jusqu'ici, seul le comptoir créait un match : deux joueurs qui voulaient se
+ * mesurer devaient trouver un gérant disponible, alors que le jeton, lui, est
+ * automatisé depuis longtemps. Le défi est l'étape qui manquait — on repère
+ * quelqu'un au classement, on lui propose une salle, il accepte ou propose
+ * autre chose, et la rencontre naît d'elle-même.
+ *
+ * Le lieu se négocie : `venueId` porte la dernière proposition et `lieuParId`
+ * dit de qui elle vient. Celui qui doit répondre est toujours l'autre — sans
+ * cette paire, on ne saurait pas qui attend qui.
+ */
+export const challenges = mb.table(
+  "challenges",
+  {
+    id: id(),
+    fromId: uuid("from_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    toId: uuid("to_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** La salle proposée pour jouer. */
+    venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+    /** Qui a proposé ce lieu — l'autre est celui qui doit répondre. */
+    lieuParId: uuid("lieu_par_id").references(() => users.id, { onDelete: "set null" }),
+    // 8-ball | 9-ball | snooker | killer
+    kind: text("kind").notNull().default("8-ball"),
+    /** Parties gagnantes : 1 pour une sèche, N pour une course. */
+    target: integer("target").notNull().default(1),
+    message: text("message").notNull().default(""),
+    // propose | accepte | refuse | annule
+    status: text("status").notNull().default("propose"),
+    /** La rencontre née du défi, une fois accepté. */
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("challenges_to_idx").on(t.toId, t.status),
+    index("challenges_from_idx").on(t.fromId, t.status),
+  ],
+);
+
 export const friendships = mb.table(
   "friendships",
   {
@@ -1166,6 +1211,7 @@ export type Crew = typeof crews.$inferSelect;
 export type CrewMember = typeof crewMembers.$inferSelect;
 export type Invitation = typeof invitations.$inferSelect;
 export type Friendship = typeof friendships.$inferSelect;
+export type Challenge = typeof challenges.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type Payout = typeof payouts.$inferSelect;
 export type MemberPlan = typeof memberPlans.$inferSelect;

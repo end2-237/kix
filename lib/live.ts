@@ -321,3 +321,12 @@ export async function getScorableMatches(user: User): Promise<MatchCard[]> {
 
   return hydrate(rows);
 }
+
+/** Qui tient la feuille d'un match, nommément. */
+export async function arbitresDuMatch(matchId: string) {
+  return db
+    .select({ id: users.id, name: users.name })
+    .from(matchOfficials)
+    .innerJoin(users, eq(users.id, matchOfficials.userId))
+    .where(eq(matchOfficials.matchId, matchId));
+}

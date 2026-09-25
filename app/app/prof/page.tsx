@@ -3,7 +3,6 @@ import { Photo } from "@/components/ui/Photo";
 import { ScreenHeader } from "@/components/mb/AppHeader";
 import { Drawer, Field, Select, SubmitButton, Switch, TextArea } from "@/components/admin/AdminUI";
 import { ImageField } from "@/components/admin/ImageField";
-import { AnnonceCours } from "@/components/joueur/AnnonceCours";
 import { DemandeRetrait } from "@/components/caisse/Retrait";
 import { Card } from "@/components/ui/Card";
 import { CoinIcon, UserIcon } from "@/components/icons";
@@ -135,11 +134,6 @@ export default async function EspaceProf() {
                   {Number(inscrits)} / {course.capacity} inscrits{venue ? ` · ${venue.name}` : ""}
                 </span>
               </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <AnnonceCours coursId={course.id} titre={course.title} />
-              <span className="text-[11.5px] text-muted">Remets ton cours sous les yeux des joueurs.</span>
             </div>
 
             <Drawer summary="Modifier">

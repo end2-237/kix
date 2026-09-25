@@ -1,5 +1,6 @@
 import { Drawer, Field, PageHead, Pill, Select, SubmitButton, Switch, Table, Td, TextArea } from "@/components/admin/AdminUI";
 import { ImageField } from "@/components/admin/ImageField";
+import { AnnonceCours } from "@/components/joueur/AnnonceCours";
 import { saveCourse } from "@/lib/actions";
 import { getAllCourses, FORMATS, NIVEAUX, prixParSeance } from "@/lib/courses";
 import { getAllVenues } from "@/lib/queries";
@@ -42,7 +43,7 @@ export default async function AdminCours() {
         </form>
       </Drawer>
 
-      <Table head={["Cours", "Coach", "Niveau", "Séances", "Prix", "Inscrits", "État", ""]}>
+      <Table head={["Cours", "Coach", "Niveau", "Séances", "Prix", "Inscrits", "État", "Annonce", ""]}>
         {cours.map(({ course, venue, inscrits }) => (
           <tr key={course.id}>
             <Td className="font-semibold">{course.title}</Td>
@@ -62,6 +63,13 @@ export default async function AdminCours() {
               <Pill tone={course.active ? (course.featured ? "gold" : "jade") : "neutral"}>
                 {course.active ? (course.featured ? "En bannière" : "Visible") : "Masqué"}
               </Pill>
+            </Td>
+            <Td>
+              {/* L'annonce est un geste d'administration : elle part à tous
+                  les joueurs, et rien ne la rattrape. */}
+              <div className="flex items-center gap-2">
+                <AnnonceCours coursId={course.id} titre={course.title} />
+              </div>
             </Td>
             <Td>
               <Drawer summary="▸ Éditer">

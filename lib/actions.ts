@@ -9,6 +9,7 @@ import {
   db,
   courses,
   enrollments,
+  challenges,
   crewMembers,
   crews,
   events,
@@ -2114,12 +2115,13 @@ const ENTRE_DEUX_ANNONCES = 7 * 24 * 60 * 60 * 1000;
 export async function annoncerLeCours(
   formData: FormData,
 ): Promise<{ ok: true; joueurs: number } | { ok: false; error: string }> {
-  const auteur = await requireUser();
+  // Une notification qui part à tout le monde est la ressource la plus fragile
+  // de l'application : trois de trop et les gens les coupent, pour toujours.
+  // Elle reste donc entre les mains de l'administration, quelle que soit
+  // l'activité annoncée — un prof demande, l'administration décide.
+  const auteur = await requireRole("admin");
   const cours = (await db.select().from(courses).where(eq(courses.id, str(formData, "id"))).limit(1))[0];
   if (!cours) return { ok: false, error: "Cours introuvable." };
-  if (auteur.role !== "admin" && cours.coachId !== auteur.id) {
-    return { ok: false, error: "Ce cours n'est pas le tien." };
-  }
   if (!cours.active) return { ok: false, error: "Publie le cours avant de l'annoncer." };
 
   const mot = str(formData, "message").slice(0, 180);
@@ -3322,6 +3324,276 @@ export async function inviterAuGroupe(formData: FormData) {
   revalidatePath("/app/groupes");
   revalidatePath(`/app/groupes/${groupe.slug}`);
   return { ok: true as const, invites: nouveaux.length };
+}
+
+/* --------------------------------------------------------------------- défis */
+
+export type DefiResult = { ok: true; id: string } | { ok: false; error: string };
+
+/**
+ * Défier un joueur.
+ *
+ * Le jeton est engagé comme pour n'importe quelle partie, et c'est celui qui
+ * lance le défi qui le pose — on n'oblige pas quelqu'un à payer une rencontre
+ * qu'il n'a pas demandée. Il n'est débité qu'à l'acceptation : un défi refusé
+ * ne coûte rien.
+ *
+ * Le lieu se propose, il ne s'impose pas. Le défié voit l'adresse et peut en
+ * proposer une autre ; la balle passe alors dans l'autre camp.
+ */
+export async function defier(formData: FormData): Promise<DefiResult> {
+  const moi = await requireUser();
+  const toId = str(formData, "toId");
+  if (toId === moi.id) return { ok: false, error: "On ne se défie pas soi-même." };
+
+  const autre = (await db.select().from(users).where(eq(users.id, toId)).limit(1))[0];
+  if (!autre || autre.role !== "client") return { ok: false, error: "Joueur introuvable." };
+
+  const { defiEnCours } = await import("@/lib/defis");
+  if (await defiEnCours(moi.id, toId)) {
+    return { ok: false, error: "Un défi est déjà en cours entre vous." };
+  }
+
+  const venueId = str(formData, "venueId");
+  if (!venueId) return { ok: false, error: "Propose une salle où jouer." };
+  const salle = (await db.select().from(venues).where(eq(venues.id, venueId)).limit(1))[0];
+  if (!salle) return { ok: false, error: "Salle introuvable." };
+
+  // Un défi sans jeton en poche serait une promesse en l'air : on le dit tout
+  // de suite plutôt qu'au moment où l'autre accepte.
+  const { getBalance } = await import("@/lib/queries");
+  if ((await getBalance(moi.id)) < 1) {
+    return { ok: false, error: "Il te faut au moins un jeton pour lancer un défi. Recharge d'abord." };
+  }
+
+  const seche = str(formData, "mode") === "seche" || !str(formData, "mode");
+  const target = seche ? 1 : Math.min(21, Math.max(2, num(formData, "target") || 5));
+
+  const id = uid();
+  await db.insert(challenges).values({
+    id,
+    fromId: moi.id,
+    toId,
+    venueId,
+    lieuParId: moi.id,
+    kind: str(formData, "kind") || "8-ball",
+    target,
+    message: str(formData, "message").slice(0, 200),
+    status: "propose",
+  });
+
+  const { nomDuJeu } = await import("@/lib/regles");
+  await notify(
+    toId,
+    `${moi.name} te défie`,
+    `${salle.name} · ${nomDuJeu(target)}. À toi de dire oui, ou de proposer une autre salle.`,
+    "system",
+    "/app/defis",
+  );
+
+  revalidatePath("/app/defis");
+  revalidatePath(`/app/joueurs/${toId}`);
+  return { ok: true, id };
+}
+
+/** Proposer une autre salle : la balle repasse dans l'autre camp. */
+export async function changerLeLieu(defiId: string, venueId: string): Promise<DefiResult> {
+  const moi = await requireUser();
+  const defi = (await db.select().from(challenges).where(eq(challenges.id, defiId)).limit(1))[0];
+  if (!defi) return { ok: false, error: "Défi introuvable." };
+  if (defi.fromId !== moi.id && defi.toId !== moi.id) return { ok: false, error: "Ce défi ne te concerne pas." };
+  if (defi.status !== "propose") return { ok: false, error: "Ce défi n'attend plus de réponse." };
+
+  const salle = (await db.select().from(venues).where(eq(venues.id, venueId)).limit(1))[0];
+  if (!salle) return { ok: false, error: "Salle introuvable." };
+
+  await db
+    .update(challenges)
+    .set({ venueId, lieuParId: moi.id, updatedAt: new Date() })
+    .where(eq(challenges.id, defiId));
+
+  const autre = defi.fromId === moi.id ? defi.toId : defi.fromId;
+  await notify(
+    autre,
+    `${moi.name} propose une autre salle`,
+    `${salle.name}. Si ça te va, accepte le défi.`,
+    "system",
+    "/app/defis",
+  );
+
+  revalidatePath("/app/defis");
+  return { ok: true, id: defiId };
+}
+
+/**
+ * Accepter, refuser, annuler.
+ *
+ * À l'acceptation, le jeton du défieur est consommé et la rencontre naît :
+ * même table, même feuille de match, même diffusion que si le comptoir l'avait
+ * créée. Le passage est inscrit en caisse de la salle, puisqu'elle prête sa
+ * table.
+ */
+export async function repondreDefi(
+  defiId: string,
+  reponse: "accepte" | "refuse" | "annule",
+): Promise<DefiResult> {
+  const moi = await requireUser();
+  const defi = (await db.select().from(challenges).where(eq(challenges.id, defiId)).limit(1))[0];
+  if (!defi) return { ok: false, error: "Défi introuvable." };
+  if (defi.fromId !== moi.id && defi.toId !== moi.id) return { ok: false, error: "Ce défi ne te concerne pas." };
+  if (defi.status !== "propose") return { ok: false, error: "Ce défi est déjà réglé." };
+
+  const autre = defi.fromId === moi.id ? defi.toId : defi.fromId;
+
+  if (reponse !== "accepte") {
+    await db
+      .update(challenges)
+      .set({ status: reponse === "annule" ? "annule" : "refuse", updatedAt: new Date() })
+      .where(eq(challenges.id, defiId));
+    await notify(
+      autre,
+      reponse === "annule" ? `${moi.name} annule le défi` : `${moi.name} décline le défi`,
+      "Ce sera pour une autre fois.",
+      "system",
+      "/app/defis",
+    );
+    revalidatePath("/app/defis");
+    return { ok: true, id: defiId };
+  }
+
+  // Accepter, c'est répondre à la proposition de l'autre : celui qui vient de
+  // proposer le lieu attend, il n'accepte pas sa propre proposition.
+  if (defi.lieuParId === moi.id) {
+    return { ok: false, error: "C'est à l'autre de répondre à ta proposition." };
+  }
+  if (!defi.venueId) return { ok: false, error: "Aucune salle n'est fixée." };
+
+  // Le jeton du défieur, pris maintenant. S'il l'a dépensé entre-temps, on
+  // refuse plutôt que de faire jouer une partie que personne n'a payée.
+  const jeton = (
+    await db
+      .select()
+      .from(tokens)
+      .where(and(eq(tokens.userId, defi.fromId), eq(tokens.status, "active")))
+      .orderBy(tokens.createdAt)
+      .limit(1)
+  )[0];
+  if (!jeton) {
+    return { ok: false, error: "Le défieur n'a plus de jeton. Qu'il recharge, et relance." };
+  }
+
+  const salle = (await db.select().from(venues).where(eq(venues.id, defi.venueId)).limit(1))[0];
+  const maintenant = new Date();
+
+  await db
+    .update(tokens)
+    .set({ status: "used", usedAt: maintenant, venueId: defi.venueId })
+    .where(eq(tokens.id, jeton.id));
+
+  // La salle prête sa table : le passage entre en caisse comme un scan du
+  // comptoir, sans gérant puisque personne n'a scanné.
+  await db.insert(scans).values({
+    id: uid(),
+    kind: "token",
+    refId: jeton.id,
+    code: jeton.code,
+    userId: defi.fromId,
+    venueId: defi.venueId,
+    managerId: null,
+    method: "code",
+    amount: jeton.unitPrice ?? salle?.tokenPrice ?? 0,
+  });
+
+  const matchId = uid();
+  await db.insert(matches).values({
+    id: matchId,
+    venueId: defi.venueId,
+    kind: defi.kind,
+    target: defi.target,
+    playerAId: defi.fromId,
+    playerBId: defi.toId,
+    turnId: defi.fromId,
+    label: "Défi",
+    status: "scheduled",
+    startsAt: maintenant,
+    createdBy: defi.fromId,
+  });
+
+  await db
+    .update(challenges)
+    .set({ status: "accepte", matchId, updatedAt: maintenant })
+    .where(eq(challenges.id, defiId));
+
+  await notify(
+    defi.fromId,
+    `${moi.name} relève ton défi`,
+    `${salle?.name ?? "La salle"} · ton jeton est engagé. La feuille de match est ouverte.`,
+    "system",
+    `/app/live/${matchId}`,
+  );
+  await notify(
+    defi.toId,
+    "Défi accepté",
+    `${salle?.name ?? "La salle"}. Bonne partie — la feuille est ouverte.`,
+    "system",
+    `/app/live/${matchId}`,
+  );
+
+  revalidatePath("/app/defis");
+  revalidatePath("/app/live");
+  revalidatePath("/gerant/live");
+  return { ok: true, id: matchId };
+}
+
+/**
+ * Confier la feuille de match à quelqu'un.
+ *
+ * Deux joueurs qui se défient ne peuvent pas marquer et jouer en même temps :
+ * ils désignent un tiers — un ami, un habitué du comptoir. Seuls les deux
+ * joueurs du duel peuvent le faire, et seulement pour leur propre rencontre.
+ */
+export async function confierLaFeuille(matchId: string, userId: string): Promise<DefiResult> {
+  const moi = await requireUser();
+  const match = (await db.select().from(matches).where(eq(matches.id, matchId)).limit(1))[0];
+  if (!match) return { ok: false, error: "Match introuvable." };
+  if (match.playerAId !== moi.id && match.playerBId !== moi.id) {
+    return { ok: false, error: "Seuls les joueurs du duel confient la feuille." };
+  }
+  if (match.status === "done" || match.status === "cancelled") {
+    return { ok: false, error: "La rencontre est terminée." };
+  }
+
+  const arbitre = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+  if (!arbitre) return { ok: false, error: "Compte introuvable." };
+
+  const deja = (
+    await db
+      .select({ id: matchOfficials.id })
+      .from(matchOfficials)
+      .where(and(eq(matchOfficials.matchId, matchId), eq(matchOfficials.userId, userId)))
+      .limit(1)
+  )[0];
+  if (deja) return { ok: false, error: "Il tient déjà cette feuille." };
+
+  await db.insert(matchOfficials).values({
+    id: uid(),
+    matchId,
+    userId,
+    role: "scorer",
+    createdBy: moi.id,
+  });
+
+  await notify(
+    userId,
+    `${moi.name} te confie une feuille`,
+    "Tu peux marquer les parties de ce duel depuis ton téléphone.",
+    "system",
+    `/arbitre/${matchId}`,
+  );
+
+  revalidatePath(`/app/live/${matchId}`);
+  revalidatePath("/arbitre");
+  return { ok: true, id: matchId };
 }
 
 /** Accepter ou décliner une invitation de groupe. */

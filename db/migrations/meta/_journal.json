@@ -267,6 +267,20 @@
       "when": 1790368013350,
       "tag": "0037_diffuseur-paye",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790371042055,
+      "tag": "0038_defis",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1790371043055,
+      "tag": "0039_defis_rls",
+      "breakpoints": true
     }
   ]
 }

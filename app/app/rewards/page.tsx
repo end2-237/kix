@@ -241,6 +241,7 @@ export default async function RewardsPage() {
       <div className="flex flex-col gap-2.5 lg:hidden">
         <h2 className="text-base">Raccourcis</h2>
         <div className="grid grid-cols-2 gap-2.5">
+          <Shortcut href="/app/defis" icon={<TargetIcon size={18} />} label="Mes défis" />
           <Shortcut href="/app/reservations" icon={<TableIcon size={18} />} label="Mes réservations" />
           <Shortcut href="/app/commandes" icon={<CartIcon size={18} />} label="Mes commandes" />
           <Shortcut href="/app/billets" icon={<TicketIcon size={18} />} label="Mes billets" />
