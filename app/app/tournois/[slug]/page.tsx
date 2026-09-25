@@ -23,6 +23,7 @@ import {
 import { programme, vuesDesDuelsDePoule, vuesDesPoules } from "@/lib/tournoi-vues";
 import { CANDIDATURES, DISCIPLINES, ETATS, FORMATS, NIVEAUX } from "@/lib/tournois";
 import { nomDuJeu, regleDuJeu } from "@/lib/regles";
+import { exigenceDuTournoi, ilManque, niveauDe } from "@/lib/niveaux";
 import { requireUser } from "@/lib/session";
 import { f, fcfa } from "@/lib/format";
 
@@ -141,6 +142,11 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
             <Chip tone="neutral" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
               {nomDuJeu(t.raceTo)}
             </Chip>
+            {t.minLevel > 1 ? (
+              <Chip tone="gold" className="px-2.5 py-1 text-[10px] tracking-[0.06em] uppercase">
+                {exigenceDuTournoi(t.minLevel)}
+              </Chip>
+            ) : null}
           </div>
           <h1 className="text-[24px] leading-tight lg:text-[32px]">{t.title}</h1>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-white/75">
@@ -187,6 +193,9 @@ export default async function TournoiPage({ params }: { params: Promise<{ slug: 
           ouvert={t.status === "inscriptions"}
           billetPris={billet.length > 0}
           candidature={candidature}
+          niveauRequis={t.minLevel}
+          monNiveau={niveauDe(user.points)}
+          ilMeManque={ilManque(user.points, t.minLevel)}
         />
 
         {t.prizeSplit ? (

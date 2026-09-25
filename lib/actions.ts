@@ -2125,6 +2125,7 @@ export async function saveTournament(formData: FormData) {
     // Une « course à 1 partie » saisie à la main est une sèche, et se range
     // d'elle-même du bon côté — le mode se lit dans la cible, nulle part ailleurs.
     raceTo: str(formData, "mode") === "seche" ? 1 : Math.max(1, num(formData, "raceTo") || 4),
+    minLevel: Math.min(5, Math.max(0, num(formData, "minLevel"))),
     entryFee: Math.max(0, num(formData, "entryFee")),
     prizePool: Math.max(0, num(formData, "prizePool")),
     prizeSplit: str(formData, "prizeSplit"),
@@ -2270,6 +2271,17 @@ export async function postuler(_prev: CandidatureState, formData: FormData): Pro
   const t = (await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).limit(1))[0];
   if (!t) return { error: "Tournoi introuvable." };
   if (t.status !== "inscriptions") return { error: "Les candidatures ne sont pas ouvertes." };
+
+  // Le niveau se vérifie ici, pas seulement dans le formulaire : un bouton
+  // grisé n'a jamais empêché personne d'envoyer la requête à la main.
+  if (t.minLevel > 0) {
+    const { ilManque, niveauDe, nomDuNiveau } = await import("@/lib/niveaux");
+    if (niveauDe(user.points) < t.minLevel) {
+      return {
+        error: `Ce tournoi est réservé aux ${nomDuNiveau(t.minLevel)}s et plus. Il te manque ${ilManque(user.points, t.minLevel)} points — chaque jeton scanné en rapporte.`,
+      };
+    }
+  }
 
   const deja = (
     await db

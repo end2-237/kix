@@ -246,6 +246,13 @@
       "when": 1790175763967,
       "tag": "0034_amitie-unique",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790366445218,
+      "tag": "0035_niveau-tournoi",
+      "breakpoints": true
     }
   ]
 }

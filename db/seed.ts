@@ -801,6 +801,7 @@ async function semerTournoi(opts: {
   groupSize?: number;
   qualifiers?: number;
   size: number;
+  minLevel?: number;
   raceTo: number;
   entryFee: number;
   prizePool: number;
@@ -846,6 +847,7 @@ async function semerTournoi(opts: {
     groupSize: opts.groupSize ?? 4,
     qualifiers: opts.qualifiers ?? 2,
     size: opts.size,
+    minLevel: opts.minLevel ?? 0,
     raceTo: opts.raceTo,
     entryFee: opts.entryFee,
     prizePool: opts.prizePool,
@@ -916,6 +918,9 @@ const enCours = await semerTournoi({
   venueId: zenith.id,
   discipline: "9-ball",
   size: 16,
+  // Réservé aux Cogneurs : c'est la nuit des habitués, et le classement sert
+  // enfin à quelque chose d'autre qu'à s'afficher.
+  minLevel: 3,
   raceTo: 5,
   entryFee: 3000,
   prizePool: 220_000,

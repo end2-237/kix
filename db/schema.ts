@@ -303,6 +303,15 @@ export const tournaments = mb.table("tournaments", {
   size: integer("size").notNull().default(16),
   /** Course à N manches gagnantes, au premier tour. Elle s'allonge vers la finale. */
   raceTo: integer("race_to").notNull().default(4),
+  /**
+   * Le niveau minimal exigé des candidats. 0 : ouvert à tous.
+   *
+   * Un classement qui ne sert qu'à s'afficher est un jeu de chiffres. Un
+   * tournoi qu'on ne peut disputer qu'à partir d'un certain palier lui donne
+   * sa raison d'être — et évite qu'un débutant s'inscrive à une compétition
+   * où il prendra 6-0 au premier tour.
+   */
+  minLevel: integer("min_level").notNull().default(0),
   /** Droit d'inscription d'un joueur, en francs. */
   entryFee: integer("entry_fee").notNull().default(0),
   /** La dotation totale annoncée. */

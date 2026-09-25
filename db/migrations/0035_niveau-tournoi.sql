@@ -1,0 +1,1 @@
+ALTER TABLE "mb"."tournaments" ADD COLUMN "min_level" integer DEFAULT 0 NOT NULL;

@@ -42,6 +42,9 @@ export function Inscription({
   ouvert,
   billetPris,
   candidature,
+  niveauRequis = 0,
+  monNiveau = 1,
+  ilMeManque = 0,
 }: {
   tournamentId: string;
   titre: string;
@@ -53,6 +56,10 @@ export function Inscription({
   ouvert: boolean;
   billetPris: boolean;
   candidature: MaCandidature;
+  /** Le palier exigé par l'organisateur, 0 si le tournoi est ouvert à tous. */
+  niveauRequis?: number;
+  monNiveau?: number;
+  ilMeManque?: number;
 }) {
   return (
     <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
@@ -93,6 +100,9 @@ export function Inscription({
           nom={nom}
           ouvert={ouvert}
           candidature={candidature}
+          niveauRequis={niveauRequis}
+          monNiveau={monNiveau}
+          ilMeManque={ilMeManque}
         />
       </Card>
     </div>
@@ -119,6 +129,9 @@ function Joueur({
   nom,
   ouvert,
   candidature,
+  niveauRequis,
+  monNiveau,
+  ilMeManque,
 }: {
   tournamentId: string;
   titre: string;
@@ -126,6 +139,9 @@ function Joueur({
   phone: string;
   nom: string;
   ouvert: boolean;
+  niveauRequis: number;
+  monNiveau: number;
+  ilMeManque: number;
   candidature: MaCandidature;
 }) {
   const router = useRouter();
@@ -205,6 +221,21 @@ function Joueur({
           />
         </Sheet>
       </>
+    );
+  }
+
+  // Le niveau manque : on le dit et on donne le compte, plutôt qu'un bouton
+  // grisé sans raison. Le serveur refuse de toute façon.
+  const tropBas = niveauRequis > 0 && monNiveau < niveauRequis;
+  if (tropBas) {
+    return (
+      <div className="flex flex-col gap-1.5 rounded-panel border border-dashed border-line bg-surface px-4 py-3.5">
+        <span className="text-[13px] font-semibold">Tournoi réservé</span>
+        <span className="text-[12px] leading-5 text-muted">
+          Il te manque {ilMeManque} point{ilMeManque > 1 ? "s" : ""} pour y prétendre. Chaque jeton scanné
+          en rapporte — reviens jouer, et la place sera à toi.
+        </span>
+      </div>
     );
   }
 

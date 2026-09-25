@@ -10,6 +10,7 @@ import { ArrowRightIcon, TrophyIcon } from "@/components/icons";
 import { saveTournament } from "@/lib/actions";
 import { DISCIPLINES, ETATS, FORMATS } from "@/lib/tournois";
 import { modeDuJeu, MODES_OPTIONS } from "@/lib/regles";
+import { NIVEAUX_REQUIS } from "@/lib/niveaux";
 import { f } from "@/lib/format";
 import type { EventRow, Tournament, Venue } from "@/db";
 
@@ -115,6 +116,12 @@ export function FormulaireTournoi({
           min={1}
           defaultValue={tournoi && tournoi.raceTo > 1 ? tournoi.raceTo : 4}
           hint="En course seulement : +1 en demi-finale, +2 en finale. En partie sèche, tout le tournoi se joue à la noire."
+        />
+        <Select
+          label="Niveau requis"
+          name="minLevel"
+          defaultValue={String(tournoi?.minLevel ?? 0)}
+          options={NIVEAUX_REQUIS}
         />
         <Field
           label="Droit d'inscription (F)"
