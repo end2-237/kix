@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
 import type { Match, User } from "@/db";
 import {
   db,
@@ -636,6 +636,21 @@ export async function markNotificationsRead() {
 
 /* -------------------------------------------------------------------- admin */
 
+/**
+ * Le même formulaire envoyé deux fois de suite.
+ *
+ * Un pouce qui hésite sur un téléphone, un réseau qui traîne, un rechargement
+ * de page : le second envoi arrive avant que le premier n'ait rendu la main,
+ * et deux soirées identiques apparaissent à l'affiche. Le bouton se désarme
+ * déjà côté navigateur, mais un bouton ne protège que ceux qui passent par
+ * lui — la garde qui compte est ici.
+ *
+ * Trente secondes : au-delà, deux créations du même nom sont volontaires, et
+ * rien ne doit empêcher une salle d'avoir deux « Nuit Néon ».
+ */
+const RATTRAPAGE_MS = 30_000;
+const dejaCree = (quand?: Date | null) => Boolean(quand && Date.now() - quand.getTime() < RATTRAPAGE_MS);
+
 const str = (fd: FormData, key: string) => String(fd.get(key) ?? "").trim();
 const num = (fd: FormData, key: string) => Number(fd.get(key) ?? 0) || 0;
 const bool = (fd: FormData, key: string) => fd.get(key) === "on" || fd.get(key) === "true";
@@ -715,7 +730,12 @@ export async function saveVenue(formData: FormData) {
   };
 
   if (id) await db.update(venues).set(values).where(eq(venues.id, id));
-  else await db.insert(venues).values({ id: uid(), ...values });
+  else {
+    const recent = (
+      await db.select().from(venues).where(eq(venues.name, values.name)).orderBy(desc(venues.createdAt)).limit(1)
+    )[0];
+    if (!dejaCree(recent?.createdAt)) await db.insert(venues).values({ id: uid(), ...values });
+  }
 
   revalidatePath("/admin/salles");
   revalidatePath("/app/salles");
@@ -774,11 +794,21 @@ export async function saveProduct(formData: FormData) {
   // pas de mains par un champ caché.
   if (id) await db.update(products).set(values).where(eq(products.id, id));
   else {
-    await db.insert(products).values({
-      id: uid(),
-      ...values,
-      sellerId: proprietaire ? auteur.id : null,
-    });
+    const recent = (
+      await db
+        .select()
+        .from(products)
+        .where(and(eq(products.name, values.name), proprietaire ? eq(products.sellerId, auteur.id) : sql`true`))
+        .orderBy(desc(products.createdAt))
+        .limit(1)
+    )[0];
+    if (!dejaCree(recent?.createdAt)) {
+      await db.insert(products).values({
+        id: uid(),
+        ...values,
+        sellerId: proprietaire ? auteur.id : null,
+      });
+    }
   }
 
   revalidatePath("/vendeur");
@@ -994,13 +1024,20 @@ export async function saveEvent(formData: FormData) {
     active: bool(formData, "active"),
   };
 
+  let cree = true;
   if (id) await db.update(events).set(values).where(eq(events.id, id));
-  else await db.insert(events).values({ id: uid(), ...values, attendees: 0 });
+  else {
+    const recent = (
+      await db.select().from(events).where(eq(events.title, values.title)).orderBy(desc(events.createdAt)).limit(1)
+    )[0];
+    cree = !dejaCree(recent?.createdAt);
+    if (cree) await db.insert(events).values({ id: uid(), ...values, attendees: 0 });
+  }
 
   // Une soirée à l'affiche se dit à toute la salle — une fois, à sa
   // publication. Un brouillon masqué, non : on n'annonce pas ce qu'on ne peut
   // pas encore ouvrir.
-  if (values.active) {
+  if (values.active && cree) {
     const { annoncerATous } = await import("@/lib/annonces");
     await annoncerATous({
       titre: values.title,
@@ -2069,11 +2106,16 @@ export async function saveCourse(formData: FormData) {
   // article : à la création c'est l'auteur, à la modification on n'y touche pas.
   if (id) await db.update(courses).set(values).where(eq(courses.id, id));
   else {
-    await db.insert(courses).values({
-      id: uid(),
-      ...values,
-      coachId: auteur.role === "seller" ? auteur.id : null,
-    });
+    const recent = (
+      await db.select().from(courses).where(eq(courses.title, values.title)).orderBy(desc(courses.createdAt)).limit(1)
+    )[0];
+    if (!dejaCree(recent?.createdAt)) {
+      await db.insert(courses).values({
+        id: uid(),
+        ...values,
+        coachId: auteur.role === "seller" ? auteur.id : null,
+      });
+    }
   }
 
   revalidatePath("/app/cours");
@@ -2135,9 +2177,24 @@ export async function saveTournament(formData: FormData) {
     closesAt,
   };
 
-  const tournoiId = id || uid();
+  // Un second envoi du même formulaire tomberait ici avec le même titre : on
+  // reprend le tournoi qui vient d'être créé plutôt que d'en ouvrir un jumeau,
+  // qui traînerait ensuite dans la liste avec sa propre billetterie.
+  const recent = !id
+    ? (
+        await db
+          .select()
+          .from(tournaments)
+          .where(eq(tournaments.title, title))
+          .orderBy(desc(tournaments.createdAt))
+          .limit(1)
+      )[0]
+    : undefined;
+  const repris = dejaCree(recent?.createdAt) ? recent : undefined;
+
+  const tournoiId = id || repris?.id || uid();
   if (id) await db.update(tournaments).set(values).where(eq(tournaments.id, id));
-  else {
+  else if (!repris) {
     await db.insert(tournaments).values({
       ...values,
       id: tournoiId,

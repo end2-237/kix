@@ -159,13 +159,9 @@ export function Switch({ label, name, defaultChecked = true }: { label: string; 
   );
 }
 
-export function SubmitButton({ children = "Enregistrer" }: { children?: React.ReactNode }) {
-  return (
-    <button className="h-11 rounded-full bg-gold px-6 text-[13px] font-semibold text-gold-ink transition hover:brightness-105">
-      {children}
-    </button>
-  );
-}
+// Le bouton d'envoi vit à part : il a besoin du navigateur pour savoir que le
+// formulaire travaille, et le reste de ce fichier n'en a pas besoin.
+export { SubmitButton } from "@/components/admin/SubmitButton";
 
 export function Pill({
   tone = "neutral",
