@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { db, notifications, users } from "@/db";
 import { uid } from "@/lib/domain";
 
@@ -28,12 +28,27 @@ export async function annoncerATous(annonce: {
   href: string;
   /** L'auteur, qui n'a pas besoin d'être prévenu de ce qu'il vient de publier. */
   sauf?: string | null;
+  /**
+   * Délai après lequel la même chose peut être réannoncée, en millisecondes.
+   *
+   * Une soirée ne s'annonce qu'une fois — c'est une nouvelle, pas une
+   * réclame. Un cours, lui, se rappelle au souvenir des joueurs de temps en
+   * temps : il reste ouvert des semaines, et personne ne fouille le catalogue.
+   * Sans délai, c'est une seule annonce, pour toujours.
+   */
+  repeterApres?: number;
 }): Promise<number> {
-  const { titre, corps, kind, href, sauf } = annonce;
+  const { titre, corps, kind, href, sauf, repeterApres } = annonce;
   if (!href) return 0;
 
-  const deja = await db.select({ id: notifications.id }).from(notifications).where(eq(notifications.href, href)).limit(1);
-  if (deja.length > 0) return 0;
+  const deja = await db
+    .select({ quand: notifications.createdAt })
+    .from(notifications)
+    .where(eq(notifications.href, href))
+    .orderBy(desc(notifications.createdAt))
+    .limit(1);
+  const derniere = deja[0]?.quand;
+  if (derniere && (!repeterApres || Date.now() - derniere.getTime() < repeterApres)) return 0;
 
   const joueurs = await db.select({ id: users.id }).from(users).where(eq(users.role, "client"));
   const cibles = joueurs.map((j) => j.id).filter((id) => id !== sauf);

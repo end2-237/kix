@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Photo } from "@/components/ui/Photo";
 import { BoutonAmi } from "@/components/joueur/BoutonAmi";
+import { InviterDansGroupe } from "@/components/joueur/InviterDansGroupe";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ChevronLeftIcon, PinIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
@@ -34,11 +35,13 @@ export default async function ProfilJoueur({ params }: { params: Promise<{ id: s
   const [moi, palmares] = await Promise.all([requireUser(), getJoueur(id)]);
   if (!palmares) notFound();
 
-  const [matchs, tournois, soirees, lien] = await Promise.all([
+  const { mesGroupes } = await import("@/lib/bande");
+  const [matchs, tournois, soirees, lien, bandes] = await Promise.all([
     derniersMatchs(id),
     tournoisDuJoueur(id),
     soireesDuJoueur(id),
     lienAvec(moi.id, id),
+    mesGroupes(moi.id),
   ]);
 
   const badges = badgesDe(palmares);
@@ -91,7 +94,20 @@ export default async function ProfilJoueur({ params }: { params: Promise<{ id: s
           </div>
         </div>
 
-        {!cestMoi ? <BoutonAmi autreId={id} nom={palmares.user.name} etat={lien.etat} lienId={lien.id} /> : null}
+        {!cestMoi ? (
+          <div className="flex flex-col gap-2">
+            <BoutonAmi autreId={id} nom={palmares.user.name} etat={lien.etat} lienId={lien.id} />
+            {/* On recrute au classement : l'amitié n'est pas un préalable pour
+                proposer à quelqu'un de rejoindre sa bande. */}
+            <InviterDansGroupe
+              joueurId={id}
+              nom={palmares.user.name}
+              groupes={bandes
+                .filter((b) => b.role === "chef" || b.role === "membre")
+                .map((b) => ({ id: b.crew.id, name: b.crew.name }))}
+            />
+          </div>
+        ) : null}
       </Card>
 
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">

@@ -2101,6 +2101,55 @@ export async function startEnrollment(
  * On le masque plutôt que de l'effacer : des inscriptions payées y renvoient,
  * et une séance sans cours est une ligne qu'on ne sait plus expliquer.
  */
+/**
+ * Rappeler un cours aux joueurs.
+ *
+ * Un cours reste ouvert des semaines, et personne ne fouille le catalogue : le
+ * prof peut le remettre sous les yeux de tout le monde. Une fois par semaine
+ * au plus — une réclame quotidienne ferait couper les notifications, et c'est
+ * la dernière chose qu'on veuille.
+ */
+const ENTRE_DEUX_ANNONCES = 7 * 24 * 60 * 60 * 1000;
+
+export async function annoncerLeCours(
+  formData: FormData,
+): Promise<{ ok: true; joueurs: number } | { ok: false; error: string }> {
+  const auteur = await requireUser();
+  const cours = (await db.select().from(courses).where(eq(courses.id, str(formData, "id"))).limit(1))[0];
+  if (!cours) return { ok: false, error: "Cours introuvable." };
+  if (auteur.role !== "admin" && cours.coachId !== auteur.id) {
+    return { ok: false, error: "Ce cours n'est pas le tien." };
+  }
+  if (!cours.active) return { ok: false, error: "Publie le cours avant de l'annoncer." };
+
+  const mot = str(formData, "message").slice(0, 180);
+  const { annoncerATous } = await import("@/lib/annonces");
+  const joueurs = await annoncerATous({
+    titre: `Cours · ${cours.title}`,
+    corps:
+      mot ||
+      [
+        cours.coachName ? `Avec ${cours.coachName}.` : null,
+        cours.schedule,
+        cours.price > 0 ? `${cours.price.toLocaleString("fr-FR")} F` : "Gratuit",
+        "Il reste des places.",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    kind: "event",
+    href: `/app/cours/${cours.slug}`,
+    sauf: auteur.id,
+    repeterApres: ENTRE_DEUX_ANNONCES,
+  });
+
+  if (joueurs === 0) {
+    return { ok: false, error: "Ce cours a déjà été annoncé cette semaine. Laisse-le reposer." };
+  }
+
+  revalidatePath("/app/prof");
+  return { ok: true, joueurs };
+}
+
 export async function deleteCourse(formData: FormData) {
   const auteur = await requireUser();
   const id = str(formData, "id");
@@ -2186,7 +2235,9 @@ export async function saveCourse(formData: FormData) {
   revalidatePath("/app/cours");
   revalidatePath("/app/shop");
   revalidatePath("/admin/cours");
-  revalidatePath("/vendeur/cours");
+  // L'espace du prof, où le cours vient d'apparaître : sans cette ligne, il
+  // publiait et ne voyait rien changer.
+  revalidatePath("/app/prof");
 }
 
 /* --------------------------------------------------------------- tournois */
@@ -3217,14 +3268,17 @@ export async function inviterAuGroupe(formData: FormData) {
   const amis = await idsDesAmis(moi.id);
   const coches = formData.getAll("ids").map(String).filter(Boolean);
 
-  // On n'invite que ses amis : le groupe ne doit pas devenir un moyen
-  // d'atteindre des inconnus.
+  // Les envois en masse restent bornés aux amis : « tous mes amis » et « tous
+  // sauf » ne doivent pas devenir un moyen d'arroser la ville. Mais une
+  // invitation nominative peut viser n'importe quel joueur — on repère un bon
+  // niveau au classement, on l'invite, et c'est lui qui décide. Vingt d'un
+  // coup au maximum : au-delà, ce n'est plus du recrutement.
   const vises =
     mode === "tous"
       ? amis
       : mode === "sauf"
         ? amis.filter((id) => !coches.includes(id))
-        : coches.filter((id) => amis.includes(id));
+        : coches.slice(0, 20);
 
   const dedans = await db
     .select({ userId: crewMembers.userId })
@@ -3232,7 +3286,18 @@ export async function inviterAuGroupe(formData: FormData) {
     .where(eq(crewMembers.crewId, crewId));
   const deja = new Set(dedans.map((d) => d.userId));
 
-  const nouveaux = [...new Set(vises)].filter((id) => id !== moi.id && !deja.has(id));
+  // On n'invite que des comptes de joueur : un identifiant glissé à la main ne
+  // doit pas faire entrer un compte de gestion dans une bande.
+  const joueurs = vises.length
+    ? (
+        await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(inArray(users.id, [...new Set(vises)]), eq(users.role, "client")))
+      ).map((u) => u.id)
+    : [];
+
+  const nouveaux = joueurs.filter((id) => id !== moi.id && !deja.has(id));
   if (nouveaux.length === 0) {
     return {
       ok: false as const,
