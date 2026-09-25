@@ -290,6 +290,21 @@ async function fulfilEnrollment(tx: Tx, payment: Payment) {
   }
 
   await tx.update(enrollments).set({ status: "paid" }).where(eq(enrollments.id, inscription.id));
+
+  // Le prof apprend qu'un élève arrive. Sans cela, il découvrait sa classe le
+  // jour de la séance, ce qui n'est pas une façon d'enseigner.
+  if (inscription.coachId) {
+    const eleve = (await tx.select({ name: users.name }).from(users).where(eq(users.id, inscription.userId)).limit(1))[0];
+    await notify(
+      inscription.coachId,
+      `Nouvel élève · ${cours?.title ?? "ton cours"}`,
+      `${eleve?.name ?? "Un joueur"} vient de s'inscrire. ${fcfa(inscription.price - inscription.commission)} pour toi.`,
+      "system",
+      "/app/prof",
+      tx,
+    );
+  }
+
   await notify(
     inscription.userId,
     `Inscrit · ${cours?.title ?? "ton cours"}`,

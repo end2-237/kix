@@ -454,6 +454,16 @@ export const enrollments = mb.table(
       .references(() => users.id),
     /** Ce que l'élève a payé, figé à l'inscription. */
     price: integer("price").notNull().default(0),
+    /**
+     * À qui revient cette inscription, et ce que la plateforme y prend —
+     * figés au moment du paiement.
+     *
+     * Même règle que pour une ligne de commande : un cours repris par un autre
+     * coach, ou un taux de commission revu l'an prochain, ne doivent pas
+     * réécrire ce qu'on doit pour une inscription d'hier.
+     */
+    coachId: uuid("coach_id").references(() => users.id, { onDelete: "set null" }),
+    commission: integer("commission").notNull().default(0),
     // pending | paid | failed | cancelled
     status: text("status").notNull().default("pending"),
     reference: text("reference").unique(),

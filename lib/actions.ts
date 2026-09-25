@@ -2041,6 +2041,10 @@ export async function startEnrollment(
     courseId,
     userId: user.id,
     price: cours.price,
+    // Qui sera payé, et ce que la maison prend : figés ici, avec le prix. Un
+    // cours repris par un autre coach ne réécrit pas les inscriptions d'hier.
+    coachId: cours.coachId,
+    commission: cours.coachId ? Math.round(cours.price * COMMISSION_RATE) : cours.price,
     status: "pending",
   });
 
@@ -2060,14 +2064,50 @@ export async function startEnrollment(
   return { ok: true, reference: started.reference, instruction: started.instruction, amount: cours.price };
 }
 
-/** Créer ou modifier un cours. Réservé à l'administration et aux coachs. */
+/**
+ * Créer ou modifier un cours.
+ *
+ * Enseigner n'est pas un rôle qu'on attribue, c'est un niveau qu'on atteint :
+ * un joueur classé « Requin de table » sait tenir une table et peut la
+ * montrer. S'y ajoutent ceux qui tiennent déjà une salle ou un catalogue, et
+ * l'administration. Le cours appartient à son auteur — c'est lui qu'on paie et
+ * lui qu'on prévient quand un élève s'inscrit.
+ */
+/**
+ * Retirer un cours de l'affiche.
+ *
+ * On le masque plutôt que de l'effacer : des inscriptions payées y renvoient,
+ * et une séance sans cours est une ligne qu'on ne sait plus expliquer.
+ */
+export async function deleteCourse(formData: FormData) {
+  const auteur = await requireUser();
+  const id = str(formData, "id");
+  const cours = (await db.select().from(courses).where(eq(courses.id, id)).limit(1))[0];
+  if (!cours) return;
+  if (auteur.role !== "admin" && cours.coachId !== auteur.id) redirect("/app/prof?refus=1");
+
+  await db.update(courses).set({ active: false }).where(eq(courses.id, id));
+  revalidatePath("/app/prof");
+  revalidatePath("/admin/cours");
+  revalidatePath("/app/cours");
+  revalidatePath("/app/shop");
+}
+
 export async function saveCourse(formData: FormData) {
-  const auteur = await requireRole("admin", "seller");
+  const auteur = await requireUser();
+  const { peutEnseigner } = await import("@/lib/niveaux");
+  const habilite =
+    auteur.role === "admin" ||
+    auteur.role === "manager" ||
+    auteur.role === "seller" ||
+    peutEnseigner(auteur.points);
+  if (!habilite) redirect("/app/prof?refus=1");
+
   const id = str(formData, "id");
 
-  if (auteur.role === "seller" && id) {
+  if (auteur.role !== "admin" && id) {
     const actuel = (await db.select().from(courses).where(eq(courses.id, id)).limit(1))[0];
-    if (!actuel || actuel.coachId !== auteur.id) redirect("/vendeur?refus=1");
+    if (!actuel || actuel.coachId !== auteur.id) redirect("/app/prof?refus=1");
   }
 
   const sessions = Math.max(1, num(formData, "sessions"));
@@ -2113,7 +2153,10 @@ export async function saveCourse(formData: FormData) {
       await db.insert(courses).values({
         id: uid(),
         ...values,
-        coachId: auteur.role === "seller" ? auteur.id : null,
+        // L'administration peut publier au nom d'un intervenant de passage ;
+        // tout le reste du monde enseigne en son propre nom.
+        coachId: auteur.role === "admin" ? null : auteur.id,
+        coachName: values.coachName || (auteur.role === "admin" ? "" : auteur.name),
       });
     }
   }

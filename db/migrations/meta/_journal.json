@@ -253,6 +253,13 @@
       "when": 1790366445218,
       "tag": "0035_niveau-tournoi",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790367361570,
+      "tag": "0036_prof-paye",
+      "breakpoints": true
     }
   ]
 }

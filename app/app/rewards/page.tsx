@@ -19,6 +19,7 @@ import {
 } from "@/components/icons";
 import { getLeaderboard, getRank } from "@/lib/queries";
 import { estMembre, joursRestants } from "@/lib/membres";
+import { peutEnseigner } from "@/lib/niveaux";
 import { requireUser } from "@/lib/session";
 import { signOut } from "@/lib/actions";
 import { levelFor, POINTS_PER_FREE_TOKEN } from "@/lib/constants";
@@ -232,6 +233,11 @@ export default async function RewardsPage() {
               « Espace gérant » s'affichait à tout le monde : un client qui
               cliquait était renvoyé sur un refus, pour avoir suivi un lien
               qu'on lui avait mis sous les yeux. */}
+          {/* Enseigner s'ouvre au niveau, pas au rôle : le raccourci apparaît
+              quand le joueur y a droit, ou qu'il donne déjà des cours. */}
+          {peutEnseigner(user.points) || user.role !== "client" ? (
+            <Shortcut href="/app/prof" icon={<TrophyIcon size={18} />} label="Mes cours" />
+          ) : null}
           {user.role === "manager" || user.role === "admin" ? (
             <Shortcut href="/gerant" icon={<TargetIcon size={18} />} label="Espace gérant" />
           ) : null}

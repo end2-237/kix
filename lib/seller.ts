@@ -39,8 +39,14 @@ export async function getSoldeVendeur(sellerId: string): Promise<SoldeVendeur> {
       .where(and(eq(orderItems.sellerId, sellerId), payee(orders.status)))
   )[0];
 
-  const brut = Number(ligne?.brut ?? 0);
-  const commission = Number(ligne?.commission ?? 0);
+  // Les cours donnés comptent dans la même bourse : un joueur qui vend des
+  // puffs et enseigne le samedi n'a pas deux comptes à surveiller, et le
+  // guichet de retrait n'en connaît qu'un.
+  const { getSoldeProf } = await import("@/lib/courses");
+  const cours = await getSoldeProf(sellerId);
+
+  const brut = Number(ligne?.brut ?? 0) + cours.brut;
+  const commission = Number(ligne?.commission ?? 0) + cours.commission;
   return {
     brut,
     commission,
