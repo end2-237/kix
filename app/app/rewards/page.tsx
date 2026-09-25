@@ -19,7 +19,7 @@ import {
 } from "@/components/icons";
 import { getLeaderboard, getRank } from "@/lib/queries";
 import { estMembre, joursRestants } from "@/lib/membres";
-import { peutDiffuser, peutEnseigner } from "@/lib/niveaux";
+import { niveauDe, peutDiffuser, peutEnseigner } from "@/lib/niveaux";
 import { requireUser } from "@/lib/session";
 import { signOut } from "@/lib/actions";
 import { levelFor, POINTS_PER_FREE_TOKEN } from "@/lib/constants";
@@ -43,6 +43,23 @@ export default async function RewardsPage() {
       <ScreenHeader title="Master Rank" subtitle="Chaque partie scannée compte des points, chaque tournoi te classe." />
 
       <MaPhoto nom={user.name} avatar={user.avatar} />
+
+      {/* Un privilège que personne ne connaît ne fait revenir personne : le
+          joueur doit pouvoir lire ce que valent les paliers. */}
+      <Link href="/app/niveaux" className="press block">
+        <Card shape="panel" className="flex items-center gap-3.5 p-4">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-2 text-gold-text">
+            <TrophyIcon size={19} />
+          </span>
+          <span className="flex min-w-0 grow flex-col gap-0.5">
+            <span className="text-[14px] font-semibold">Niveau {niveauDe(user.points)} · {current.name}</span>
+            <span className="truncate text-[11.5px] text-muted">
+              Ce que ton classement ouvre : directs, cours, tournois réservés.
+            </span>
+          </span>
+          <ChevronRightIcon size={16} className="shrink-0 text-muted" />
+        </Card>
+      </Link>
 
       {/* Le code se dicte à la table pour se faire ajouter : il est ici, en
           grand, plutôt qu'enfoui dans une page de réglages. */}

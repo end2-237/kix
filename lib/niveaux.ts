@@ -54,3 +54,56 @@ export function exigenceDuTournoi(minLevel: number): string {
   if (minLevel <= 1) return "Ouvert à tous les joueurs";
   return `Réservé aux ${nomDuNiveau(minLevel)}s et plus — ${pointsDuNiveau(minLevel)} points`;
 }
+
+
+/**
+ * Ce que chaque palier ouvre, en toutes lettres.
+ *
+ * Un privilège que personne ne connaît ne fait revenir personne : le joueur
+ * doit pouvoir lire, avant de les atteindre, ce que valent les paliers. Cette
+ * table est la seule source de la page des niveaux — ajouter un privilège se
+ * fait ici, à côté du seuil qui le commande.
+ */
+export type Palier = {
+  niveau: number;
+  nom: string;
+  points: number;
+  avantages: string[];
+};
+
+export const PALIERS: Palier[] = LEVELS.map((l) => ({
+  niveau: l.level,
+  nom: l.name,
+  points: l.from,
+  avantages: avantagesDu(l.level),
+}));
+
+function avantagesDu(niveau: number): string[] {
+  switch (niveau) {
+    case 1:
+      return [
+        "Jouer, scanner ses jetons et compter ses points",
+        "Les tournois ouverts à tous",
+        "Réserver une table, prendre ses billets",
+      ];
+    case 2:
+      return ["Les tournois réservés aux Habitués et plus"];
+    case 3:
+      return [
+        "Ouvrir un direct depuis son téléphone",
+        "Toucher sa part des billets vidéo, moins la commission",
+        "Les tournois réservés aux Cogneurs et plus",
+      ];
+    case 4:
+      return [
+        "Proposer des cours et être payé sur les inscriptions",
+        "Voir ses élèves, et les rappeler à son cours une fois par semaine",
+        "Les tournois réservés aux Requins de table et plus",
+      ];
+    default:
+      return [
+        "Le haut du classement, et les tournois qui s'y réservent",
+        "Tout ce que les paliers précédents ont ouvert",
+      ];
+  }
+}

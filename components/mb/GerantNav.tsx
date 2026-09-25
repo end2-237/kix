@@ -32,6 +32,9 @@ const items: NavItem[] = [
   // Le comptoir vend aussi des puffs : la boutique du gérant est le même
   // espace que celui d'un vendeur, avec ses articles et ses commandes.
   { href: "/vendeur", label: "Boutique", Icon: CartIcon },
+  // Et il enseigne, comme un joueur classé : même espace, mêmes élèves, même
+  // bourse. L'entrée manquait, si bien que le droit existait sans la porte.
+  { href: "/app/prof", label: "Cours", Icon: TrophyIcon },
 ];
 
 export function GerantNav({ mobile = false }: { mobile?: boolean }) {
