@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { db, notifications, users } from "@/db";
 import { uid } from "@/lib/domain";
 
@@ -50,6 +50,72 @@ export async function annoncerATous(annonce: {
   // formulaire. Le service worker ira chercher le texte lui-même.
   void import("@/lib/push")
     .then((m) => m.pousser(cibles))
+    .catch(() => {});
+
+  return cibles.length;
+}
+
+
+/**
+ * Prévenir ses amis qu'il est à la table, et où.
+ *
+ * C'est le ressort d'une salle de quartier : on ne décide pas d'aller jouer,
+ * on apprend qu'un ami y est déjà. Le jeton scanné et la table prise sont les
+ * deux moments où l'on sait, à la seconde, que quelqu'un joue pour de bon —
+ * mieux qu'un match commencé, qui suppose une feuille tenue.
+ *
+ * L'annonce mène à la fiche de la salle, où l'on trouve les deux gestes qui
+ * font venir : réserver une table, recharger ses jetons.
+ */
+const FENETRE = "3 hours";
+
+export async function prevenirLesAmisQuIlJoue(
+  joueurId: string,
+  salle: { name: string; slug: string } | null,
+  detail: string,
+): Promise<number> {
+  if (!salle) return 0;
+
+  const { idsDesAmis } = await import("@/lib/joueurs");
+  const amis = await idsDesAmis(joueurId);
+  if (amis.length === 0) return 0;
+
+  const href = `/app/salles/${salle.slug}?ami=${joueurId}`;
+
+  // Une soirée, c'est cinq jetons et deux tables : sans fenêtre, un ami
+  // recevrait sept fois la même nouvelle. On ne redit rien pendant trois
+  // heures — le temps d'une soirée de billard.
+  const recents = await db
+    .select({ qui: notifications.userId })
+    .from(notifications)
+    .where(
+      and(
+        eq(notifications.href, href),
+        gt(notifications.createdAt, sql`now() - interval '${sql.raw(FENETRE)}'`),
+        inArray(notifications.userId, amis),
+      ),
+    );
+  const deja = new Set(recents.map((r) => r.qui));
+  const cibles = amis.filter((a) => !deja.has(a));
+  if (cibles.length === 0) return 0;
+
+  const joueur = (await db.select({ name: users.name }).from(users).where(eq(users.id, joueurId)).limit(1))[0];
+  const titre = `${joueur?.name ?? "Un ami"} joue à ${salle.name}`;
+
+  await db.insert(notifications).values(
+    cibles.map((userId) => ({
+      id: uid(),
+      userId,
+      title: titre,
+      body: `${detail} Réserve ta table ou recharge tes jetons, et rejoins-le.`,
+      kind: "system",
+      href,
+      read: false,
+    })),
+  );
+
+  void import("@/lib/push")
+    .then((m) => m.pousser(cibles, "high"))
     .catch(() => {});
 
   return cibles.length;

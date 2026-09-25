@@ -318,6 +318,15 @@ export async function scanCode(raw: string, method: "qr" | "code" = "code"): Pro
       "/app/pass",
     );
 
+    // Ses amis apprennent qu'il joue, et où. C'est le ressort d'une salle de
+    // quartier : on ne décide pas d'aller jouer, on apprend qu'un ami y est.
+    const { prevenirLesAmisQuIlJoue } = await import("@/lib/annonces");
+    await prevenirLesAmisQuIlJoue(
+      token.userId,
+      venue ? { name: venue.name, slug: venue.slug } : null,
+      "Il vient de poser un jeton sur la table.",
+    );
+
     const rest = await db
       .select({ n: sql<number>`count(*)` })
       .from(tokens)
@@ -1196,6 +1205,14 @@ export async function seatReservation(id: string) {
     `${table ? `Table ${table.label}` : "Ta table"} est installée — l'acompte est déduit de ta note.`,
     "reservation",
     "/app/reservations",
+  );
+
+  const salle = (await db.select().from(venues).where(eq(venues.id, booking.venueId)).limit(1))[0];
+  const { prevenirLesAmisQuIlJoue } = await import("@/lib/annonces");
+  await prevenirLesAmisQuIlJoue(
+    booking.userId,
+    salle ? { name: salle.name, slug: salle.slug } : null,
+    table ? `Il s'installe à la table ${table.label}.` : "Sa table vient d'être installée.",
   );
 
   revalidatePath("/gerant/salle");
