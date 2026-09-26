@@ -4,6 +4,7 @@ import { Photo } from "@/components/ui/Photo";
 import { BoutonAmi } from "@/components/joueur/BoutonAmi";
 import { Defier } from "@/components/joueur/Defier";
 import { InviterDansGroupe } from "@/components/joueur/InviterDansGroupe";
+import { Suivre } from "@/components/live/Suivre";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ChevronLeftIcon, PinIcon, TargetIcon, TicketIcon, TrophyIcon } from "@/components/icons";
@@ -39,16 +40,21 @@ export default async function ProfilJoueur({ params }: { params: Promise<{ id: s
   const { mesGroupes } = await import("@/lib/bande");
   const { defiEnCours } = await import("@/lib/defis");
   const { getBalance, getVenues } = await import("@/lib/queries");
-  const [matchs, tournois, soirees, lien, bandes, defi, jetons, salles] = await Promise.all([
-    derniersMatchs(id),
-    tournoisDuJoueur(id),
-    soireesDuJoueur(id),
-    lienAvec(moi.id, id),
-    mesGroupes(moi.id),
-    defiEnCours(moi.id, id),
-    getBalance(moi.id),
-    getVenues(),
-  ]);
+  const { estDiffuseur, jeSuis, nombreDAbonnes } = await import("@/lib/suivis");
+  const [matchs, tournois, soirees, lien, bandes, defi, jetons, salles, diffuseur, suivi, abonnes] =
+    await Promise.all([
+      derniersMatchs(id),
+      tournoisDuJoueur(id),
+      soireesDuJoueur(id),
+      lienAvec(moi.id, id),
+      mesGroupes(moi.id),
+      defiEnCours(moi.id, id),
+      getBalance(moi.id),
+      getVenues(),
+      estDiffuseur(id),
+      jeSuis(moi.id, id),
+      nombreDAbonnes(id),
+    ]);
 
   const badges = badgesDe(palmares);
   const obtenus = badges.filter((b) => b.obtenu);
@@ -112,6 +118,11 @@ export default async function ProfilJoueur({ params }: { params: Promise<{ id: s
               defiEnCours={Boolean(defi)}
             />
             <BoutonAmi autreId={id} nom={palmares.user.name} etat={lien.etat} lienId={lien.id} />
+            {/* Suivre ne s'affiche que sur la fiche de quelqu'un qui filme :
+                ailleurs, le bouton n'aurait rien à annoncer. */}
+            {diffuseur ? (
+              <Suivre hostId={id} nom={palmares.user.name} suivi={suivi} abonnes={abonnes} />
+            ) : null}
             {/* On recrute au classement : l'amitié n'est pas un préalable pour
                 proposer à quelqu'un de rejoindre sa bande. */}
             <InviterDansGroupe

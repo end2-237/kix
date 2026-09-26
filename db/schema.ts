@@ -762,6 +762,35 @@ export const streamPasses = mb.table(
 );
 
 /**
+ * Suivre un diffuseur.
+ *
+ * Un direct se regarde une fois ; un diffuseur se suit. Celui qui pose son
+ * téléphone sur un trépied tous les mardis finit par avoir son public, et ce
+ * public veut être prévenu quand la caméra s'allume — pas tomber dessus par
+ * hasard en ouvrant la vitrine.
+ *
+ * Une ligne par lien, unique dans le sens qu'elle porte : suivre n'est pas
+ * réciproque, contrairement à l'amitié. On ne se suit pas soi-même.
+ */
+export const follows = mb.table(
+  "follows",
+  {
+    id: id(),
+    followerId: uuid("follower_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    hostId: uuid("host_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("follows_unique").on(t.followerId, t.hostId),
+    index("follows_host_idx").on(t.hostId),
+  ],
+);
+
+/**
  * Qui a le droit de tenir la feuille de match.
  *
  * Une ligne par habilitation, portée soit par un match précis, soit par un
@@ -1217,6 +1246,7 @@ export type Match = typeof matches.$inferSelect;
 export type MatchEvent = typeof matchEvents.$inferSelect;
 export type MatchOfficial = typeof matchOfficials.$inferSelect;
 export type Stream = typeof streams.$inferSelect;
+export type Follow = typeof follows.$inferSelect;
 export type StreamPass = typeof streamPasses.$inferSelect;
 export type Token = typeof tokens.$inferSelect;
 export type Product = typeof products.$inferSelect;

@@ -288,6 +288,20 @@
       "when": 1790387830058,
       "tag": "0040_porte-du-groupe",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790389054748,
+      "tag": "0041_suivre-un-diffuseur",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790389054749,
+      "tag": "0042_suivis_rls",
+      "breakpoints": true
     }
   ]
 }

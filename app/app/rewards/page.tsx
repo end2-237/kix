@@ -30,7 +30,12 @@ export const metadata = { title: "Master Rank" };
 
 export default async function RewardsPage() {
   const user = await requireUser();
-  const [leaderboard, rank] = await Promise.all([getLeaderboard(6), getRank(user.id)]);
+  const { nombreDeSuivis } = await import("@/lib/suivis");
+  const [leaderboard, rank, suivis] = await Promise.all([
+    getLeaderboard(6),
+    getRank(user.id),
+    nombreDeSuivis(user.id),
+  ]);
   const { current, target } = levelFor(user.points);
   const progress = Math.min(100, Math.round((user.points / target) * 100));
   const podium = leaderboard.slice(0, 3);
@@ -242,6 +247,11 @@ export default async function RewardsPage() {
         <h2 className="text-base">Raccourcis</h2>
         <div className="grid grid-cols-2 gap-2.5">
           <Shortcut href="/app/defis" icon={<TargetIcon size={18} />} label="Mes défis" />
+          {/* « Mes diffuseurs » n'apparaît qu'une fois qu'on suit quelqu'un :
+              un raccourci vers une page vide n'est qu'un chemin de plus. */}
+          {suivis > 0 ? (
+            <Shortcut href="/app/diffuseurs" icon={<BoltIcon size={18} />} label="Mes diffuseurs" />
+          ) : null}
           <Shortcut href="/app/reservations" icon={<TableIcon size={18} />} label="Mes réservations" />
           <Shortcut href="/app/commandes" icon={<CartIcon size={18} />} label="Mes commandes" />
           <Shortcut href="/app/billets" icon={<TicketIcon size={18} />} label="Mes billets" />

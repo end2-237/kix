@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { WatchStream, type WatchGate } from "@/components/live/WatchStream";
+import { Suivre } from "@/components/live/Suivre";
+import { Photo } from "@/components/ui/Photo";
 import { Card } from "@/components/ui/Card";
 import { ChevronLeftIcon, PinIcon, UserIcon } from "@/components/icons";
 import { computeStats, getMatch, getMatchEvents } from "@/lib/live";
 import { accessLabel, canWatch, getStream, levelLabel, type StreamAccess, type StreamLevel } from "@/lib/stream";
 import type { LiveState } from "@/components/live/MatchLive";
+import { hoteDuDirect } from "@/lib/suivis";
 import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +27,10 @@ export default async function WatchPage({ params }: { params: Promise<{ id: stri
 
   const access = await canWatch(user, card.stream);
   const gate: WatchGate = access.ok ? { open: true } : { open: false, reason: access.reason, price: access.price };
+
+  // Qui tient la caméra. Un direct de salle n'a pas d'auteur à suivre ; celui
+  // d'un joueur, si — et c'est lui qu'on vient revoir la semaine suivante.
+  const hote = await hoteDuDirect(card.stream.createdBy, user.id);
 
   // Le direct peut être rattaché à un match : on prépare alors l'habillage.
   let match = null;
@@ -63,6 +70,36 @@ export default async function WatchPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <h1 className="text-[22px] lg:text-[26px]">{card.stream.title}</h1>
+
+      {hote ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href={`/app/joueurs/${hote.id}`} className="press flex min-w-0 items-center gap-2.5">
+            {hote.avatar ? (
+              <Photo
+                src={hote.avatar}
+                alt={hote.name}
+                width={38}
+                height={38}
+                className="h-9.5 w-9.5 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <span className="grid h-9.5 w-9.5 shrink-0 place-items-center rounded-full bg-surface-2 text-[11px] font-semibold">
+                {hote.name.slice(0, 2).toUpperCase()}
+              </span>
+            )}
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-[13.5px] font-semibold">{hote.name}</span>
+              <span className="text-[11.5px] text-muted">
+                {hote.abonnes} abonné{hote.abonnes > 1 ? "s" : ""} · {hote.directs} direct
+                {hote.directs > 1 ? "s" : ""}
+              </span>
+            </span>
+          </Link>
+          {hote.cestMoi ? null : (
+            <Suivre hostId={hote.id} nom={hote.name} suivi={hote.suivi} abonnes={hote.abonnes} compact />
+          )}
+        </div>
+      ) : null}
 
       <WatchStream
         streamId={card.stream.id}

@@ -139,7 +139,7 @@ export type StreamCard = {
   match: { id: string; a: string; b: string; scoreA: number; scoreB: number } | null;
 };
 
-async function hydrate(rows: Stream[]): Promise<StreamCard[]> {
+export async function hydrate(rows: Stream[]): Promise<StreamCard[]> {
   if (rows.length === 0) return [];
 
   const venueIds = [...new Set(rows.map((s) => s.venueId))];

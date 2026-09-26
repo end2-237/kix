@@ -20,6 +20,7 @@ import {
   packs,
   productImages,
   products,
+  follows,
   productVariants,
   purchases,
   reservations,
@@ -57,7 +58,7 @@ function code(taken: Set<string>) {
 
 // on vide dans l'ordre des dépendances
 export async function seed() {
-for (const table of [notifications, streamPasses, streams, matchEvents, matches, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, productVariants, productImages, products, packs, sessions, users, venues]) {
+for (const table of [notifications, follows, streamPasses, streams, matchEvents, matches, scans, tickets, orderItems, orders, tokens, reservations, venueTables, purchases, events, productVariants, productImages, products, packs, sessions, users, venues]) {
   await db.delete(table);
 }
 
@@ -674,6 +675,8 @@ const makeStream = (v: {
   viewers?: number;
   discipline?: string;
   startedMinutesAgo?: number;
+  /** Le compte qui tient la caméra ; le gérant par défaut. */
+  hostId?: string;
 }) => {
   const seq = ++streamSeq;
   const status = v.status ?? "live";
@@ -695,7 +698,7 @@ const makeStream = (v: {
     endedAt: status === "ended" ? minutesAgo(5) : null,
     viewers: status === "live" ? viewers : 0,
     peakViewers: viewers + 11,
-    createdBy: serge.id,
+    createdBy: v.hostId ?? serge.id,
   };
 };
 
@@ -703,7 +706,7 @@ const streamRows = [
   makeStream({ venueId: breakAkwa.id, matchId: liveMatch.id, title: "Table 1 · quart de finale", level: "production", viewers: 412, discipline: "8-ball", startedMinutesAgo: 38 }),
   makeStream({ venueId: breakAkwa.id, title: "Venue Cast · Le Break Akwa", level: "venue", viewers: 148, discipline: "ambiance", startedMinutesAgo: 180 }),
   makeStream({ venueId: zenith.id, title: "Zenith · table centrale", level: "venue", viewers: 96, discipline: "ambiance" }),
-  makeStream({ venueId: kata.id, title: "Kata Club · soirée 9-ball", level: "phone", viewers: 61, discipline: "9-ball" }),
+  makeStream({ venueId: kata.id, title: "Kata Club · soirée 9-ball", level: "phone", hostId: blaise.id, viewers: 61, discipline: "9-ball" }),
   makeStream({ venueId: breakAkwa.id, title: "Snooker · table 7", level: "phone", viewers: 34, discipline: "snooker" }),
   makeStream({ venueId: zenith.id, title: "Killer du vendredi", level: "phone", viewers: 27, discipline: "killer" }),
   makeStream({ venueId: breakAkwa.id, matchId: nextMatch.id, title: "Demi-finale · production", level: "production", access: "ppv", price: 500, status: "idle", discipline: "9-ball" }),
@@ -712,14 +715,20 @@ const streamRows = [
   makeStream({ venueId: breakAkwa.id, title: "Master Break Open · finale 2025", level: "production", access: "free", status: "ended", discipline: "8-ball" }),
   makeStream({ venueId: zenith.id, title: "Nuit Néon · rediffusion", level: "production", access: "ppv", price: 300, status: "ended", discipline: "9-ball" }),
   makeStream({ venueId: kata.id, title: "Kata Cup · demi-finales", level: "production", access: "members", status: "ended", discipline: "snooker" }),
-  makeStream({ venueId: breakAkwa.id, title: "Table 3 · défi du soir", level: "phone", viewers: 88, discipline: "8-ball" }),
+  makeStream({ venueId: breakAkwa.id, title: "Table 3 · défi du soir", level: "phone", hostId: blaise.id, viewers: 88, discipline: "8-ball" }),
   makeStream({ venueId: zenith.id, title: "Zenith · 9-ball nocturne", level: "phone", viewers: 74, discipline: "9-ball" }),
   makeStream({ venueId: kata.id, title: "Kata Club · Venue Cast", level: "venue", viewers: 52, discipline: "ambiance" }),
-  makeStream({ venueId: breakAkwa.id, title: "Snooker · table 8", level: "phone", viewers: 41, discipline: "snooker" }),
+  makeStream({ venueId: breakAkwa.id, title: "Snooker · table 8", level: "phone", hostId: blaise.id, viewers: 41, discipline: "snooker" }),
   makeStream({ venueId: zenith.id, title: "Killer · table 4", level: "phone", viewers: 33, discipline: "killer" }),
   makeStream({ venueId: kata.id, title: "9-ball · table 2", level: "phone", viewers: 29, discipline: "9-ball" }),
 ];
 await db.insert(streams).values(streamRows);
+
+// Un diffuseur sans public n'est qu'une caméra : Blaise en a un, pour que la
+// page « Mes diffuseurs » et le compteur d'abonnés aient quelque chose à dire.
+await db.insert(follows).values(
+  [ariel, ...vivier.slice(0, 5)].map((u) => ({ id: uid(), followerId: u.id, hostId: blaise.id })),
+);
 
 /* cours de billard ---------------------------------------------------------
    Trois offres qui couvrent les trois formats : une séance d'essai, un

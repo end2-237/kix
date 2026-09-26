@@ -5,6 +5,8 @@ import { StreamCard, type CardData } from "@/components/live/StreamCard";
 import { Card } from "@/components/ui/Card";
 import { ChevronLeftIcon } from "@/components/icons";
 import { disciplineLabel, getShowcase, levelLabel, type StreamCard as Card_, type StreamLevel } from "@/lib/stream";
+import { directsDeMesDiffuseurs } from "@/lib/suivis";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Les directs" };
@@ -29,7 +31,12 @@ export default async function DirectShowcase({
 }: {
   searchParams: Promise<{ rayon?: string }>;
 }) {
-  const [{ rayon }, showcase] = await Promise.all([searchParams, getShowcase()]);
+  const moi = await requireUser();
+  const [{ rayon }, showcase, suivis] = await Promise.all([
+    searchParams,
+    getShowcase(),
+    directsDeMesDiffuseurs(moi.id),
+  ]);
 
   // Un rayon demandé se déplie seul, le reste de la vitrine s'efface.
   if (rayon) {
@@ -77,6 +84,11 @@ export default async function DirectShowcase({
         <Featured cards={showcase.featured.map(toCard)} />
       )}
 
+      {/* Ce qu'on a choisi passe devant ce que la maison propose. */}
+      {suivis.length > 0 ? (
+        <Shelf title="Tes diffuseurs" href="/app/diffuseurs" cards={suivis.map(toCard)} accent />
+      ) : null}
+
       <Rubrics items={showcase.rubrics} />
 
       {showcase.shelves.map((shelf, i) => (
@@ -85,7 +97,7 @@ export default async function DirectShowcase({
           title={shelf.title}
           href={shelf.href}
           cards={shelf.cards.map(toCard)}
-          accent={i === 0}
+          accent={i === 0 && suivis.length === 0}
         />
       ))}
 

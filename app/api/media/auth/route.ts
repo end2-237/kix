@@ -80,6 +80,12 @@ export async function POST(request: Request) {
       .update(streams)
       .set({ status: "live", startedAt: stream.startedAt ?? new Date(), endedAt: null, updatedAt: new Date() })
       .where(eq(streams.id, stream.id));
+    // La caméra s'allume : ceux qui suivent ce diffuseur l'apprennent. Sur la
+    // transition seulement — MediaMTX rappelle ce hook à chaque reconnexion.
+    if (stream.status !== "live") {
+      const { prevenirLesAbonnes } = await import("@/lib/suivis");
+      await prevenirLesAbonnes(stream).catch(() => 0);
+    }
     return allow();
   }
 

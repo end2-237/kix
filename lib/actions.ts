@@ -3684,3 +3684,38 @@ export async function repondreGroupe(crewId: string, reponse: "acceptee" | "refu
   revalidatePath("/app/groupes");
   return { ok: true as const };
 }
+
+/**
+ * Suivre un diffuseur, ou cesser de le suivre.
+ *
+ * Le geste n'engage que celui qui le fait : pas de demande, pas de réponse à
+ * attendre, contrairement à l'amitié. Le diffuseur est prévenu — c'est ce qui
+ * donne envie de rallumer la caméra le mardi suivant.
+ */
+export async function suivreDiffuseur(hostId: string, arreter = false) {
+  const moi = await requireUser();
+  if (hostId === moi.id) return { ok: false as const, error: "On ne se suit pas soi-même." };
+
+  const { follows } = await import("@/db");
+  const cible = (await db.select({ id: users.id }).from(users).where(eq(users.id, hostId)).limit(1))[0];
+  if (!cible) return { ok: false as const, error: "Ce compte n'existe pas." };
+
+  if (arreter) {
+    await db.delete(follows).where(and(eq(follows.followerId, moi.id), eq(follows.hostId, hostId)));
+  } else {
+    // `onConflictDoNothing` plutôt qu'une lecture puis un écrit : deux clics
+    // rapides ne doivent pas créer deux liens ni lever une erreur.
+    await db
+      .insert(follows)
+      .values({ id: uid(), followerId: moi.id, hostId })
+      .onConflictDoNothing({ target: [follows.followerId, follows.hostId] });
+
+    const { nombreDAbonnes, prevenirLeDiffuseur } = await import("@/lib/suivis");
+    await prevenirLeDiffuseur(hostId, moi.name, await nombreDAbonnes(hostId));
+  }
+
+  revalidatePath("/direct");
+  revalidatePath("/app/diffuseurs");
+  revalidatePath(`/app/joueurs/${hostId}`);
+  return { ok: true as const, suivi: !arreter };
+}

@@ -37,6 +37,12 @@ export async function POST(request: Request) {
       .update(streams)
       .set({ status: "live", startedAt: stream.startedAt ?? new Date(), endedAt: null, updatedAt: new Date() })
       .where(eq(streams.id, stream.id));
+    // Une seule annonce par allumage : le hook `ready` repasse à chaque
+    // reconnexion de la source, et un abonné ne veut pas dix notifications.
+    if (stream.status !== "live") {
+      const { prevenirLesAbonnes } = await import("@/lib/suivis");
+      await prevenirLesAbonnes(stream).catch(() => 0);
+    }
   } else if (event === "notready") {
     await db
       .update(streams)
