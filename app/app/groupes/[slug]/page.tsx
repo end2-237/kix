@@ -6,7 +6,9 @@ import { InviterAuGroupe } from "@/components/joueur/InviterAuGroupe";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ChevronLeftIcon, PinIcon } from "@/components/icons";
-import { amisInvitables, getGroupe, membresDuGroupe } from "@/lib/bande";
+import { amisInvitables, demandesDuGroupe, getGroupe, membresDuGroupe } from "@/lib/bande";
+import { PORTES } from "@/lib/groupes";
+import { Demandes } from "@/components/joueur/Demandes";
 import { getVenues } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
 
@@ -24,16 +26,18 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
   if (!lu) notFound();
 
   const { crew, venue } = lu;
-  const [membres, salles, invitables] = await Promise.all([
+  const [membres, salles, invitables, demandes] = await Promise.all([
     membresDuGroupe(crew.id),
     getVenues(),
     amisInvitables(moi.id, crew.id),
+    crew.ownerId === moi.id ? demandesDuGroupe(crew.id) : Promise.resolve([]),
   ]);
 
   const dedans = membres.filter((m) => m.membre.status === "membre");
   const attendus = membres.filter((m) => m.membre.status === "invite");
   const suisMembre = dedans.some((m) => m.user.id === moi.id);
   const suisInvite = attendus.some((m) => m.user.id === moi.id);
+  const maDemande = membres.some((m) => m.user.id === moi.id && m.membre.status === "demande");
   const suisChef = crew.ownerId === moi.id;
 
   return (
@@ -81,8 +85,33 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
 
         {crew.devise ? <p className="text-[13.5px] text-pretty italic">« {crew.devise} »</p> : null}
 
+        <div className="flex flex-wrap items-center gap-2 text-[11.5px]">
+          <span className="rounded-full border border-line px-2.5 py-0.5 text-muted">
+            {PORTES[crew.access]?.nom ?? "Ouvert à tous"}
+          </span>
+          {/* Le lien de la communauté n'est montré qu'aux membres : c'est la
+              porte dérobée d'une bande, pas une annonce publique. */}
+          {crew.lien && (suisMembre || suisChef) ? (
+            <a
+              href={crew.lien}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="press rounded-full border border-jade/40 bg-jade/12 px-2.5 py-0.5 text-jade-text"
+            >
+              Rejoindre la discussion ↗
+            </a>
+          ) : null}
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
-          <BoutonGroupe crewId={crew.id} membre={suisMembre} chef={suisChef} invite={suisInvite} />
+          <BoutonGroupe
+            crewId={crew.id}
+            membre={suisMembre}
+            chef={suisChef}
+            invite={suisInvite}
+            porte={crew.access}
+            demande={maDemande}
+          />
           {suisMembre || suisChef ? (
             <InviterAuGroupe crewId={crew.id} nomDuGroupe={crew.name} amis={invitables} />
           ) : null}
@@ -95,6 +124,8 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
                 image: crew.image,
                 devise: crew.devise,
                 venueId: crew.venueId,
+                access: crew.access,
+                lien: crew.lien,
               }}
             />
           ) : null}
@@ -102,6 +133,10 @@ export default async function FicheGroupe({ params }: { params: Promise<{ slug: 
 
         {suisChef ? <SupprimerGroupe crewId={crew.id} nom={crew.name} membres={dedans.length} /> : null}
       </Card>
+
+      {suisChef && demandes.length > 0 ? (
+        <Demandes crewId={crew.id} demandes={demandes.map((d) => ({ id: d.id, name: d.name, avatar: d.avatar, points: d.points }))} />
+      ) : null}
 
       <section className="flex flex-col gap-2.5">
         <h2 className="text-[15px] font-semibold">La bande</h2>

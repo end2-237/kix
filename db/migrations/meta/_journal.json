@@ -281,6 +281,13 @@
       "when": 1790371043055,
       "tag": "0039_defis_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790387830058,
+      "tag": "0040_porte-du-groupe",
+      "breakpoints": true
     }
   ]
 }

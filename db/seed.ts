@@ -1099,7 +1099,17 @@ for (const duel of await duelsDePoule(db, aPoules)) {
    Deux bandes, pour que la page ne s'ouvre pas sur un écran vide : celle
    d'Ariel, et une autre où il n'est pas — on doit voir les deux cas. */
 
-const bandes = [
+const bandes: {
+  id: string;
+  slug: string;
+  name: string;
+  devise: string;
+  ownerId: string;
+  venueId: string;
+  access?: string;
+  lien?: string;
+  membres: { id: string }[];
+}[] = [
   {
     id: uid(),
     slug: "les-requins-akwa",
@@ -1116,6 +1126,10 @@ const bandes = [
     devise: "La dernière table éteinte.",
     ownerId: others[1].id,
     venueId: zenith.id,
+    // Sur approbation : le chef trie ses entrées, et l'écran des demandes a
+    // quelque chose à montrer dès le premier démarrage.
+    access: "approbation",
+    lien: "https://chat.whatsapp.com/nuit-blanche-demo",
     membres: [others[1], ...vivier.slice(3, 6)],
   },
 ];
@@ -1129,6 +1143,8 @@ for (const bande of bandes) {
     devise: bande.devise,
     ownerId: bande.ownerId,
     venueId: bande.venueId,
+    access: bande.access ?? "ouvert",
+    lien: bande.lien ?? "",
   });
   await db.insert(crewMembers).values(
     bande.membres.map((m) => ({

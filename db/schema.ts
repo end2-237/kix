@@ -1133,6 +1133,23 @@ export const crews = mb.table("crews", {
     .references(() => users.id, { onDelete: "cascade" }),
   /** La salle où la bande se retrouve, quand elle en a une. */
   venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+  /**
+   * Qui peut entrer : `ouvert` (on se sert), `approbation` (le chef tranche),
+   * `invitation` (on n'entre que si l'on est invité).
+   *
+   * Sans ce réglage, n'importe qui touchait « Rejoindre » et se retrouvait
+   * dans la bande — une porte sans serrure. Le défaut reste ouvert, parce que
+   * c'est ainsi que les groupes existants fonctionnaient.
+   */
+  access: text("access").notNull().default("ouvert"),
+  /**
+   * Le lien de la communauté — WhatsApp, Telegram, ce que la bande utilise.
+   *
+   * Une bande de billard vit d'abord dans un groupe de discussion : le lui
+   * refuser, c'est l'obliger à se coordonner ailleurs et à oublier
+   * l'application.
+   */
+  lien: text("lien").notNull().default(""),
   createdAt: createdAt(),
 });
 
@@ -1148,7 +1165,7 @@ export const crewMembers = mb.table(
       .references(() => users.id, { onDelete: "cascade" }),
     // chef | membre
     role: text("role").notNull().default("membre"),
-    // invite | membre | parti
+    // invite | demande | membre | parti
     status: text("status").notNull().default("membre"),
     createdAt: createdAt(),
   },

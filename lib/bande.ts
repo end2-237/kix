@@ -1,4 +1,5 @@
 import "server-only";
+export { PORTES, PORTES_OPTIONS } from "@/lib/groupes";
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import {
   crewMembers,
@@ -101,6 +102,16 @@ export async function amisInvitables(userId: string, crewId: string) {
     .select({ id: users.id, name: users.name, avatar: users.avatar, code: users.code })
     .from(users)
     .where(inArray(users.id, restants))
+    .orderBy(users.name);
+}
+
+/** Les demandes d'entrée qui attendent le chef. */
+export async function demandesDuGroupe(crewId: string) {
+  return db
+    .select({ id: users.id, name: users.name, avatar: users.avatar, code: users.code, points: users.points })
+    .from(crewMembers)
+    .innerJoin(users, eq(users.id, crewMembers.userId))
+    .where(and(eq(crewMembers.crewId, crewId), eq(crewMembers.status, "demande")))
     .orderBy(users.name);
 }
 

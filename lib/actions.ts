@@ -3062,6 +3062,14 @@ export async function modifierGroupe(formData: FormData) {
   if (!groupe) return { ok: false as const, error: "Groupe introuvable." };
   if (groupe.ownerId !== moi.id) return { ok: false as const, error: "Seul le chef peut modifier le groupe." };
 
+  // La porte et le lien de communauté ne se règlent que d'ici, donc par le
+  // chef : ce sont les deux réglages qui engagent la bande entière.
+  const porte = str(formData, "access");
+  const lien = str(formData, "lien").slice(0, 300);
+  // Une adresse, rien d'autre : un `javascript:` dans un lien qu'on met sous
+  // le doigt de tous les membres n'a rien à faire ici.
+  const lienPropre = !lien || /^https?:\/\/\S+$/i.test(lien) ? lien : groupe.lien;
+
   await db
     .update(crews)
     .set({
@@ -3069,6 +3077,8 @@ export async function modifierGroupe(formData: FormData) {
       image: str(formData, "image"),
       devise: str(formData, "devise").slice(0, 120),
       venueId: str(formData, "venueId") || null,
+      access: ["ouvert", "approbation", "invitation"].includes(porte) ? porte : groupe.access,
+      lien: lienPropre,
     })
     .where(eq(crews.id, id));
 
@@ -3098,19 +3108,67 @@ export async function rejoindreGroupe(crewId: string, partir = false) {
         .where(and(eq(crewMembers.crewId, crewId), eq(crewMembers.userId, moi.id)))
         .limit(1)
     )[0];
-    if (deja) await db.update(crewMembers).set({ status: "membre" }).where(eq(crewMembers.id, deja.id));
-    else await db.insert(crewMembers).values({ id: uid(), crewId, userId: moi.id, status: "membre" });
+    // Une invitation déjà reçue vaut passage, quelle que soit la porte : le
+    // groupe a déjà dit oui. Sinon, c'est la porte qui décide.
+    const invite = deja?.status === "invite";
+    if (!invite && groupe.access === "invitation") {
+      return { ok: false as const, error: "Cette bande n'entre que sur invitation." };
+    }
+
+    const entre = invite || groupe.access === "ouvert";
+    const statut = entre ? "membre" : "demande";
+
+    if (deja) await db.update(crewMembers).set({ status: statut }).where(eq(crewMembers.id, deja.id));
+    else await db.insert(crewMembers).values({ id: uid(), crewId, userId: moi.id, status: statut });
 
     if (groupe.ownerId !== moi.id) {
       await notify(
         groupe.ownerId,
-        `${moi.name} rejoint ${groupe.name}`,
-        "Un joueur de plus dans la bande.",
+        entre ? `${moi.name} rejoint ${groupe.name}` : `${moi.name} demande à entrer`,
+        entre ? "Un joueur de plus dans la bande." : "À toi d'accepter ou de refuser.",
         "system",
         `/app/groupes/${groupe.slug}`,
       );
     }
   }
+
+  revalidatePath("/app/groupes");
+  revalidatePath(`/app/groupes/${groupe.slug}`);
+  return { ok: true as const };
+}
+
+/**
+ * Le chef tranche une demande d'entrée.
+ *
+ * Refuser efface la ligne plutôt que de la marquer : une demande repoussée ne
+ * doit pas rester affichée comme une dette, et le joueur peut redemander plus
+ * tard s'il le veut.
+ */
+export async function repondreDemande(crewId: string, userId: string, oui: boolean) {
+  const moi = await requireUser();
+  const groupe = (await db.select().from(crews).where(eq(crews.id, crewId)).limit(1))[0];
+  if (!groupe) return { ok: false as const, error: "Groupe introuvable." };
+  if (groupe.ownerId !== moi.id) return { ok: false as const, error: "Seul le chef répond aux demandes." };
+
+  const ligne = (
+    await db
+      .select()
+      .from(crewMembers)
+      .where(and(eq(crewMembers.crewId, crewId), eq(crewMembers.userId, userId)))
+      .limit(1)
+  )[0];
+  if (!ligne || ligne.status !== "demande") return { ok: false as const, error: "Aucune demande en cours." };
+
+  if (oui) await db.update(crewMembers).set({ status: "membre" }).where(eq(crewMembers.id, ligne.id));
+  else await db.delete(crewMembers).where(eq(crewMembers.id, ligne.id));
+
+  await notify(
+    userId,
+    oui ? `Bienvenue dans ${groupe.name}` : `${groupe.name} a décliné`,
+    oui ? "Le chef t'a ouvert la porte." : "Ce sera peut-être pour une autre fois.",
+    "system",
+    oui ? `/app/groupes/${groupe.slug}` : "/app/groupes",
+  );
 
   revalidatePath("/app/groupes");
   revalidatePath(`/app/groupes/${groupe.slug}`);

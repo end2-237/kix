@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { CheckIcon, PlusIcon } from "@/components/icons";
 import { creerGroupe, modifierGroupe, rejoindreGroupe, repondreGroupe, supprimerGroupe } from "@/lib/actions";
+import { PORTES_OPTIONS } from "@/lib/groupes";
 import { ChampImage } from "@/components/joueur/ChampImage";
 
 export type SalleChoix = { id: string; name: string };
@@ -23,7 +24,15 @@ export function FormulaireGroupe({
   groupe,
 }: {
   salles: SalleChoix[];
-  groupe?: { id: string; name: string; image: string; devise: string; venueId: string | null };
+  groupe?: {
+    id: string;
+    name: string;
+    image: string;
+    devise: string;
+    venueId: string | null;
+    access: string;
+    lien: string;
+  };
 }) {
   const router = useRouter();
   const { notify } = useSnackbar();
@@ -109,6 +118,45 @@ export function FormulaireGroupe({
             </select>
           </label>
 
+          {/* Deux réglages qui engagent la bande entière, et que seul le chef
+              voit : qui peut entrer, et où la bande discute. */}
+          {groupe ? (
+            <>
+              <label className="flex flex-col gap-1.5">
+                <span className="label-caps text-[10px]">Qui peut entrer</span>
+                <select
+                  name="access"
+                  defaultValue={groupe.access}
+                  className="h-11 rounded-full border border-line bg-surface px-4 text-[13.5px] text-ink"
+                >
+                  {PORTES_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11.5px] text-muted">
+                  Ouvert : on se sert. Sur approbation : tu tranches. Sur invitation : porte close.
+                </span>
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="label-caps text-[10px]">Lien de la communauté</span>
+                <input
+                  name="lien"
+                  defaultValue={groupe.lien}
+                  maxLength={300}
+                  inputMode="url"
+                  placeholder="https://chat.whatsapp.com/…"
+                  className="h-11 rounded-full border border-line bg-surface px-4 text-[13.5px] text-ink placeholder:text-faint"
+                />
+                <span className="text-[11.5px] text-muted">
+                  Le groupe WhatsApp ou Telegram de la bande. Les membres le verront sur cette page.
+                </span>
+              </label>
+            </>
+          ) : null}
+
           {erreur ? <p className="text-[12.5px] text-warn">{erreur}</p> : null}
 
           <button
@@ -131,11 +179,17 @@ export function BoutonGroupe({
   membre,
   chef,
   invite = false,
+  porte = "ouvert",
+  demande = false,
 }: {
   crewId: string;
   membre: boolean;
   chef: boolean;
   invite?: boolean;
+  /** ouvert | approbation | invitation — ce que le chef a décidé. */
+  porte?: string;
+  /** Ma demande d'entrée attend déjà sa réponse. */
+  demande?: boolean;
 }) {
   const router = useRouter();
   const { notify } = useSnackbar();
@@ -183,6 +237,25 @@ export function BoutonGroupe({
     );
   }
 
+  // Une demande déposée attend : montrer « Rejoindre » laisserait croire qu'il
+  // reste un geste à faire.
+  if (demande) {
+    return (
+      <span className="flex h-11 items-center justify-center rounded-full border border-line px-4 text-[13px] text-muted">
+        Demande envoyée
+      </span>
+    );
+  }
+
+  // Porte close : on le dit, plutôt qu'un bouton qui refuserait.
+  if (!membre && porte === "invitation") {
+    return (
+      <span className="flex h-11 items-center justify-center rounded-full border border-dashed border-line px-4 text-[12.5px] text-muted">
+        Sur invitation seulement
+      </span>
+    );
+  }
+
   return (
     <button
       onClick={() =>
@@ -190,9 +263,14 @@ export function BoutonGroupe({
           const res = await rejoindreGroupe(crewId, membre);
           if (!res.ok) notify("Impossible", { detail: res.error, tone: "warn" });
           else {
-            notify(membre ? "Tu as quitté le groupe" : "Bienvenue dans la bande", {
-              tone: membre ? undefined : "jade",
-            });
+            notify(
+              membre
+                ? "Tu as quitté le groupe"
+                : porte === "approbation"
+                  ? "Demande envoyée au chef"
+                  : "Bienvenue dans la bande",
+              { tone: membre ? undefined : "jade" },
+            );
             router.refresh();
           }
         })
@@ -205,7 +283,7 @@ export function BoutonGroupe({
       }
     >
       {pending ? <Spinner size={15} /> : null}
-      {membre ? "Quitter le groupe" : "Rejoindre"}
+      {membre ? "Quitter le groupe" : porte === "approbation" ? "Demander à entrer" : "Rejoindre"}
     </button>
   );
 }
