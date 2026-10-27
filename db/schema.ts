@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import type { Vitrine } from "../lib/vitrine";
 import type { Cagnotte } from "../lib/cagnottes";
 import {
+  doublePrecision,
   type AnyPgColumn,
   boolean,
   index,
@@ -42,6 +43,13 @@ export const venues = mb.table("venues", {
   tokenPrice: integer("token_price").notNull().default(400),
   distanceKm: real("distance_km").notNull().default(0),
   image: text("image").notNull().default("/img/hall-dark.jpg"),
+  /**
+   * La position GPS de la salle, posée par l'administration ou le gérant.
+   * Nulles tant qu'elle n'est pas renseignée : la salle n'apparaît alors pas
+   * sur la carte, et on ne peut pas y signaler sa présence à distance.
+   */
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
   /** La salle autorise les joueurs à tenir eux-mêmes la feuille de match. */
   selfScoring: boolean("self_scoring").notNull().default(false),
   active: boolean("active").notNull().default(true),
@@ -1411,6 +1419,32 @@ export const invitations = mb.table(
   (t) => [index("invitations_to_idx").on(t.toId), index("invitations_batch_idx").on(t.batchId)],
 );
 
+/**
+ * « Je suis à la salle. »
+ *
+ * Le joueur le dit lui-même, sur place (sa position est comparée à celle de
+ * la salle). La présence s'éteint seule au bout de quelques heures, ou quand
+ * il dit qu'il part : personne n'apparaît « présent » sans l'avoir voulu.
+ */
+export const presences = mb.table(
+  "presences",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    venueId: uuid("venue_id")
+      .notNull()
+      .references(() => venues.id, { onDelete: "cascade" }),
+    /** Distance mesurée à l'arrivée, en mètres ; nulle si la salle n'a pas de position. */
+    distanceM: integer("distance_m"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("presences_venue_idx").on(t.venueId, t.expiresAt), index("presences_user_idx").on(t.userId)],
+);
+
+export type Presence = typeof presences.$inferSelect;
 export type Screen = typeof screens.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type User = typeof users.$inferSelect;
