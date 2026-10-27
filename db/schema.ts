@@ -816,6 +816,12 @@ export const matches = mb.table(
     /** Mise du défi, en francs — 0 pour un match amical. */
     stake: integer("stake").notNull().default(0),
     label: text("label").notNull().default("Amical"),
+    /**
+     * La manche de 8-ball en cours, coup par coup (lib/huit.ts) : casse,
+     * groupes, billes empochées, bille en main — plus une courte pile pour
+     * annuler le dernier coup. Vide tant que l'arbitre ne s'en sert pas.
+     */
+    etat8: jsonb("etat8").notNull().default({}),
     startsAt: timestamp("starts_at", { withTimezone: true }),
     startedAt: timestamp("started_at", { withTimezone: true }),
     endedAt: timestamp("ended_at", { withTimezone: true }),
