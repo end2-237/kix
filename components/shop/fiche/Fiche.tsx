@@ -184,22 +184,22 @@ export function Fiche({
         <span className="text-[15px] font-extrabold text-[#b9893b] tabular-nums">{f(prix)}</span>
       </div>
 
-      <div className="flex items-center justify-between">
-        <Link href="/app/shop" aria-label="Retour à la boutique" className="press grid h-10 w-10 place-items-center rounded-full border border-[#d8d2c3]">
+      {/* En-tête compact : la place va à la photo. */}
+      <div className="flex items-center justify-between gap-3">
+        <Link href="/app/shop" aria-label="Retour à la boutique" className="press grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#d8d2c3]">
           <ChevronLeftIcon size={18} />
         </Link>
-        <Link href="/app/panier" aria-label="Panier" className="press relative grid h-10 w-10 place-items-center rounded-full border border-[#d8d2c3]">
+        <span className="flex min-w-0 flex-col items-center leading-none">
+          <span className="text-[20px] font-extrabold tracking-[-0.01em] uppercase lg:text-[30px]">{rayon}</span>
+          <Link href="/app/shop" className="mt-1 text-[11px] text-[#b9893b]">
+            voir le rayon
+          </Link>
+        </span>
+        <Link href="/app/panier" aria-label="Panier" className="press relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#d8d2c3]">
           <CartIcon size={18} />
           {count > 0 ? (
             <span className="absolute -top-1 -right-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#e0b43a] px-1 text-[10px] font-extrabold text-[#1a1405]">{count}</span>
           ) : null}
-        </Link>
-      </div>
-
-      <div className="mt-3 flex items-baseline justify-between">
-        <span className="text-[28px] leading-none font-extrabold tracking-[-0.01em] uppercase lg:text-[36px]">{rayon}</span>
-        <Link href="/app/shop" className="text-[12px] text-[#b9893b]">
-          voir le rayon
         </Link>
       </div>
 
@@ -369,32 +369,34 @@ function Tiroir({ ouvert, onOuvert, children }: { ouvert: boolean; onOuvert: (v:
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[430px] md:max-w-[46rem] lg:hidden">
+      {/* Le menu déroulé a la largeur et la hauteur du bouton d'achat, juste
+          au-dessus de lui ; la bulle reste posée sur son extrémité droite. */}
+      {menu ? (
+        <nav
+          aria-label="Navigation"
+          className="absolute inset-x-4 z-10 flex h-14 origin-right items-center justify-between rounded-full border-[1.5px] border-[#e0b43a] bg-[#0e1512] pl-3 shadow-[0_10px_24px_rgba(0,0,0,.3)] motion-safe:animate-[mb-menu_.3s_cubic-bezier(.2,.8,.3,1)_both]"
+          style={{ top: -28, paddingRight: 24 + BULLE - 16 + 8 }}
+        >
+          {MENU.map(({ href, label, Icon, qr }) =>
+            qr ? (
+              <Link key={href} href={href} aria-label="Mon Master Pass" className="press grid h-10 w-10 place-items-center rounded-full bg-[#e0b43a] text-[#1a1405]">
+                <Icon size={20} />
+              </Link>
+            ) : (
+              <Link
+                key={href}
+                href={href}
+                className={cn("press flex w-11 flex-col items-center gap-0.5 text-[9.5px]", href === "/app/shop" ? "text-[#e0b43a]" : "text-[#9fb0a6]")}
+              >
+                <Icon size={19} />
+                {label}
+              </Link>
+            ),
+          )}
+        </nav>
+      ) : null}
       {/* La bulle vit au-dessus du bord du tiroir : elle monte et descend avec lui. */}
-      <div className="absolute right-6 z-10 motion-safe:animate-[mb-bulle_.45s_.12s_cubic-bezier(.2,.8,.3,1.2)_both]" style={{ top: -BULLE / 2 }}>
-        {menu ? (
-          <nav
-            aria-label="Navigation"
-            className="absolute right-[-7px] flex h-[58px] origin-right items-center gap-1 rounded-full border-[1.5px] border-[#e0b43a] bg-[#0e1512] pl-3 shadow-[0_10px_24px_rgba(0,0,0,.3)] motion-safe:animate-[mb-menu_.3s_cubic-bezier(.2,.8,.3,1)_both]"
-            style={{ paddingRight: BULLE + 14, top: (BULLE - 58) / 2 }}
-          >
-            {MENU.map(({ href, label, Icon, qr }) =>
-              qr ? (
-                <Link key={href} href={href} aria-label="Mon Master Pass" className="press mx-1 grid h-10 w-10 place-items-center rounded-full bg-[#e0b43a] text-[#1a1405]">
-                  <Icon size={20} />
-                </Link>
-              ) : (
-                <Link
-                  key={href}
-                  href={href}
-                  className={cn("press flex w-12 flex-col items-center gap-0.5 text-[9.5px]", href === "/app/shop" ? "text-[#e0b43a]" : "text-[#9fb0a6]")}
-                >
-                  <Icon size={19} />
-                  {label}
-                </Link>
-              ),
-            )}
-          </nav>
-        ) : null}
+      <div className="absolute right-6 z-20 motion-safe:animate-[mb-bulle_.45s_.12s_cubic-bezier(.2,.8,.3,1.2)_both]" style={{ top: -BULLE / 2 }}>
         {/* La bulle reste dans son encoche : fermée, c'est le logo ; ouverte, la croix. */}
         <button
           type="button"

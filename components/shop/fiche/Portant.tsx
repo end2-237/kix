@@ -65,8 +65,8 @@ export function Portant({
   return (
     <div className="flex flex-col">
       {n > 1 ? (
-        <div className="relative -mx-1 h-[86px] overflow-x-auto overflow-y-hidden px-1 [scrollbar-width:none]">
-          <div className="relative h-full" style={{ width: Math.max(n * 58, 0) }}>
+        <div className="relative -mx-1 h-[74px] overflow-x-auto overflow-y-hidden px-1 [scrollbar-width:none]">
+          <div className="relative h-full" style={{ width: Math.max(n * 48, 0) }}>
             <span className="absolute inset-x-0 top-2.5 h-1 rounded-full bg-gradient-to-b from-[#d3ccbc] to-[#b7af9d]" />
             {photos.map((url, i) => {
               const on = i === index;
@@ -78,14 +78,14 @@ export function Portant({
                   aria-pressed={on}
                   onClick={() => onIndex(i)}
                   className="absolute top-2 flex flex-col items-center transition-all duration-300"
-                  style={{ left: i * 58 }}
+                  style={{ left: i * 48 }}
                 >
                   <span className={cn("h-2.5 w-3 rounded-t-full border-2 border-b-0", on ? "border-[#b9893b]" : "border-[#a89f8b]")} />
-                  <span className={cn("w-0.5 transition-all duration-300", on ? "h-5 bg-[#b9893b]" : "h-3 bg-[#a89f8b]")} />
+                  <span className={cn("w-0.5 transition-all duration-300", on ? "h-3.5 bg-[#b9893b]" : "h-2 bg-[#a89f8b]")} />
                   <span
                     className={cn(
                       "relative overflow-hidden rounded-[10px] border-2 shadow-[0_4px_10px_rgba(0,0,0,.15)] transition-all duration-300",
-                      on ? "h-12 w-12 border-[#e0b43a]" : "h-10 w-10 border-white",
+                      on ? "h-10 w-10 border-[#e0b43a]" : "h-8 w-8 border-white",
                     )}
                   >
                     <Photo src={url} alt="" fill sizes="48px" className="object-cover" />
@@ -97,7 +97,7 @@ export function Portant({
         </div>
       ) : null}
 
-      <div className="relative mt-1 aspect-[4/3.4] w-full select-none lg:aspect-[4/3.6]">
+      <div className="relative mt-1 aspect-[4/4.7] w-full select-none lg:aspect-[4/4.2]">
         {suivantes
           .slice()
           .reverse()
