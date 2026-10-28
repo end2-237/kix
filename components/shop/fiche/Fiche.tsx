@@ -241,20 +241,39 @@ export function Fiche({
             </div>
           ) : null}
 
-          <div ref={repere} className="mt-3.5 flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-[19px] leading-[1.15] font-extrabold lg:text-[28px]">{produit.name}</h1>
-              {avis.total > 0 ? (
-                <a href="#avis" className="mt-1.5 flex items-center gap-1.5 text-[11.5px] font-bold text-[#b9893b]">
-                  <Etoiles note={avis.moyenne} taille={11} /> {avis.moyenne.toLocaleString("fr-FR")} · {avis.total} avis
-                </a>
-              ) : null}
+          {/* Le nom sur toute la largeur ; le prix face à la note et à l'accroche,
+              pour qu'il n'y ait pas de vide sous lui ; puis les infos qui
+              décident l'achat (stock, livraison, retrait). */}
+          <div ref={repere} className="mt-3">
+            <h1 className="text-[21px] leading-[1.12] font-extrabold lg:text-[30px]">{produit.name}</h1>
+            <div className="mt-1.5 flex items-end justify-between gap-4">
+              <div className="flex min-w-0 flex-col gap-1">
+                {avis.total > 0 ? (
+                  <a href="#avis" className="flex items-center gap-1.5 text-[11.5px] font-bold text-[#b9893b]">
+                    <Etoiles note={avis.moyenne} taille={11} /> {avis.moyenne.toLocaleString("fr-FR")} · {avis.total} avis
+                  </a>
+                ) : (
+                  <span className="text-[11.5px] text-[#8a8f8b]">Pas encore d&apos;avis</span>
+                )}
+                {produit.detail ? <p className="line-clamp-2 text-[12.5px] leading-[1.35] text-[#58605b]">{produit.detail}</p> : null}
+              </div>
+              <span className="shrink-0 text-[32px] leading-none font-extrabold tracking-[-0.02em] whitespace-nowrap text-[#b9893b] tabular-nums lg:text-[44px]">
+                {f(prix)}
+              </span>
             </div>
-            <span className="shrink-0 text-[34px] leading-none font-extrabold tracking-[-0.02em] whitespace-nowrap text-[#b9893b] tabular-nums lg:text-[44px]">
-              {f(prix)}
-            </span>
+            <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold">
+              <span className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-1.5", epuise ? "bg-[#fbe9e7] text-[#c9463d]" : "bg-[#e3f1e8] text-[#2f8f5b]")}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                {epuise ? "Rupture" : `${stock} en stock${choisie ? ` · ${choisie.name}` : ""}`}
+              </span>
+              <span className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1.5 text-[#3d4440]">
+                <TruckIcon size={13} /> Livré ce soir · {f(livraison)}
+              </span>
+              <span className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1.5 text-[#3d4440]">
+                <PinIcon size={13} /> Retrait 2 h
+              </span>
+            </div>
           </div>
-          {produit.detail ? <p className="mt-2 text-[13px] text-[#58605b]">{produit.detail}</p> : null}
 
           {/* Sur grand écran, pas de tiroir : les atouts et le bouton sont posés là. */}
           <div className="mt-6 hidden flex-col gap-5 rounded-[26px] bg-[#0e1512] p-6 text-[#f4efe2] lg:flex">
